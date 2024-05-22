@@ -39,5 +39,5 @@ def get_key_permission(id: int,
         models.Permission.room_id == id).all()
     if not perm:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"There is no one with permission to key number {K}")
+                            detail=f"There is no one with permission to key number {id}")
     return perm
