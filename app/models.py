@@ -5,25 +5,33 @@ from sqlalchemy.sql.sqltypes import TIMESTAMP
 import enum
 
 
-class KeyVersion(enum.Enum):
-    PODSTAWOWA = "podstawowa"
-    ZAPASOWA = "zapasowa"
-    OSTATECZNA = "ostateczna"
+class DeviceVersion(enum.Enum):
+    primary = "primary"
+    backup = "backup"
+    emergency = "emergency"
 
 
-class Key(Base):
-    __tablename__ = "keys"
+class DeviceType(enum.Enum):
+    key = "key"
+    microphone = "microphone"
+    remote_controler = "remote_controler"
+
+
+class devices(Base):
+    __tablename__ = "devices"
     id = Column(Integer, primary_key=True, nullable=False)
+    type = Column(Enum(DeviceType), nullable=False)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
-    is_taken = Column(Boolean, nullable=False)
+    is_taken = Column(Boolean, nullable=False, default=False)
     last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
     last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
     last_owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    version = Column(Enum(KeyVersion), nullable=False)
+    version = Column(Enum(DeviceVersion), nullable=False)
     owner = relationship("User")
     room = relationship("Room")
 
-    __table_args__ = (UniqueConstraint("room_id", "version", name="uix_1"),)
+    __table_args__ = (UniqueConstraint(
+        "type", "room_id", "version", name="uix_1"),)
 
 
 class UserRole(enum.Enum):
@@ -52,14 +60,14 @@ class Faculty(Base):
     __tablename__ = "faculties"
 
     id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(String, nullable=False)
+    name = Column(String, nullable=False, unique=True)
 
 
 class Room(Base):
     __tablename__ = "rooms"
 
     id = Column(Integer, primary_key=True, nullable=False)
-    number = Column(Integer, nullable=False)
+    number = Column(Integer, nullable=False, unique=True)
 
 
 class Permission(Base):

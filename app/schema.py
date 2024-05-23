@@ -47,19 +47,19 @@ class Room(BaseModel):
         from_attributes = True
 
 
-class KeyBase(BaseModel):
+class DeviceBase(BaseModel):
     version: str
     is_taken: bool
 
 
-class KeyCreate(KeyBase):
+class DeviceCreate(DeviceBase):
     room_id: int
 
     class Config:
         from_attributes = True
 
 
-class KeyOut(KeyBase):
+class DeviceOut(DeviceBase):
     id: int
     room: Room
     last_taken: Optional[datetime]
@@ -76,6 +76,13 @@ class RoomOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class PermissionCreate(BaseModel):
+    user_id: int
+    room_id: int
+    start_reservation: datetime
+    end_reservation: datetime
 
 
 class PermissionOut(BaseModel):
