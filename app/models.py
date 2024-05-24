@@ -49,11 +49,20 @@ class User(Base):
     name = Column(String, nullable=False)
     surname = Column(String, nullable=False)
     role = Column(Enum(UserRole), nullable=False)
-    faculty_id = Column(Integer, ForeignKey("faculties.id"), nullable=False)
+    faculty_id = Column(Integer, ForeignKey("faculties.id"), nullable=True)
     email = Column(String, nullable=False, unique=True)
     password = Column(String, nullable=False)
 
     faculty = relationship("Faculty")
+
+
+class UnauthorizedUsers(Base):
+    __tablename__ = "unauthorized_users"
+
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String, nullable=False)
+    surname = Column(String, nullable=False)
+    additional_info = Column(String, nullable=True)
 
 
 class Faculty(Base):

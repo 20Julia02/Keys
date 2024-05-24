@@ -1,7 +1,8 @@
-from fastapi import status, HTTPException, Depends, APIRouter
-from .. import schema, database, models, utils, oauth2
+from fastapi import status, Depends, APIRouter
+
+from ..schemas.device import DeviceCreate, DeviceOut
+from .. import database, models, utils, oauth2
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 
 router = APIRouter(
     prefix="/devices",
@@ -9,7 +10,7 @@ router = APIRouter(
 )
 
 
-@router.get("/{dev_type}/{id}", response_model=schema.DeviceOut)
+@router.get("/{dev_type}/{id}", response_model=DeviceOut)
 def get_dev(id: int,
             dev_type: str,
             current_user=Depends(oauth2.get_current_user),
@@ -20,8 +21,8 @@ def get_dev(id: int,
     return dev
 
 
-@router.post("/", response_model=schema.DeviceCreate, status_code=status.HTTP_201_CREATED)
-def create_device(device: schema.DeviceCreate,
+@router.post("/", response_model=DeviceCreate, status_code=status.HTTP_201_CREATED)
+def create_device(device: DeviceCreate,
                   db: Session = Depends(database.get_db),
                   current_user=Depends(oauth2.get_current_user)):
     utils.check_if_entitled("admin", current_user)

@@ -1,5 +1,7 @@
 from fastapi import status, Depends, APIRouter, Response
-from .. import schema, database, models, utils, oauth2
+
+from ..schemas.permission import PermissionOut, PermissionCreate
+from .. import database, models, utils, oauth2
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -9,7 +11,7 @@ router = APIRouter(
 )
 
 
-@router.get("/users/{id}", response_model=List[schema.PermissionOut])
+@router.get("/users/{id}", response_model=List[PermissionOut])
 def get_user_permission(id: int,
                         current_user=Depends(oauth2.get_current_user),
                         db: Session = Depends(database.get_db)):
@@ -23,7 +25,7 @@ def get_user_permission(id: int,
     return perm
 
 
-@router.get("/rooms/{id}", response_model=List[schema.PermissionOut])
+@router.get("/rooms/{id}", response_model=List[PermissionOut])
 def get_key_permission(id: int,
                        current_user=Depends(oauth2.get_current_user),
                        db: Session = Depends(database.get_db)):
@@ -38,9 +40,9 @@ def get_key_permission(id: int,
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED,
-             response_model=schema.PermissionOut)
+             response_model=PermissionOut)
 def add_permission(
-    permission: schema.PermissionCreate,
+    permission: PermissionCreate,
     db: Session = Depends(database.get_db),
     current_user: int = Depends(oauth2.get_current_user)
 ):
