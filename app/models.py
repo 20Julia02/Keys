@@ -3,6 +3,15 @@ from .database import Base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 import enum
+from sqlalchemy.sql.expression import text
+
+
+class TokenBlacklist(Base):
+    __tablename__ = 'token_blacklist'
+    id = Column(Integer, primary_key=True, nullable=False)
+    token = Column(String, unique=True, nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True),
+                        nullable=False, server_default=text('now()'))
 
 
 class DeviceVersion(enum.Enum):
@@ -22,7 +31,7 @@ class devices(Base):
     id = Column(Integer, primary_key=True, nullable=False)
     type = Column(Enum(DeviceType), nullable=False)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
-    is_taken = Column(Boolean, nullable=False, default=False)
+    is_taken = Column(Boolean, nullable=False, server_default="false")
     last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
     last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
     last_owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)

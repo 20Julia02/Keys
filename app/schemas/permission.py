@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from . import user, device
+from . import user, room
 
 
 class PermissionCreate(BaseModel):
@@ -12,7 +12,7 @@ class PermissionCreate(BaseModel):
 
 class PermissionOut(BaseModel):
     user: user.UserOut
-    room: device.RoomOut
+    room: room.RoomOut
     start_reservation: datetime
     end_reservation: datetime
 

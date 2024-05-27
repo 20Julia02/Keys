@@ -1,4 +1,4 @@
-from fastapi import status, Depends, APIRouter, Response
+from fastapi import status, Depends, APIRouter, Response, HTTPException
 
 from ..schemas.permission import PermissionOut, PermissionCreate
 from .. import database, models, utils, oauth2
@@ -17,11 +17,14 @@ def get_user_permission(id: int,
                         db: Session = Depends(database.get_db)):
     utils.check_if_entitled("concierge", current_user)
     user = db.query(models.User).filter(models.User.id == id).first()
-    utils.is_not_found(user, f"User with id: {id} doesn't exist")
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"User with id: {id} doesn't exist")
     perm = db.query(models.Permission).filter(
         models.Permission.user_id == id).all()
-    utils.is_not_found(
-        perm, f"There is no one with permission to key number {id}")
+    if perm is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"There is no one with permission to key number {id}")
     return perm
 
 
@@ -31,11 +34,14 @@ def get_key_permission(id: int,
                        db: Session = Depends(database.get_db)):
     utils.check_if_entitled("concierge", current_user)
     room = db.query(models.Room).filter(models.Room.id == id).first()
-    utils.is_not_found(room, f"Room with id: {id} doesn't exist")
+    if not room:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Room with id: {id} doesn't exist")
     perm = db.query(models.Permission).filter(
         models.Permission.room_id == id).all()
-    utils.is_not_found(
-        perm, f"There is no one with permission to key number {id}")
+    if perm is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"There is no one with permission to key number {id}")
     return perm
 
 
@@ -62,7 +68,9 @@ def remove_permission(
 ):
     utils.check_if_entitled("admin", current_user)
     perm = db.query(models.Permission).filter(models.Permission.id == id)
-    utils.is_not_found(perm.first(), f"There's no permission with the id {id}")
+    if perm is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"There's no permission with the id {id}")
     perm.delete(synchronize_session=False)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

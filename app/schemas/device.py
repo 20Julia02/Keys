@@ -1,25 +1,13 @@
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel
-
-
-class Room(BaseModel):
-    number: int
-
-    class Config:
-        from_attributes = True
-
-
-class RoomOut(BaseModel):
-    number: int
-
-    class Config:
-        from_attributes = True
+from .room import RoomOut
 
 
 class DeviceBase(BaseModel):
     version: str
     is_taken: bool
+    type: str
 
 
 class DeviceCreate(DeviceBase):
@@ -31,7 +19,7 @@ class DeviceCreate(DeviceBase):
 
 class DeviceOut(DeviceBase):
     id: int
-    room: Room
+    room: RoomOut
     last_taken: Optional[datetime]
     last_returned: Optional[datetime]
     # TODO
