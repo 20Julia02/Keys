@@ -7,6 +7,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from .config import settings
+from .utils import is_token_blacklisted
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
 
@@ -59,11 +60,18 @@ def verify_token(token: str, credentials_exeption):
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db)):
     credentials_exeption = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                          detail="Could not validate credentials",
-                                         headers={"WWW-Authebticate": "Bearer"})
-
+                                         headers={"Authenticate": "Bearer"})
+    if is_token_blacklisted(db, token):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="You are logged out")
     tokenOut = verify_token(token, credentials_exeption)
 
     user = db.query(models.User).filter(models.User.id ==
                                         tokenOut.id, models.User.role == tokenOut.role).first()
 
     return user
+
+
+def get_current_user_token(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db)):
+    _ = get_current_user(token, db)
+    return token

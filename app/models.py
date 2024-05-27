@@ -85,7 +85,7 @@ class Room(Base):
     __tablename__ = "rooms"
 
     id = Column(Integer, primary_key=True, nullable=False)
-    number = Column(Integer, nullable=False, unique=True)
+    number = Column(String, nullable=False, unique=True)
 
 
 class Permission(Base):

@@ -10,7 +10,7 @@ class Token(BaseModel):
         from_attributes = True
 
 
-class RefreshToken(Token):
+class CreateRefreshToken(Token):
     refresh_token: str
 
 

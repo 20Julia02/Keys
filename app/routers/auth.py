@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
+from fastapi.responses import JSONResponse
 
-from ..schemas.token import Token, RefreshToken
+from ..schemas.token import Token, CreateRefreshToken
 from .. import database, models, utils, oauth2
 from ..utils import add_token_to_blacklist
 
@@ -11,7 +12,7 @@ router = APIRouter(
 )
 
 
-@router.post("/login", response_model=RefreshToken)
+@router.post("/login", response_model=CreateRefreshToken)
 def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
 
     user = db.query(models.User).filter(
@@ -43,6 +44,8 @@ def refresh_token(refresh_token: str, db: Session = Depends(database.get_db)):
 
 
 @router.post("/logout")
-async def logout(token: str = Depends(oauth2.oauth2_scheme), db: Session = Depends(database.get_db)):
-    add_token_to_blacklist(db, token)
-    return {"message": "Successfully logged out"}
+async def logout(token: str = Depends(oauth2.get_current_user_token), db: Session = Depends(database.get_db)):
+    if add_token_to_blacklist(db, token):
+        return JSONResponse({'result': True})
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                        detail="You are logged out")

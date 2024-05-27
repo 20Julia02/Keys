@@ -24,6 +24,7 @@ def add_token_to_blacklist(db: Session, token: str):
     db_token = TokenBlacklist(token=token)
     db.add(db_token)
     db.commit()
+    return True
 
 
 def is_token_blacklisted(db: Session, token: str):

@@ -2,7 +2,8 @@ from pydantic import BaseModel
 
 
 class RoomOut(BaseModel):
-    number: int
+    id: int
+    number: str
 
     class Config:
         from_attributes = True
