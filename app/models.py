@@ -10,8 +10,8 @@ class TokenBlacklist(Base):
     __tablename__ = 'token_blacklist'
     id = Column(Integer, primary_key=True, nullable=False)
     token = Column(String, unique=True, nullable=False)
-    created_at = Column(TIMESTAMP(timezone=True),
-                        nullable=False, server_default=text('now()'))
+    blacklisted_at = Column(TIMESTAMP(timezone=True),
+                            nullable=False, server_default=text('now()'))
 
 
 class DeviceVersion(enum.Enum):
