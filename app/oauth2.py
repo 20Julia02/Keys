@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from .config import settings
 from .utils import is_token_blacklisted
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login/concierge')
 
 SECRET_KEY = settings.secret_key
 ALGORITHM = settings.algorithm

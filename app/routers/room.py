@@ -11,10 +11,11 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[RoomOut])
-def get_all_users(current_user=Depends(oauth2.get_current_user),
+def get_all_rooms(current_user=Depends(oauth2.get_current_user),
+                  number: str = "",
                   db: Session = Depends(database.get_db)):
     utils.check_if_entitled("admin", current_user)
-    room = db.query(models.Room).all()
+    room = db.query(models.Room).filter(models.Room.number == number).all()
     if room is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="There is no room in database")
@@ -22,7 +23,7 @@ def get_all_users(current_user=Depends(oauth2.get_current_user),
 
 
 @router.get("/{id}", response_model=RoomOut)
-def get_user(id: int,
+def get_room(id: int,
              current_user=Depends(oauth2.get_current_user),
              db: Session = Depends(database.get_db)):
     utils.check_if_entitled("admin", current_user)

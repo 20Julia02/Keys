@@ -35,11 +35,11 @@ def get_user(id: int,
 
 @router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_user(user: UserCreate,
-                db: Session = Depends(database.get_db),
-                current_user=Depends(oauth2.get_current_user)):
-    utils.check_if_entitled("admin", current_user)
+                db: Session = Depends(database.get_db)):
     hashed_password = utils.hash(user.password)
+    hashed_card_code = utils.hash(user.card_code)
     user.password = hashed_password
+    user.card_code = hashed_card_code
     new_user = models.User(**user.model_dump())
     db.add(new_user)
     db.commit()

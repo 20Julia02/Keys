@@ -1,11 +1,8 @@
 from pydantic import BaseModel, EmailStr
 
 
-class Faculty(BaseModel):
-    name: str
-
-    class Config:
-        orm_mode = True
+class CardLogin(BaseModel):
+    card_id: str
 
 
 class UserBase(BaseModel):
@@ -17,12 +14,13 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     email: EmailStr
     password: str
-    faculty_id: int
+    faculty: str
+    card_code: str
 
 
 class UserOut(UserBase):
     id: int
-    faculty: Faculty
+    faculty: str
 
     class Config:
         from_attributes = True

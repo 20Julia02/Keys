@@ -26,7 +26,7 @@ class DeviceType(enum.Enum):
     remote_controler = "remote_controler"
 
 
-class devices(Base):
+class Devices(Base):
     __tablename__ = "devices"
     id = Column(Integer, primary_key=True, nullable=False)
     type = Column(Enum(DeviceType), nullable=False)
@@ -36,6 +36,7 @@ class devices(Base):
     last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
     last_owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     version = Column(Enum(DeviceVersion), nullable=False)
+    code = Column(String, unique=True, nullable=False)
     owner = relationship("User")
     room = relationship("Room")
 
@@ -58,11 +59,12 @@ class User(Base):
     name = Column(String, nullable=False)
     surname = Column(String, nullable=False)
     role = Column(Enum(UserRole), nullable=False)
-    faculty_id = Column(Integer, ForeignKey("faculties.id"), nullable=True)
+    faculty = Column(String, nullable=True)
+    photo_url = Column(String, nullable=True)
     email = Column(String, nullable=False, unique=True)
     password = Column(String, nullable=False)
-
-    faculty = relationship("Faculty")
+    card_code = Column(String, unique=True, nullable=False)
+    additional_info = Column(String, nullable=True)
 
 
 class UnauthorizedUsers(Base):
@@ -71,14 +73,11 @@ class UnauthorizedUsers(Base):
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String, nullable=False)
     surname = Column(String, nullable=False)
+    id_concierge_who_accepted = Column(
+        Integer, ForeignKey("users.id"), nullable=True)
     additional_info = Column(String, nullable=True)
 
-
-class Faculty(Base):
-    __tablename__ = "faculties"
-
-    id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(String, nullable=False, unique=True)
+    concierge = relationship("User")
 
 
 class Room(Base):

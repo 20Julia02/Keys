@@ -8,6 +8,7 @@ class DeviceBase(BaseModel):
     version: str
     is_taken: bool
     type: str
+    code: str
 
 
 class DeviceCreate(DeviceBase):

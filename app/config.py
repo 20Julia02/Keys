@@ -16,4 +16,15 @@ class Settings(BaseSettings):
         env_file = "_env"
 
 
+# USOS API OAuth credentials
+CONSUMER_KEY = ''
+CONSUMER_SECRET = ''
+
+
+# LDAP server configuration
+LDAP_SERVER = ''
+LDAP_USER = ''
+LDAP_PASSWORD = ''
+
+
 settings = Settings()
