@@ -13,8 +13,6 @@ router = APIRouter(
     tags=['Devices']
 )
 
-# TODO
-
 
 @router.get("/", response_model=List[DeviceOut])
 def get_all_devices(current_user=Depends(oauth2.get_current_user),

@@ -54,7 +54,7 @@ def refresh_token(refresh_token: str, db: Session = Depends(database.get_db)):
 
 
 @router.post("/logout/concierge")
-async def logout(token: str = Depends(oauth2.get_current_user_token), db: Session = Depends(database.get_db)):
+def logout(token: str = Depends(oauth2.get_current_user_token), db: Session = Depends(database.get_db)):
     if utils.add_token_to_blacklist(db, token):
         return JSONResponse({'result': True})
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
