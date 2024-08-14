@@ -8,7 +8,7 @@ from sqlalchemy.sql.expression import text
 
 class TokenBlacklist(Base):
     __tablename__ = 'token_blacklist'
-    id = Column(Integer, primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     token = Column(String, unique=True, nullable=False)
     blacklisted_at = Column(TIMESTAMP(timezone=True),
                             nullable=False, server_default=text('now()'))
@@ -28,7 +28,7 @@ class DeviceType(enum.Enum):
 
 class Devices(Base):
     __tablename__ = "devices"
-    id = Column(Integer, primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     type = Column(Enum(DeviceType), nullable=False)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
     is_taken = Column(Boolean, nullable=False, server_default="false")
@@ -54,8 +54,7 @@ class UserRole(enum.Enum):
 
 class User(Base):
     __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     name = Column(String, nullable=False)
     surname = Column(String, nullable=False)
     role = Column(Enum(UserRole), nullable=False)
@@ -64,13 +63,14 @@ class User(Base):
     email = Column(String, nullable=False, unique=True)
     password = Column(String, nullable=False)
     card_code = Column(String, unique=True, nullable=False)
+    is_validated = Column(Boolean, nullable=False, server_default="false")
     additional_info = Column(String, nullable=True)
 
 
 class UnauthorizedUsers(Base):
     __tablename__ = "unauthorized_users"
 
-    id = Column(Integer, primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     name = Column(String, nullable=False)
     surname = Column(String, nullable=False)
     id_concierge_who_accepted = Column(
@@ -83,14 +83,14 @@ class UnauthorizedUsers(Base):
 class Room(Base):
     __tablename__ = "rooms"
 
-    id = Column(Integer, primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     number = Column(String, nullable=False, unique=True)
 
 
 class Permission(Base):
     __tablename__ = "permissions"
 
-    id = Column(Integer, primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
     start_reservation = Column(TIMESTAMP(timezone=True), nullable=False)

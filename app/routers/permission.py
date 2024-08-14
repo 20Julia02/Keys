@@ -1,6 +1,6 @@
 from fastapi import status, Depends, APIRouter, Response, HTTPException
 
-from ..schemas.permission import PermissionOut, PermissionCreate
+from ..schemas import PermissionOut, PermissionCreate
 from .. import database, models, utils, oauth2
 from sqlalchemy.orm import Session
 from typing import List
@@ -11,10 +11,24 @@ router = APIRouter(
 )
 
 
-@router.get("/users/{id}", response_model=List[PermissionOut])
+router.get("/users/{id}", response_model=List[PermissionOut])
 def get_user_permission(id: int,
                         current_user=Depends(oauth2.get_current_user),
-                        db: Session = Depends(database.get_db)):
+                        db: Session = Depends(database.get_db)) -> List[PermissionOut]:
+    """
+    Retrieves all permissions associated with a specific user.
+
+    Args:
+        id (int): The ID of the user.
+        current_user: The current user object (used for authorization).
+        db (Session): The database session.
+
+    Returns:
+        List[PermissionOut]: A list of permissions associated with the user.
+
+    Raises:
+        HTTPException: If the user doesn't exist or has no permissions.
+    """
     utils.check_if_entitled("concierge", current_user)
     user = db.query(models.User).filter(models.User.id == id).first()
     if not user:
@@ -31,7 +45,21 @@ def get_user_permission(id: int,
 @router.get("/rooms/{id}", response_model=List[PermissionOut])
 def get_key_permission(id: int,
                        current_user=Depends(oauth2.get_current_user),
-                       db: Session = Depends(database.get_db)):
+                       db: Session = Depends(database.get_db)) -> List[PermissionOut]:
+    """
+    Retrieves all permissions associated with a specific room.
+
+    Args:
+        id (int): The ID of the room.
+        current_user: The current user object (used for authorization).
+        db (Session): The database session.
+
+    Returns:
+        List[PermissionOut]: A list of permissions associated with the room.
+
+    Raises:
+        HTTPException: If the room doesn't exist or has no permissions.
+    """
     utils.check_if_entitled("concierge", current_user)
     room = db.query(models.Room).filter(models.Room.id == id).first()
     if not room:

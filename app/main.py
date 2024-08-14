@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from .routers import user, auth, device, permission, room
 from fastapi.middleware.cors import CORSMiddleware
+from .database import create_tables
 
 app = FastAPI()
 
+create_tables()
 
 origins = [
     "http://localhost",
