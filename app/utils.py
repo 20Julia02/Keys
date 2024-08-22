@@ -33,19 +33,19 @@ def verify_hashed(plain_text: str, hashed_text: str) -> bool:
     return pwd_context.verify(plain_text, hashed_text)
 
 
-def check_if_entitled(role: str, current_user):
+def check_if_entitled(role: str, current_concierge):
     """
     Checks if the current user has the required role or is an admin.
     Raises an HTTP 403 Forbidden exception if the user is not entitled.
 
     Args:
         role (str): The required role.
-        current_user: The current user object, containing the user's role.
+        current_concierge: The current user object, containing the user's role.
 
     Raises:
         HTTPException: If the user does not have the required role.
     """
-    if not (current_user.role.value == role or current_user.role.value == "admin"):
+    if not (current_concierge.role.value == role or current_concierge.role.value == "admin"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail=f"You cannot perform this operation without the {role} role")
 

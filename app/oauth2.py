@@ -1,6 +1,6 @@
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
-
+from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from .schemas import TokenData
 from . import database, models
 from fastapi import Depends, HTTPException, status
@@ -16,6 +16,7 @@ ALGORITHM = settings.algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 REFRESH_TOKEN_EXPIRE_MINUTES = settings.refresh_token_expire_minutes
 
+active_employee = {}
 
 def create_token(data: dict, type: str) -> str:
     """
@@ -72,16 +73,16 @@ def verify_token(token: str) -> TokenData:
     return token_data
 
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db))->models.User:
+def get_current_concierge(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db))->models.User:
     """
-    Retrieves the current user from the database using the provided JWT token.
+    Retrieves the current concierge from the database using the provided JWT token.
 
     Args:
         token (str): The JWT token.
         db (Session): The database session.
 
     Returns:
-        User: The user object corresponding to the token's user ID and role.
+        User: The user object corresponding to the token's concierge ID and role.
 
     Raises:
         HTTPException: If the token is invalid, blacklisted, or the user is not found.
@@ -92,6 +93,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if is_token_blacklisted(db, token):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="You are logged out")
+        
     token_data = verify_token(token)
 
     user = db.query(models.User).filter(
@@ -101,10 +103,9 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
     if user is None:
         raise credentials_exception
-
     return user
 
-def get_current_user_token(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db))->str:
+def get_current_concierge_token(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db))->str:
     """
     Retrieves the current user's token after validating the user's identity.
 
@@ -115,5 +116,5 @@ def get_current_user_token(token: str = Depends(oauth2_scheme), db: Session = De
     Returns:
         str: The validated JWT token.
     """
-    _ = get_current_user(token, db)
+    _ = get_current_concierge(token, db)
     return token

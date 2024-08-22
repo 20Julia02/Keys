@@ -107,7 +107,7 @@ def refresh_token(refresh_token: RefreshToken,
 
 
 @router.post("/logout")
-def logout(token: str = Depends(oauth2.get_current_user_token), 
+def logout(token: str = Depends(oauth2.get_current_concierge_token), 
            db: Session = Depends(database.get_db)) -> JSONResponse:
     """
     Logs out the current user by blacklisting their token.
@@ -136,14 +136,14 @@ def logout(token: str = Depends(oauth2.get_current_user_token),
 
 @router.post("/validate", response_model=UserOut)
 def validate(user_credentials: OAuth2PasswordRequestForm = Depends(),
-             current_user: int = Depends(oauth2.get_current_user),
+             current_concierge: int = Depends(oauth2.get_current_concierge),
              db: Session = Depends(database.get_db)) -> UserOut:
     """
     Validates the provided user credentials and changes user status to validated.
 
     Args:
         user_credentials (OAuth2PasswordRequestForm): The user credentials (email and password).
-        current_user: The current user object (used for authorization).
+        current_concierge: The current user object (used for authorization).
         db (Session): The database session.
 
     Returns:

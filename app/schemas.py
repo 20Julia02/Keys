@@ -24,7 +24,7 @@ class UserCreate(UserBase):
 
 class UserOut(UserBase):
     id: int
-    is_validated: bool
+    is_active: bool
     faculty: Optional[str]
     model_config = ConfigDict(from_attributes=True)
 
@@ -99,7 +99,7 @@ class UnauthorizedUserBase(BaseModel):
 
 
 class UnauthorizedUserCreate(UnauthorizedUserBase):
-    additional_info: str
+    additional_info: Optional[str] = None
 
 
 class UnauthorizedUserOut(UnauthorizedUserBase):

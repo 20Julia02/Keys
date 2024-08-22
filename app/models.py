@@ -63,11 +63,11 @@ class User(Base):
     email = Column(String, nullable=False, unique=True)
     password = Column(String, nullable=False)
     card_code = Column(String, unique=True, nullable=False)
-    is_validated = Column(Boolean, nullable=False, server_default="false")
+    is_active = Column(Boolean, nullable=False, server_default="false")
     additional_info = Column(String, nullable=True)
 
 
-class UnauthorizedUsers(Base):
+class unauthorized_users(Base):
     __tablename__ = "unauthorized_users"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)

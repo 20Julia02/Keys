@@ -10,13 +10,13 @@ router = APIRouter(
 )
 
 @router.get("/", response_model=List[UserOut])
-def get_all_users(current_user=Depends(oauth2.get_current_user),
+def get_all_users(current_concierge=Depends(oauth2.get_current_concierge),
                   db: Session = Depends(database.get_db)) -> List[UserOut]:
     """
     Retrieves all users from the database.
 
     Args:
-        current_user: The current user object (used for authorization).
+        current_concierge: The current user object (used for authorization).
         db (Session): The database session.
 
     Returns:
@@ -25,7 +25,7 @@ def get_all_users(current_user=Depends(oauth2.get_current_user),
     Raises:
         HTTPException: If no users are found in the database.
     """
-    utils.check_if_entitled("admin", current_user)
+    utils.check_if_entitled("admin", current_concierge)
     user = db.query(models.User).all()
     if (user is None):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -35,14 +35,14 @@ def get_all_users(current_user=Depends(oauth2.get_current_user),
 
 @router.get("/{id}", response_model=UserOut)
 def get_user(id: int,
-             current_user=Depends(oauth2.get_current_user),
+             current_concierge=Depends(oauth2.get_current_concierge),
              db: Session = Depends(database.get_db)) -> UserOut:
     """
     Retrieves a user by their ID from the database.
 
     Args:
         id (int): The ID of the user.
-        current_user: The current user object (used for authorization).
+        current_concierge: The current user object (used for authorization).
         db (Session): The database session.
 
     Returns:
@@ -51,7 +51,7 @@ def get_user(id: int,
     Raises:
         HTTPException: If the user with the specified ID doesn't exist.
     """
-    utils.check_if_entitled("concierge", current_user)
+    utils.check_if_entitled("concierge", current_concierge)
     user = db.query(models.User).filter(models.User.id == id).first()
     if (not user):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
