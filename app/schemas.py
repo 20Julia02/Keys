@@ -100,6 +100,7 @@ class UnauthorizedUserBase(BaseModel):
 
 class UnauthorizedUserCreate(UnauthorizedUserBase):
     additional_info: Optional[str] = None
+    id_concierge_who_accepted: Optional[int] = None
 
 
 class UnauthorizedUserOut(UnauthorizedUserBase):
