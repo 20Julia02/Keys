@@ -3,8 +3,9 @@ from fastapi import status, Depends, APIRouter, HTTPException
 from typing import List
 
 from sqlalchemy import cast, String
-from ..schemas import DeviceCreate, DeviceOut
+from ..schemas import DeviceCreate, DeviceOut, DeviceOrDetailResponse
 from .. import database, models, utils, oauth2
+from .. import deviceService
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -93,11 +94,12 @@ def create_device(device: DeviceCreate,
     db.refresh(new_device)
     return new_device
 
-
-@router.patch("/changeStatus/{id}", response_model=DeviceOut)
-def changeStatus(id: int,
-                  db: Session = Depends(database.get_db),
-                  current_concierge: int = Depends(oauth2.get_current_concierge)) -> DeviceOut:
+@router.post("/changeStatus/{id}", response_model=DeviceOrDetailResponse)
+def change_status(
+    id: int,
+    db: Session = Depends(database.get_db),
+    current_concierge: int = Depends(oauth2.get_current_concierge)
+) -> DeviceOut:
     """
     Changes the status of a device (whether it is taken or not).
 
@@ -113,31 +115,33 @@ def changeStatus(id: int,
         HTTPException: If the device with the specified ID doesn't exist.
         HTTPException: If an error occurs while updating the device status.
     """
-    dev_query = db.query(models.Devices).filter(models.Devices.id == id)
-    dev = dev_query.first()
-    if not dev:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Device with id: {id} doesn't exist")
-    if bool(dev.is_taken):
-        new_data = {"is_taken": False, "last_returned": datetime.datetime.now(datetime.timezone.utc)}
-    else:
-        user_query = db.query(models.User).filter(
-        models.User.is_active == True)
-        if user_query.count()> 1:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT,
-                            detail="There are more than one active user")
-        elif user_query.count()== 0:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="There is no active user")
-        user = user_query.first()
-        new_data = {"is_taken": True, "last_taken": datetime.datetime.now(datetime.timezone.utc), "last_owner_id": user.id}
-       
+
+    device_service = deviceService.DeviceService(db)
+
     try:
-        dev_query.update(new_data, synchronize_session=False)
-        db.commit()
-        db.refresh(dev)
+        if  device_service.delete_if_rescaned(id):
+            return {"detail": "Device removed from unapproved data."}
+        else:
+            device = device_service.get_device(id)
+
+            if device.is_taken:
+                new_data = {
+                    "is_taken": False,  
+                    "last_returned": datetime.datetime.now(datetime.timezone.utc)
+                }
+            else:
+                user = device_service.get_active_user()
+                new_data = {
+                    "is_taken": True,
+                    "last_taken": datetime.datetime.now(datetime.timezone.utc),
+                    "last_owner_id": user.id
+                }
+
+            unapproved_device = device_service.clone_device_to_unapproved(device)
+            updated_device = device_service.update_device_status(unapproved_device, new_data)
+
     except SQLAlchemyError as e:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail=f"An error occurred: {str(e)}")
-    return dev
+    return updated_device

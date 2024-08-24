@@ -214,12 +214,12 @@ def test_changeStatus_with_invalid_user(db: Session, test_concierge: models.User
     db.add(device)
     db.commit()
     db.refresh(device)
-    response = client.patch(f"/devices/changeStatus/{device.id}", headers={"Authorization": f"Bearer {oauth2.create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
+    response = client.post(f"/devices/changeStatus/{device.id}", headers={"Authorization": f"Bearer {oauth2.create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
     assert response.status_code == 403
     assert response.json()["detail"] == "There is no active user"
 
-# Test changeStatus with valid ID
-def test_changeStatus_with_valid_id(db: Session, test_concierge: models.User, test_user: models.User):
+# Test changeStatus with valid ID - taking microphone
+def test_changeStatus_with_valid_id_taking(db: Session, test_concierge: models.User, test_user: models.User):
     device = models.Devices(room_id=2, type="microphone", version="primary", code="ghjjkhn1223")
     db.add(device)
     db.commit()
@@ -231,13 +231,19 @@ def test_changeStatus_with_valid_id(db: Session, test_concierge: models.User, te
     }
 
     response1 = client.post("/validate", headers={"Authorization": f"Bearer {oauth2.create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"}, data=login_data)
-    
-    response = client.patch(f"/devices/changeStatus/{device.id}", headers={"Authorization": f"Bearer {oauth2.create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
+    response = client.post(f"/devices/changeStatus/{device.id}", headers={"Authorization": f"Bearer {oauth2.create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
     assert response1.status_code == 200
     assert response1.json()["is_active"] == True
     assert response.status_code == 200
-    assert response.json()["is_taken"] == True 
+    assert response.json()["is_taken"] == True
 
+# Test changeStatus with valid ID - rescanning microphone during a single activity
+def test_changeStatus_with_valid_id_returning(db: Session, test_concierge: models.User, test_user: models.User): 
+    device = db.query(models.Devices).filter(models.Devices.code ==
+                                          "ghjjkhn1223").first()
+    response = client.post(f"/devices/changeStatus/{device.id}", headers={"Authorization": f"Bearer {oauth2.create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
+    assert response.status_code == 200
+    assert response.json()["detail"] == "Device removed from unapproved data."
 
 # Test get_user_permission with valid user ID
 def test_get_user_permission_with_valid_user_id(db: Session, test_concierge: models.User, test_user: models.User):

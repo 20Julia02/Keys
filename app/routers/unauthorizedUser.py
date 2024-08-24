@@ -28,7 +28,6 @@ def get_user(id: int,
     Raises:
         HTTPException: If the unauthorized user with the specified ID doesn't exist.
     """
-    utils.check_if_entitled("concierge", current_concierge)
     user = db.query(models.unauthorized_users).filter(
         models.unauthorized_users.id == id).first()
     if not user:
@@ -52,7 +51,6 @@ def create_user(user: UnauthorizedUserCreate,
     Returns:
         UnauthorizedUserOut: The newly created unauthorized user.
     """
-    utils.check_if_entitled("concierge", current_concierge)
     user.id_concierge_who_accepted = current_concierge.id
     new_user = models.unauthorized_users(**user.model_dump())
     db.add(new_user)

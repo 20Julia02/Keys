@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
 from pydantic import BaseModel, EmailStr, ConfigDict
 
 
@@ -55,6 +55,10 @@ class DeviceOut(DeviceBase):
     last_owner: Optional[UserOut] = None
     model_config = ConfigDict(from_attributes=True)
 
+class DetailMessage(BaseModel):
+    detail: str
+
+DeviceOrDetailResponse = Union[DeviceOut, DetailMessage]
 
 class PermissionCreate(BaseModel):
     user_id: int

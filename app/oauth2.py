@@ -7,7 +7,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from .config import settings
-from .utils import is_token_blacklisted
+from .utils import is_token_blacklisted, check_if_entitled
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
 

@@ -44,6 +44,23 @@ class Devices(Base):
         "type", "room_id", "version", name="uix_1"),)
 
 
+class DevicesUnapproved(Base):
+    __tablename__ = "devices_unapproved"
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    type = Column(Enum(DeviceType), nullable=False)
+    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
+    is_taken = Column(Boolean, nullable=False, server_default="false")
+    last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
+    last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
+    last_owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    version = Column(Enum(DeviceVersion), nullable=False)
+    code = Column(String, unique=True, nullable=False)
+    owner = relationship("User")
+    room = relationship("Room")
+
+    __table_args__ = (UniqueConstraint(
+        "type", "room_id", "version", name="uix_2"),)
+
 class UserRole(enum.Enum):
     admin = "admin"
     concierge = "concierge"

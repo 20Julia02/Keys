@@ -29,7 +29,6 @@ def get_user_permission(id: int,
     Raises:
         HTTPException: If the user doesn't exist or has no permissions.
     """
-    utils.check_if_entitled("concierge", current_concierge)
     user = db.query(models.User).filter(models.User.id == id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -61,7 +60,6 @@ def get_key_permission(id: int,
     Raises:
         HTTPException: If the room doesn't exist or has no permissions.
     """
-    utils.check_if_entitled("concierge", current_concierge)
     room = db.query(models.Room).filter(models.Room.id == id).first()
     if not room:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,

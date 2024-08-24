@@ -51,7 +51,6 @@ def get_user(id: int,
     Raises:
         HTTPException: If the user with the specified ID doesn't exist.
     """
-    utils.check_if_entitled("concierge", current_concierge)
     user = db.query(models.User).filter(models.User.id == id).first()
     if (not user):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,

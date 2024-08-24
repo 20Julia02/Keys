@@ -67,6 +67,7 @@ def card_login(card_id: CardLogin,
                             detail="There is no user in database")
     for user in users:
         if utils.verify_hashed(card_id.card_id, user.card_code):
+            utils.check_if_entitled("concierge", user)
             access_token = oauth2.create_token(
                 {"user_id": user.id, "user_role": user.role.value}, "access")
             refresh_token = oauth2.create_token(
