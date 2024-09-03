@@ -24,7 +24,6 @@ class UserCreate(UserBase):
 
 class UserOut(UserBase):
     id: int
-    is_active: bool
     faculty: Optional[str]
     model_config = ConfigDict(from_attributes=True)
 
@@ -97,6 +96,11 @@ class TokenData(BaseModel):
     role: Optional[str] = None
 
 
+class TokenDataUser(BaseModel):
+    user_id: Optional[int] = None
+    activity: Optional[int] = None
+
+
 class UnauthorizedUserBase(BaseModel):
     name: str
     surname: str
@@ -111,3 +115,9 @@ class UnauthorizedUserOut(UnauthorizedUserBase):
     pass
 
     model_config = ConfigDict(from_attributes=True)
+
+class Activity(BaseModel):
+    user_id: Optional[int] = None
+    concierge_id: int
+    status: str
+    start_time: datetime

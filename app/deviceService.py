@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from . import models
-from datetime import datetime
 
 class DeviceService:
     def __init__(self, db: Session):
@@ -23,18 +22,7 @@ class DeviceService:
                             detail=f"Device with id: {id} doesn't exist")
         return device
 
-    def get_active_user(self) -> models.User:
-        user_query = self.db.query(models.User).filter(models.User.is_active == True)
-        if user_query.count()> 1:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT,
-                            detail="There are more than one active user")
-        elif user_query.count()== 0:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="There is no active user")
-        user = user_query.first()
-        return user
-
-    def clone_device_to_unapproved(self, device: models.Devices) -> models.DevicesUnapproved:
+    def clone_device_to_unapproved(self, device: models.Devices, activity_id: int) -> models.DevicesUnapproved:
         new_device = models.DevicesUnapproved(
             id=device.id,
             type=device.type,
@@ -44,7 +32,8 @@ class DeviceService:
             last_returned=device.last_returned,
             last_owner_id=device.last_owner_id,
             version=device.version,
-            code=device.code
+            code=device.code,
+            activity_id=activity_id
         )
         self.db.add(new_device)
         self.db.commit()

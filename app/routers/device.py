@@ -1,13 +1,11 @@
 import datetime
 from fastapi import status, Depends, APIRouter, HTTPException
 from typing import List
-
 from sqlalchemy import cast, String
-from ..schemas import DeviceCreate, DeviceOut, DeviceOrDetailResponse
-from .. import database, models, utils, oauth2
-from .. import deviceService
+from ..schemas import Token, DeviceCreate, DeviceOut, DeviceOrDetailResponse
+from .. import database, models, utils, oauth2, deviceService, securityService
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
+
 
 router = APIRouter(
     prefix="/devices",
@@ -87,61 +85,70 @@ def create_device(device: DeviceCreate,
     Raises:
         HTTPException: If the user is not authorized to create a device.
     """
-    utils.check_if_entitled("admin", current_concierge)
+    auth_service = securityService.AuthorizationService(db)
+    auth_service.check_if_entitled("admin", current_concierge)
     new_device = models.Devices(**device.model_dump())
     db.add(new_device)
     db.commit()
     db.refresh(new_device)
     return new_device
 
+
 @router.post("/changeStatus/{id}", response_model=DeviceOrDetailResponse)
 def change_status(
+    token: Token,
     id: int,
     db: Session = Depends(database.get_db),
-    current_concierge: int = Depends(oauth2.get_current_concierge)
+    current_concierge: int = Depends(oauth2.get_current_concierge),
 ) -> DeviceOut:
     """
-    Changes the status of a device (whether it is taken or not).
+    Changes the status of a device based on the user's activity 
+    and the provided authorization token. It checks if the device has already 
+    been scanned for approval. If so, it removes the device from the unapproved 
+    data. Otherwise, it updates the device status and records information about 
+    its last owner or return.
 
     Args:
-        id (int): The ID of the device.
+        token (Token): The authentication token containing user and activity information.
+        id (int): The ID of the device to change the status for.
         db (Session): The database session.
-        current_concierge: The current user object (used for authorization).
+        current_concierge (int): The current concierge ID, used for authorization.
 
     Returns:
-        DeviceOut: The updated device object.
+        DeviceOut: The updated device object or the information that the 
+        device was removed from unapproved data.
 
     Raises:
-        HTTPException: If the device with the specified ID doesn't exist.
+        HTTPException: If the activity associated with the token does not exist.
         HTTPException: If an error occurs while updating the device status.
     """
-
     device_service = deviceService.DeviceService(db)
 
-    try:
-        if  device_service.delete_if_rescaned(id):
-            return {"detail": "Device removed from unapproved data."}
+    token_data = securityService.TokenService(db).verify_user_token(token.access_token)
+    activity = db.query(models.Activities).filter(
+                models.Activities.id == token_data.activity
+            ).first()
+
+    if not activity:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                    detail="Activity doesn't exist")
+    
+    if device_service.delete_if_rescaned(id):
+        return {"detail": "Device removed from unapproved data."}
+    else:
+        device = device_service.get_device(id)
+
+        if device.is_taken:
+            new_data = {
+                "is_taken": False,
+                "last_returned": datetime.datetime.now(datetime.timezone.utc)
+            }
         else:
-            device = device_service.get_device(id)
-
-            if device.is_taken:
-                new_data = {
-                    "is_taken": False,  
-                    "last_returned": datetime.datetime.now(datetime.timezone.utc)
-                }
-            else:
-                user = device_service.get_active_user()
-                new_data = {
-                    "is_taken": True,
-                    "last_taken": datetime.datetime.now(datetime.timezone.utc),
-                    "last_owner_id": user.id
-                }
-
-            unapproved_device = device_service.clone_device_to_unapproved(device)
-            updated_device = device_service.update_device_status(unapproved_device, new_data)
-
-    except SQLAlchemyError as e:
-        db.rollback()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                            detail=f"An error occurred: {str(e)}")
+            new_data = {
+                "is_taken": True,
+                "last_taken": datetime.datetime.now(datetime.timezone.utc),
+                "last_owner_id": activity.user_id
+            }
+        unapproved_device = device_service.clone_device_to_unapproved(device, activity.id)
+        updated_device = device_service.update_device_status(unapproved_device, new_data)
     return updated_device

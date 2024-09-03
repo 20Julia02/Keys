@@ -1,7 +1,7 @@
 from fastapi import status, Depends, APIRouter, HTTPException
 from typing import List
 from ..schemas import UserOut, UserCreate
-from .. import database, models, utils, oauth2
+from .. import database, models, utils, oauth2, securityService
 from sqlalchemy.orm import Session
 
 router = APIRouter(
@@ -25,7 +25,8 @@ def get_all_users(current_concierge=Depends(oauth2.get_current_concierge),
     Raises:
         HTTPException: If no users are found in the database.
     """
-    utils.check_if_entitled("admin", current_concierge)
+    auth_service = securityService.AuthorizationService(db)
+    auth_service.check_if_entitled("admin", current_concierge)
     user = db.query(models.User).all()
     if (user is None):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -78,8 +79,9 @@ def create_user(user_data: UserCreate,
     if user:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Email is already registered")
     
-    hashed_password = utils.hash_password(user_data.password)
-    hashed_card_code = utils.hash_password(user_data.card_code)
+    password_service = securityService.PasswordService()
+    hashed_password = password_service.hash_password(user_data.password)
+    hashed_card_code = password_service.hash_password(user_data.card_code)
     user_data.password = hashed_password
     user_data.card_code = hashed_card_code
     new_user = models.User(**user_data.model_dump())
