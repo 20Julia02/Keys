@@ -1,7 +1,7 @@
 from fastapi import status, Depends, APIRouter, HTTPException
 from typing import List
 from ..schemas import UserOut, UserCreate
-from .. import database, models, utils, oauth2, securityService
+from .. import database, models, oauth2, securityService
 from sqlalchemy.orm import Session
 
 router = APIRouter(
@@ -25,8 +25,6 @@ def get_all_users(current_concierge=Depends(oauth2.get_current_concierge),
     Raises:
         HTTPException: If no users are found in the database.
     """
-    auth_service = securityService.AuthorizationService(db)
-    auth_service.check_if_entitled("admin", current_concierge)
     user = db.query(models.User).all()
     if (user is None):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -61,6 +59,7 @@ def get_user(id: int,
 
 @router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 def create_user(user_data: UserCreate,
+                current_concierge=Depends(oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)) -> UserOut:
     """
     Creates a new user in the database.
@@ -73,8 +72,11 @@ def create_user(user_data: UserCreate,
         UserOut: The newly created user.
 
     Raises:
-        HTTPException: If the email is already registered.
+        HTTPException: If the email is already registered or the user is not entitled.
     """
+    auth_service = securityService.AuthorizationService(db)
+    auth_service.check_if_entitled("admin", current_concierge)
+    
     user = db.query(models.User).filter(models.User.email == user_data.email).first()
     if user:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Email is already registered")

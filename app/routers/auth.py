@@ -4,8 +4,8 @@ from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 from ..schemas import RefreshToken, Token, LoginConcierge
 from ..schemas import CardLogin
-from .. import database, models, utils, oauth2
-from .. import securityService
+from .. import database, models, oauth2
+from .. import securityService, activityService
 
 router = APIRouter(
     tags=['Authentication']
@@ -110,7 +110,8 @@ def start_activity(user_credentials: OAuth2PasswordRequestForm = Depends(),
                                   user.password)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="Invalid credentials")
-    activity_id = utils.start_activity(db, user.id, current_concierge.id)
+    activity_service = activityService.ActivityService(db)
+    activity_id = activity_service.create_activity(user.id, current_concierge.id)
     access_token = securityService.TokenService(db).create_token(
         {"user_id": user.id, "activity_id": activity_id}, "access")
     

@@ -1,7 +1,7 @@
 from fastapi import status, Depends, APIRouter, HTTPException
 
 from ..schemas import PermissionOut, PermissionCreate
-from .. import database, models, utils, oauth2, securityService
+from .. import database, models, oauth2, securityService
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -75,6 +75,20 @@ def get_key_permission(id: int,
 def create_permission(permission: PermissionCreate, 
                       current_concierge=Depends(oauth2.get_current_concierge), 
                       db: Session = Depends(database.get_db)):
+    """
+    Creates a new permission entry in the database.
+    
+    Args:
+        permission: The permission data to be created.
+        current_concierge: The currently authenticated user.
+        db: Database session.
+    
+    Returns:
+        The newly created permission record.
+
+    Raises:
+        HTTPException: If the user is not entitled.
+    """
     
     auth_service = securityService.AuthorizationService(db)
     auth_service.check_if_entitled("admin", current_concierge)

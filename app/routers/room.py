@@ -1,7 +1,7 @@
 from fastapi import Depends, APIRouter, status, HTTPException
 from typing import List
 from ..schemas import RoomOut
-from .. import database, models, utils, oauth2, securityService
+from .. import database, models, oauth2, securityService
 from sqlalchemy.orm import Session
 
 router = APIRouter(

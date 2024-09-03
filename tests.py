@@ -3,7 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from app.main import app
-from app import models, database, oauth2, securityService
+from app import models, database, securityService
 from app.schemas import UserCreate
 from datetime import datetime
 from app.database import Base
@@ -126,7 +126,7 @@ def test_get_user_by_id(db: Session, test_concierge: models.User):
     assert response.json()["surname"] == test_concierge.surname
 
 # Test create_user with valid data
-def test_create_user(db: Session):
+def test_create_user(db: Session, test_concierge: models.User):
     user_data = {
         "name": "Witold",
         "surname": "Zimny",
@@ -135,7 +135,7 @@ def test_create_user(db: Session):
         "card_code": "123456",
         "role": "concierge"
     }
-    response = client.post("/users/", json=user_data)
+    response = client.post("/users/", headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"}, json=user_data)
     assert response.status_code == 201
     assert response.json()["surname"] == user_data["surname"]
 
@@ -150,7 +150,7 @@ def test_create_user_duplicate_email(db: Session, test_concierge: models.User):
         "name": "Test",
         "surname": "User",
     }
-    response = client.post("/users/", json=user_data)
+    response = client.post("/users/", headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"}, json=user_data)
     assert response.status_code == 422
     assert response.json()["detail"] == "Email is already registered"
 

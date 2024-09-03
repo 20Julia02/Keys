@@ -1,15 +1,17 @@
 from sqlalchemy.orm import Session
-from fastapi import Depends, HTTPException, status
+from fastapi import HTTPException, status
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from .config import settings
 from .schemas import TokenData, TokenDataUser
 from .models import TokenBlacklist, User
-from fastapi.security import OAuth2PasswordBearer
 
 class PasswordService:
     def __init__(self):
+        """
+        Initializes the PasswordService with a password context that uses bcrypt for hashing.
+        """
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     def hash_password(self, password: str) -> str:
@@ -40,6 +42,9 @@ class PasswordService:
 
 class TokenService:
     def __init__(self, db: Session):
+        """
+        Initializes the TokenService with a given database session and token settings.
+        """
         self.db = db
         self.SECRET_KEY = settings.secret_key
         self.ALGORITHM = settings.algorithm
@@ -101,6 +106,18 @@ class TokenService:
         return token_data
 
     def verify_user_token(self, token: str) -> TokenDataUser:
+        """
+        Verifies the given JWT token and extracts user-specific token data.
+
+        Args:
+            token (str): The JWT token to verify.
+
+        Returns:
+            TokenDataUser: An object containing the extracted token data (user_id and activity_id).
+
+        Raises:
+            HTTPException: If the token is invalid or missing required data.
+        """
         try:
             payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
             id = payload.get("user_id")
@@ -149,6 +166,9 @@ class TokenService:
 
 class AuthorizationService:
     def __init__(self, db: Session):
+        """
+        Initializes the AuthorizationService with a given database session.
+        """
         self.db = db
 
     def check_if_entitled(self, role: str, current_concierge):

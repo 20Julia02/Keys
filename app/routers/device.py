@@ -3,7 +3,7 @@ from fastapi import status, Depends, APIRouter, HTTPException
 from typing import List
 from sqlalchemy import cast, String
 from ..schemas import Token, DeviceCreate, DeviceOut, DeviceOrDetailResponse
-from .. import database, models, utils, oauth2, deviceService, securityService
+from .. import database, models, oauth2, deviceService, securityService, activityService
 from sqlalchemy.orm import Session
 
 
@@ -11,7 +11,6 @@ router = APIRouter(
     prefix="/devices",
     tags=['Devices']
 )
-
 
 @router.get("/", response_model=List[DeviceOut])
 def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
@@ -37,7 +36,7 @@ def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
     dev = query.all()
     if not dev:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"There are no devices of given type in the database")
+                            detail="There are no devices of the given type in the database")
     return dev
 
 
@@ -59,12 +58,8 @@ def get_device(id: int,
     Raises:
         HTTPException: If the device with the specified ID doesn't exist.
     """
-    dev = db.query(models.Devices).filter(models.Devices.id ==
-                                          id).first()
-    if not dev:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Device with id: {id} doesn't exist")
-    return dev
+    device_service = deviceService.DeviceService(db)
+    return device_service.get_device(id)
 
 
 @router.post("/", response_model=DeviceOut, status_code=status.HTTP_201_CREATED)
@@ -102,11 +97,10 @@ def change_status(
     current_concierge: int = Depends(oauth2.get_current_concierge),
 ) -> DeviceOut:
     """
-    Changes the status of a device based on the user's activity 
-    and the provided authorization token. It checks if the device has already 
-    been scanned for approval. If so, it removes the device from the unapproved 
-    data. Otherwise, it updates the device status and records information about 
-    its last owner or return.
+    Changes the status of a device based on the provided token (with activity ID and user ID). 
+    It checks if the device has already been scanned for approval. 
+    If so, it removes the device from the unapproved data.
+    Otherwise, it updates the device information and saves it as unconfirmed data.
 
     Args:
         token (Token): The authentication token containing user and activity information.
@@ -123,32 +117,22 @@ def change_status(
         HTTPException: If an error occurs while updating the device status.
     """
     device_service = deviceService.DeviceService(db)
+    activity_service = activityService.ActivityService(db)
+    activity = activity_service.validate_activity(token)
 
-    token_data = securityService.TokenService(db).verify_user_token(token.access_token)
-    activity = db.query(models.Activities).filter(
-                models.Activities.id == token_data.activity
-            ).first()
-
-    if not activity:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                    detail="Activity doesn't exist")
-    
     if device_service.delete_if_rescaned(id):
         return {"detail": "Device removed from unapproved data."}
-    else:
-        device = device_service.get_device(id)
+    
+    device = device_service.get_device(id)
 
-        if device.is_taken:
-            new_data = {
-                "is_taken": False,
-                "last_returned": datetime.datetime.now(datetime.timezone.utc)
-            }
-        else:
-            new_data = {
-                "is_taken": True,
-                "last_taken": datetime.datetime.now(datetime.timezone.utc),
-                "last_owner_id": activity.user_id
-            }
-        unapproved_device = device_service.clone_device_to_unapproved(device, activity.id)
-        updated_device = device_service.update_device_status(unapproved_device, new_data)
+    new_data = {
+        "is_taken": not device.is_taken,
+        "last_returned": datetime.datetime.now(datetime.timezone.utc) if device.is_taken else None,
+        "last_taken": datetime.datetime.now(datetime.timezone.utc) if not device.is_taken else None,
+        "last_owner_id": activity.user_id if not device.is_taken else None
+    }
+
+    unapproved_device = device_service.clone_device_to_unapproved(device, activity.id)
+    updated_device = device_service.update_device_status(unapproved_device, new_data)
+    
     return updated_device
