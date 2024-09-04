@@ -34,6 +34,14 @@ class ActivityService:
         self.db.refresh(new_activity)
         return new_activity.id
     
+    def change_activity_status(self, activity_id: int):
+        activity = self.db.query(models.Activities).filter_by(id=activity_id).first()
+        if not activity:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+        activity.status = models.Status.completed
+        self.db.commit()
+        return activity
+    
     def validate_activity(self, token: Token) -> models.Activities:
         """
         Validates an activity based on the provided authentication token.
@@ -58,3 +66,4 @@ class ActivityService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="Activity doesn't exist")
         return activity
+    

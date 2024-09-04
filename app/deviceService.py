@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from . import models
+from typing import List
+from . import models, schemas
 
 class DeviceService:
     def __init__(self, db: Session):
@@ -89,3 +90,28 @@ class DeviceService:
         self.db.commit()
         self.db.refresh(device)
         return device
+    
+    def unapproved_devices_activity(self, activity_id: int):
+        unapproved_devs = self.db.query(models.DevicesUnapproved).filter_by(activity_id=activity_id).all()
+        if not unapproved_devs:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No unapproved devices found for this activity")
+        return unapproved_devs    
+    
+    def unapproved_devices_all(self):
+        unapproved_devs = self.db.query(models.DevicesUnapproved).all()
+        if not unapproved_devs:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No unapproved devices found")
+        return unapproved_devs
+
+    def transfer_devices(self, unapproved_devs=List[models.DevicesUnapproved]):
+        for unapproved in unapproved_devs:
+            device = self.db.query(models.Devices).filter_by(type=unapproved.type, room_id=unapproved.room_id, version=unapproved.version).first()
+            if device:
+                device.is_taken = unapproved.is_taken
+                device.last_taken = unapproved.last_taken
+                device.last_returned = unapproved.last_returned
+                device.last_owner_id = unapproved.last_owner_id
+            else:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device is not saved in database")
+            self.db.delete(unapproved)
+        self.db.commit()

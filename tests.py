@@ -176,8 +176,8 @@ def test_login_with_incorrect_credentials(test_concierge: models.User):
     assert response.json()["detail"] == "Invalid credentials"
 
 # Test card_login with valid card ID
-def test_card_login_with_valid_card_id(test_concierge: models.User):
-    card_data = {"card_id": "123456"}  # Assuming the test user has this card code
+def test_card_login_with_valid_card_id():
+    card_data = {"card_id": "123456"}
     response = client.post("/card-login", json=card_data)
     assert response.status_code == 200
     assert "access_token" in response.json()

@@ -4,7 +4,7 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from .config import settings
-from .schemas import TokenData, TokenDataUser
+from .schemas import TokenData, TokenDataUser, CardLogin
 from .models import TokenBlacklist, User
 
 class PasswordService:
@@ -163,6 +163,11 @@ class TokenService:
             self.db.commit()
         return True
     
+    def generate_tokens(self, user_id: int, role: str) -> dict:
+        access_token = self.create_token({"user_id": user_id, "user_role": role}, "access")
+        refresh_token = self.create_token({"user_id": user_id, "user_role": role}, "refresh")
+        return {"access_token": access_token, "refresh_token": refresh_token, "type": "bearer"}
+
 
 class AuthorizationService:
     def __init__(self, db: Session):
@@ -233,3 +238,24 @@ class AuthorizationService:
         """
         _ = self.get_current_concierge(token)
         return token
+    
+    #TODO
+    #sprawdzic jak z tym entitled
+    def authenticate_user_login(self, username: str, password: str) -> User:
+        """Authenticate user by email and password."""
+        password_service = PasswordService()
+        user = self.db.query(User).filter_by(email=username).first()
+        if not (user and password_service.verify_hashed(password, user.password) ):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials")
+        return user
+    
+    def authenticate_user_card(self, card_id: CardLogin) -> User:
+        password_service = PasswordService()
+        users = self.db.query(User).filter(User.card_code.isnot(None)).all()
+        if not users:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No users found in the database")
+
+        for user in users:
+            if password_service.verify_hashed(card_id.card_id, user.card_code):
+                return user
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials")

@@ -30,10 +30,11 @@ def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
     Raises:
         HTTPException: If no devices are found in the database.
     """
-    query = db.query(models.Devices)
+
     if type:
-        query = query.filter(cast(models.Devices.type, String).contains(type))
-    dev = query.all()
+        dev = db.query(models.Devices).filter(cast(models.Devices.type, String).contains(type)).all()
+    else:
+        dev = db.query(models.Devices).all()
     if not dev:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="There are no devices of the given type in the database")
@@ -136,3 +137,4 @@ def change_status(
     updated_device = device_service.update_device_status(unapproved_device, new_data)
     
     return updated_device
+

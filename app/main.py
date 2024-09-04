@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from .routers import user, unauthorizedUser, auth, device, permission, room
+from .routers import user, unauthorizedUser, auth, device, permission, room, approve
 from fastapi.middleware.cors import CORSMiddleware
 from .database import create_tables
 
@@ -27,3 +27,4 @@ app.include_router(auth.router)
 app.include_router(device.router)
 app.include_router(permission.router)
 app.include_router(room.router)
+app.include_router(approve.router)

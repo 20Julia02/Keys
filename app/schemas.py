@@ -54,6 +54,9 @@ class DeviceOut(DeviceBase):
     last_owner: Optional[UserOut] = None
     model_config = ConfigDict(from_attributes=True)
 
+class DeviceUnapproved(DeviceOut):
+    activity_id: int
+
 class DetailMessage(BaseModel):
     detail: str
 
