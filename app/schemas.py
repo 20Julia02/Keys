@@ -27,6 +27,7 @@ class UserOut(UserBase):
     faculty: Optional[str]
     model_config = ConfigDict(from_attributes=True)
 
+
 class DeviceBase(BaseModel):
     version: str
     is_taken: bool
@@ -36,8 +37,9 @@ class DeviceBase(BaseModel):
 
 class DeviceCreate(DeviceBase):
     room_id: int
-    
+
     model_config = ConfigDict(from_attributes=True)
+
 
 class RoomOut(BaseModel):
     id: int
@@ -54,13 +56,17 @@ class DeviceOut(DeviceBase):
     last_owner: Optional[UserOut] = None
     model_config = ConfigDict(from_attributes=True)
 
+
 class DeviceUnapproved(DeviceOut):
     activity_id: int
+
 
 class DetailMessage(BaseModel):
     detail: str
 
+
 DeviceOrDetailResponse = Union[DeviceOut, DetailMessage]
+
 
 class PermissionCreate(BaseModel):
     user_id: int
@@ -83,6 +89,7 @@ class Token(BaseModel):
     type: str
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class RefreshToken(BaseModel):
     refresh_token: str
@@ -118,6 +125,7 @@ class UnauthorizedUserOut(UnauthorizedUserBase):
     pass
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class Activity(BaseModel):
     user_id: Optional[int] = None

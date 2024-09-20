@@ -2,7 +2,7 @@ import datetime
 from fastapi import status, Depends, APIRouter, HTTPException
 from typing import List
 from sqlalchemy import cast, String
-from ..schemas import Token, DeviceCreate, DeviceOut, DeviceOrDetailResponse
+from ..schemas import Token, DeviceCreate, DeviceOut, DetailMessage, DeviceOrDetailResponse
 from .. import database, models, oauth2, deviceService, securityService, activityService
 from sqlalchemy.orm import Session
 
@@ -11,6 +11,7 @@ router = APIRouter(
     prefix="/devices",
     tags=['Devices']
 )
+
 
 @router.get("/", response_model=List[DeviceOut])
 def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
@@ -96,10 +97,10 @@ def change_status(
     id: int,
     db: Session = Depends(database.get_db),
     current_concierge: int = Depends(oauth2.get_current_concierge),
-) -> DeviceOut:
+) -> DeviceOrDetailResponse:
     """
-    Changes the status of a device based on the provided token (with activity ID and user ID). 
-    It checks if the device has already been scanned for approval. 
+    Changes the status of a device based on the provided token (with activity ID and user ID).
+    It checks if the device has already been scanned for approval.
     If so, it removes the device from the unapproved data.
     Otherwise, it updates the device information and saves it as unconfirmed data.
 
@@ -110,7 +111,7 @@ def change_status(
         current_concierge (int): The current concierge ID, used for authorization.
 
     Returns:
-        DeviceOut: The updated device object or the information that the 
+        DeviceOut: The updated device object or the information that the
         device was removed from unapproved data.
 
     Raises:
@@ -122,8 +123,8 @@ def change_status(
     activity = activity_service.validate_activity(token)
 
     if device_service.delete_if_rescaned(id):
-        return {"detail": "Device removed from unapproved data."}
-    
+        return DetailMessage(detail="Device removed from unapproved data.")
+
     device = device_service.get_device(id)
 
     new_data = {
@@ -135,6 +136,5 @@ def change_status(
 
     unapproved_device = device_service.clone_device_to_unapproved(device, activity.id)
     updated_device = device_service.update_device_status(unapproved_device, new_data)
-    
-    return updated_device
 
+    return updated_device

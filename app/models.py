@@ -41,7 +41,7 @@ class Devices(Base):
     room = relationship("Room")
 
     __table_args__ = (UniqueConstraint(
-        "type", "room_id", "version", name="uix_1"),)
+        "type", "room_id", "version", name="uix_device"),)
 
 
 class UserRole(enum.Enum):
@@ -65,6 +65,10 @@ class User(Base):
     card_code = Column(String, unique=True, nullable=False)
     additional_info = Column(String, nullable=True)
 
+    __table_args__ = (UniqueConstraint(
+        "email", "password", "version", name="uix_user"),)
+
+
 class Status(enum.Enum):
     in_progress = "in progress"
     completed = "completed"
@@ -81,6 +85,7 @@ class Activities (Base):
     end_time = Column(TIMESTAMP(timezone=True), nullable=True)
     status = Column(Enum(Status), nullable=False)
 
+
 class DevicesUnapproved(Base):
     __tablename__ = "devices_unapproved"
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
@@ -93,13 +98,14 @@ class DevicesUnapproved(Base):
     version = Column(Enum(DeviceVersion), nullable=False)
     code = Column(String, unique=True, nullable=False)
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
-    
+
     activity = relationship("Activities")
     owner = relationship("User")
     room = relationship("Room")
 
     __table_args__ = (UniqueConstraint(
-        "type", "room_id", "version", name="uix_2"),)
+        "type", "room_id", "version", name="uix_unapproved"),)
+
 
 class unauthorized_users(Base):
     __tablename__ = "unauthorized_users"

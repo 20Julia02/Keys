@@ -7,6 +7,7 @@ from .config import settings
 from .schemas import TokenData, TokenDataUser, CardLogin, LoginConcierge
 from .models import TokenBlacklist, User
 
+
 class PasswordService:
     def __init__(self):
         """
@@ -25,7 +26,7 @@ class PasswordService:
             str: The hashed password.
         """
         return self.pwd_context.hash(password)
-    
+
     def verify_hashed(self, plain_text: str, hashed_text: str) -> bool:
         """
         Verifies that the given plain text password matches the hashed password.
@@ -38,7 +39,7 @@ class PasswordService:
             bool: True if the passwords match, False otherwise.
         """
         return self.pwd_context.verify(plain_text, hashed_text)
-    
+
 
 class TokenService:
     def __init__(self, db: Session):
@@ -64,18 +65,16 @@ class TokenService:
         """
         if type == "refresh":
             time_delta = self.REFRESH_TOKEN_EXPIRE_MINUTES
-        elif type == "access":
+        else:
             time_delta = self.ACCESS_TOKEN_EXPIRE_MINUTES
         to_encode = data.copy()
 
-        expire = datetime.now(timezone.utc) + \
-            timedelta(minutes = time_delta)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=time_delta)
         to_encode.update({"exp": expire})
 
         encoded_jwt = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
 
         return encoded_jwt
-
 
     def verify_concierge_token(self, token: str) -> TokenData:
         """
@@ -98,11 +97,11 @@ class TokenService:
 
             if id is None or role is None:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                                    detail="Invalid token")
+                                    detail="Invalid token")
             token_data = TokenData(id=id, role=role)
         except JWTError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                                    detail="Invalid token")
+                                detail="Invalid token")
         return token_data
 
     def verify_user_token(self, token: str) -> TokenDataUser:
@@ -125,13 +124,13 @@ class TokenService:
 
             if id is None or activity is None:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                                    detail="Invalid token")
+                                    detail="Invalid token")
             token_data = TokenDataUser(user_id=id, activity=activity)
         except JWTError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                                    detail="Invalid token")
+                                detail="Invalid token")
         return token_data
-    
+
     def is_token_blacklisted(self, token: str) -> bool:
         """
         Checks if a token is in the blacklist.
@@ -144,7 +143,6 @@ class TokenService:
             bool: True if the token is blacklisted, False otherwise.
         """
         return self.db.query(TokenBlacklist).filter_by(token=token).first() is not None
-
 
     def add_token_to_blacklist(self, token: str) -> bool:
         """
@@ -162,11 +160,11 @@ class TokenService:
             self.db.add(db_token)
             self.db.commit()
         return True
-    
+
     def generate_tokens(self, user_id: int, role: str) -> LoginConcierge:
         access_token = self.create_token({"user_id": user_id, "user_role": role}, "access")
         refresh_token = self.create_token({"user_id": user_id, "user_role": role}, "refresh")
-        return {"access_token": access_token, "refresh_token": refresh_token, "type": "bearer"}
+        return LoginConcierge(access_token=access_token, refresh_token=refresh_token, type="bearer")
 
 
 class AuthorizationService:
@@ -190,9 +188,10 @@ class AuthorizationService:
         """
         if not (current_concierge.role.value == role or current_concierge.role.value == "admin"):
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail=f"You cannot perform this operation without the {role} role")
-        
-    def get_current_concierge(self, token: str)->User:
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"You cannot perform this operation without the {role} role")
+
+    def get_current_concierge(self, token: str) -> User:
         """
         Retrieves the current concierge from the database using the provided JWT token.
 
@@ -207,13 +206,13 @@ class AuthorizationService:
             HTTPException: If the token is invalid, blacklisted, or the user is not found.
         """
         credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                            detail="Could not validate credentials",
-                                            headers={"Authenticate": "Bearer"})
+                                              detail="Could not validate credentials",
+                                              headers={"Authenticate": "Bearer"})
         token_service = TokenService(self.db)
         if token_service.is_token_blacklisted(token):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                 detail="You are logged out")
-            
+
         token_data = token_service.verify_concierge_token(token)
 
         user = self.db.query(User).filter(
@@ -225,7 +224,7 @@ class AuthorizationService:
             raise credentials_exception
         return user
 
-    def get_current_concierge_token(self, token: str)->str:
+    def get_current_concierge_token(self, token: str) -> str:
         """
         Retrieves the current user's token after validating the user's identity.
 
@@ -238,17 +237,17 @@ class AuthorizationService:
         """
         _ = self.get_current_concierge(token)
         return token
-    
-    #TODO
-    #sprawdzic jak z tym entitled
+
+    # TODO
+    # sprawdzic jak z tym entitled
     def authenticate_user_login(self, username: str, password: str) -> User:
         """Authenticate user by email and password."""
         password_service = PasswordService()
         user = self.db.query(User).filter_by(email=username).first()
-        if not (user and password_service.verify_hashed(password, user.password) ):
+        if not (user and password_service.verify_hashed(password, user.password)):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials")
         return user
-    
+
     def authenticate_user_card(self, card_id: CardLogin) -> User:
         password_service = PasswordService()
         users = self.db.query(User).filter(User.card_code.isnot(None)).all()
