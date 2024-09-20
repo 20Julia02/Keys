@@ -1,3 +1,4 @@
+from sqlalchemy import Column, Integer
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from passlib.context import CryptContext
@@ -161,7 +162,7 @@ class TokenService:
             self.db.commit()
         return True
 
-    def generate_tokens(self, user_id: int, role: str) -> LoginConcierge:
+    def generate_tokens(self, user_id: Column[Integer], role: str) -> LoginConcierge:
         access_token = self.create_token({"user_id": user_id, "user_role": role}, "access")
         refresh_token = self.create_token({"user_id": user_id, "user_role": role}, "refresh")
         return LoginConcierge(access_token=access_token, refresh_token=refresh_token, type="bearer")

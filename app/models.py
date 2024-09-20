@@ -66,7 +66,7 @@ class User(Base):
     additional_info = Column(String, nullable=True)
 
     __table_args__ = (UniqueConstraint(
-        "email", "password", "version", name="uix_user"),)
+        "email", "password", name="uix_user"),)
 
 
 class Status(enum.Enum):

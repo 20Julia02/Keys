@@ -9,6 +9,7 @@ router = APIRouter(
     tags=['Users']
 )
 
+
 @router.get("/", response_model=List[UserOut])
 def get_all_users(current_concierge=Depends(oauth2.get_current_concierge),
                   db: Session = Depends(database.get_db)) -> List[UserOut]:
@@ -76,11 +77,11 @@ def create_user(user_data: UserCreate,
     """
     auth_service = securityService.AuthorizationService(db)
     auth_service.check_if_entitled("admin", current_concierge)
-    
+
     user = db.query(models.User).filter(models.User.email == user_data.email).first()
     if user:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Email is already registered")
-    
+
     password_service = securityService.PasswordService()
     hashed_password = password_service.hash_password(user_data.password)
     hashed_card_code = password_service.hash_password(user_data.card_code)

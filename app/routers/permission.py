@@ -33,7 +33,7 @@ def get_user_permission(id: int,
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"User with id: {id} doesn't exist")
-        
+
     perm = db.query(models.Permission).filter(
         models.Permission.user_id == id).all()
     if not perm:
@@ -71,25 +71,26 @@ def get_key_permission(id: int,
                             detail=f"There is no one with permission to key number {id}")
     return perm
 
+
 @router.post("/", response_model=PermissionOut)
-def create_permission(permission: PermissionCreate, 
-                      current_concierge=Depends(oauth2.get_current_concierge), 
+def create_permission(permission: PermissionCreate,
+                      current_concierge=Depends(oauth2.get_current_concierge),
                       db: Session = Depends(database.get_db)):
     """
     Creates a new permission entry in the database.
-    
+
     Args:
         permission: The permission data to be created.
         current_concierge: The currently authenticated user.
         db: Database session.
-    
+
     Returns:
         The newly created permission record.
 
     Raises:
         HTTPException: If the user is not entitled.
     """
-    
+
     auth_service = securityService.AuthorizationService(db)
     auth_service.check_if_entitled("admin", current_concierge)
     new_permission = models.Permission(**permission.model_dump())

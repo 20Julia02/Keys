@@ -37,7 +37,6 @@ def get_all_rooms(current_concierge=Depends(oauth2.get_current_concierge),
     return room
 
 
-
 @router.get("/{id}", response_model=RoomOut)
 def get_room(id: int,
              current_concierge=Depends(oauth2.get_current_concierge),

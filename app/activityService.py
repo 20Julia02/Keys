@@ -1,3 +1,4 @@
+from sqlalchemy import Column, Integer
 from sqlalchemy.orm import Session
 import datetime
 from . import models, securityService
@@ -12,7 +13,7 @@ class ActivityService:
         """
         self.db = db
 
-    def create_activity(self, user_id: int, concierge_id: int) -> int:
+    def create_activity(self, user_id: Column[Integer], concierge_id: int) -> Column[Integer]:
         """
         Creates a new activity in the database for a given user and concierge.
 

@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from ..schemas import RefreshToken, Token, LoginConcierge
 from ..schemas import CardLogin
 from .. import database, models, oauth2
-from .. import securityService, activityService, deviceService
+from .. import securityService, activityService
 
 router = APIRouter(
     tags=['Authentication']
@@ -17,7 +17,7 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
           db: Session = Depends(database.get_db)) -> LoginConcierge:
     """
     Authenticates a cocnierge using their credentials (username and password).
-    
+
     Args:
         concierge_credentials (OAuth2PasswordRequestForm): Form with login credentials.
         db (Session): Database session.
@@ -31,6 +31,7 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
 
     token_service = securityService.TokenService(db)
     return token_service.generate_tokens(concierge.id, concierge.role.value)
+
 
 @router.post("/card-login", response_model=LoginConcierge)
 def card_login(card_id: CardLogin, db: Session = Depends(database.get_db)) -> LoginConcierge:
@@ -51,10 +52,11 @@ def card_login(card_id: CardLogin, db: Session = Depends(database.get_db)) -> Lo
     token_service = securityService.TokenService(db)
     return token_service.generate_tokens(concierge.id, concierge.role.value)
 
+
 @router.post("/start_activity", response_model=Token)
-def start_activity(user_credentials: OAuth2PasswordRequestForm = Depends(),
-                   current_concierge=Depends(oauth2.get_current_concierge),
-                   db: Session = Depends(database.get_db)) -> Token:
+def start_login_activity(user_credentials: OAuth2PasswordRequestForm = Depends(),
+                         current_concierge=Depends(oauth2.get_current_concierge),
+                         db: Session = Depends(database.get_db)) -> Token:
     """
     Starts an activity for a user by authenticating them with credentials.
 
@@ -68,19 +70,20 @@ def start_activity(user_credentials: OAuth2PasswordRequestForm = Depends(),
     """
     auth_service = securityService.AuthorizationService(db)
     user = auth_service.authenticate_user_login(user_credentials.username, user_credentials.password)
-    
+
     activity_service = activityService.ActivityService(db)
     activity_id = activity_service.create_activity(user.id, current_concierge.id)
-    
+
     token_service = securityService.TokenService(db)
     access_token = token_service.create_token({"user_id": user.id, "activity_id": activity_id}, "access")
-    
-    return {"access_token": access_token, "type": "bearer"}
+
+    return Token(access_token=access_token, type="bearer")
+
 
 @router.post("/start_activity/card", response_model=Token)
-def start_activity(card_id: CardLogin,
-                   current_concierge=Depends(oauth2.get_current_concierge),
-                   db: Session = Depends(database.get_db)) -> Token:
+def start_card_activity(card_id: CardLogin,
+                        current_concierge=Depends(oauth2.get_current_concierge),
+                        db: Session = Depends(database.get_db)) -> Token:
     """
     Starts an activity for a user by authenticating them with a card ID.
 
@@ -97,11 +100,12 @@ def start_activity(card_id: CardLogin,
 
     activity_service = activityService.ActivityService(db)
     activity_id = activity_service.create_activity(user.id, current_concierge.id)
-    
+
     token_service = securityService.TokenService(db)
     access_token = token_service.create_token({"user_id": user.id, "activity_id": activity_id}, "access")
-    
-    return {"access_token": access_token, "type": "bearer"}
+
+    return Token(access_token=access_token, type="bearer")
+
 
 @router.post("/refresh", response_model=Token)
 def refresh_token(refresh_token: RefreshToken, db: Session = Depends(database.get_db)) -> Token:
@@ -123,7 +127,8 @@ def refresh_token(refresh_token: RefreshToken, db: Session = Depends(database.ge
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
     access_token = token_service.create_token(token_data.model_dump(), "access")
-    return {"access_token": access_token, "type": "bearer"}
+    return Token(access_token=access_token, type="bearer")
+
 
 @router.post("/logout")
 def logout(token: str = Depends(oauth2.get_current_concierge_token),
@@ -147,5 +152,5 @@ def logout(token: str = Depends(oauth2.get_current_concierge_token),
 
     if token_service.add_token_to_blacklist(token):
         return JSONResponse({'result': True})
-    
+
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are logged out")
