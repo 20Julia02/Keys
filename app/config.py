@@ -16,15 +16,15 @@ class Settings(BaseSettings):
     model_config = ConfigDict(env_file="_env")
 
 
-# USOS API OAuth credentials
-CONSUMER_KEY = ''
-CONSUMER_SECRET = ''
+# #USOS API OAuth credentials
+# CONSUMER_KEY = ''
+# CONSUMER_SECRET = ''
 
 
-# LDAP server configuration
-LDAP_SERVER = ''
-LDAP_USER = ''
-LDAP_PASSWORD = ''
+# #LDAP server configuration
+# LDAP_SERVER = ''
+# LDAP_USER = ''
+# LDAP_PASSWORD = ''
 
 
 settings = Settings()
