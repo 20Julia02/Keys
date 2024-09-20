@@ -37,15 +37,15 @@ def approve_activity_login(activity_id: int,
         JSONResponse: Object indicating the result of the approval operation.
     """
     auth_service = securityService.AuthorizationService(db)
-    dev_service = deviceService.DeviceService(db)
+    unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
     activity_service = activityService.ActivityService(db)
 
     concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password)
     auth_service.check_if_entitled("concierge", concierge)
     activity_service.change_activity_status(activity_id)
 
-    dev_activity = dev_service.unapproved_devices_activity(activity_id)
-    dev_service.transfer_devices(dev_activity)
+    dev_activity = unapproved_dev_service.unapproved_devices_activity(activity_id)
+    unapproved_dev_service.transfer_devices(dev_activity)
 
     return JSONResponse({"detail": "Operations approved and devices updated successfully."})
 
@@ -68,15 +68,15 @@ def approve_activity_card(activity_id: int,
         JSONResponse: Object indicating the result of the approval operation.
     """
     auth_service = securityService.AuthorizationService(db)
-    dev_service = deviceService.DeviceService(db)
+    unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
     activity_service = activityService.ActivityService(db)
 
     concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password)
     auth_service.check_if_entitled("concierge", concierge)
 
     activity_service.change_activity_status(activity_id)
-    dev_activity = dev_service.unapproved_devices_activity(activity_id)
-    dev_service.transfer_devices(dev_activity)
+    dev_activity = unapproved_dev_service.unapproved_devices_activity(activity_id)
+    unapproved_dev_service.transfer_devices(dev_activity)
 
     return JSONResponse({"detail": "Operations approved and devices updated successfully."})
 
@@ -87,16 +87,16 @@ def approve_all_login(concierge_credentials: OAuth2PasswordRequestForm = Depends
                       current_concierge=Depends(oauth2.get_current_concierge)) -> JSONResponse:
 
     auth_service = securityService.AuthorizationService(db)
-    dev_service = deviceService.DeviceService(db)
+    unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
     activity_service = activityService.ActivityService(db)
 
     concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password)
     auth_service.check_if_entitled("concierge", concierge)
 
-    dev_all = dev_service.unapproved_devices_all()
+    dev_all = unapproved_dev_service.unapproved_devices_all()
 
     for dev in dev_all:
         activity_service.change_activity_status(dev.activity_id)
-    dev_service.transfer_devices(dev_all)
+    unapproved_dev_service.transfer_devices(dev_all)
 
     return JSONResponse({"detail": "All operations approved and devices updated successfully."})

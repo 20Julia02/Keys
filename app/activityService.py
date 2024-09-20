@@ -8,9 +8,6 @@ from fastapi import status, HTTPException
 
 class ActivityService:
     def __init__(self, db: Session):
-        """
-        Initializes the ActivityService with a given database session.
-        """
         self.db = db
 
     def create_activity(self, user_id: Column[Integer], concierge_id: int) -> Column[Integer]:

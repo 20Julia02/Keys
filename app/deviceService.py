@@ -9,23 +9,6 @@ class DeviceService:
     def __init__(self, db: Session):
         self.db = db
 
-    def delete_if_rescaned(self, device_id: int) -> bool:
-        """
-        Deletes a device from the unapproved devices table if it exists.
-
-        Args:
-            device_id: The ID of the device to be deleted.
-
-        Returns:
-            True if the device was found and deleted, False otherwise.
-        """
-        device_query = self.db.query(models.DevicesUnapproved).filter(models.DevicesUnapproved.id == device_id)
-        device = device_query.first()
-        if device:
-            self.db.delete(device)
-            self.db.commit()
-        return bool(device)
-
     def get_device(self, device_id: int) -> models.Devices:
         """
         Retrieves a device from the devices table by its ID.
@@ -73,6 +56,28 @@ class DeviceService:
         self.db.commit()
         self.db.refresh(new_device)
         return new_device
+
+
+class UnapprovedDeviceService:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def delete_if_rescaned(self, device_id: int) -> bool:
+        """
+        Deletes a device from the unapproved devices table if it exists.
+
+        Args:
+            device_id: The ID of the device to be deleted.
+
+        Returns:
+            True if the device was found and deleted, False otherwise.
+        """
+        device_query = self.db.query(models.DevicesUnapproved).filter(models.DevicesUnapproved.id == device_id)
+        device = device_query.first()
+        if device:
+            self.db.delete(device)
+            self.db.commit()
+        return bool(device)
 
     def update_device_status(self, device: models.DevicesUnapproved, new_data: dict) -> models.DevicesUnapproved:
         """

@@ -31,7 +31,6 @@ def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
     Raises:
         HTTPException: If no devices are found in the database.
     """
-
     if type:
         dev = db.query(models.Devices).filter(cast(models.Devices.type, String).contains(type)).all()
     else:
@@ -118,11 +117,12 @@ def change_status(
         HTTPException: If the activity associated with the token does not exist.
         HTTPException: If an error occurs while updating the device status.
     """
+    unapproved_device_service = deviceService.UnapprovedDeviceService(db)
     device_service = deviceService.DeviceService(db)
     activity_service = activityService.ActivityService(db)
     activity = activity_service.validate_activity(token)
 
-    if device_service.delete_if_rescaned(id):
+    if unapproved_device_service.delete_if_rescaned(id):
         return DetailMessage(detail="Device removed from unapproved data.")
 
     device = device_service.get_device(id)
@@ -135,6 +135,6 @@ def change_status(
     }
 
     unapproved_device = device_service.clone_device_to_unapproved(device, activity.id)
-    updated_device = device_service.update_device_status(unapproved_device, new_data)
+    updated_device = unapproved_device_service.update_device_status(unapproved_device, new_data)
 
     return updated_device

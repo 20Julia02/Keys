@@ -4,6 +4,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 import enum
 from sqlalchemy.sql.expression import text
+from sqlalchemy.ext.declarative import declared_attr
 
 
 class TokenBlacklist(Base):
@@ -26,8 +27,9 @@ class DeviceType(enum.Enum):
     remote_controler = "remote_controler"
 
 
-class Devices(Base):
-    __tablename__ = "devices"
+class BaseDevice(Base):
+    __abstract__ = True
+
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     type = Column(Enum(DeviceType), nullable=False)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
@@ -37,11 +39,31 @@ class Devices(Base):
     last_owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     version = Column(Enum(DeviceVersion), nullable=False)
     code = Column(String, unique=True, nullable=False)
-    owner = relationship("User")
-    room = relationship("Room")
+
+    @declared_attr
+    def owner(cls):
+        return relationship("User")
+
+    @declared_attr
+    def room(cls):
+        return relationship("Room")
+
+
+class Devices(BaseDevice):
+    __tablename__ = "devices"
 
     __table_args__ = (UniqueConstraint(
         "type", "room_id", "version", name="uix_device"),)
+
+
+class DevicesUnapproved(BaseDevice):
+    __tablename__ = "devices_unapproved"
+
+    activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
+    activity = relationship("Activities")
+
+    __table_args__ = (UniqueConstraint(
+        "type", "room_id", "version", name="uix_unapproved"),)
 
 
 class UserRole(enum.Enum):
@@ -84,27 +106,6 @@ class Activities (Base):
     start_time = Column(TIMESTAMP(timezone=True), nullable=False)
     end_time = Column(TIMESTAMP(timezone=True), nullable=True)
     status = Column(Enum(Status), nullable=False)
-
-
-class DevicesUnapproved(Base):
-    __tablename__ = "devices_unapproved"
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    type = Column(Enum(DeviceType), nullable=False)
-    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
-    is_taken = Column(Boolean, nullable=False, server_default="false")
-    last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
-    last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
-    last_owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    version = Column(Enum(DeviceVersion), nullable=False)
-    code = Column(String, unique=True, nullable=False)
-    activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
-
-    activity = relationship("Activities")
-    owner = relationship("User")
-    room = relationship("Room")
-
-    __table_args__ = (UniqueConstraint(
-        "type", "room_id", "version", name="uix_unapproved"),)
 
 
 class unauthorized_users(Base):

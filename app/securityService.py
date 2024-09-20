@@ -11,9 +11,6 @@ from .models import TokenBlacklist, User
 
 class PasswordService:
     def __init__(self):
-        """
-        Initializes the PasswordService with a password context that uses bcrypt for hashing.
-        """
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     def hash_password(self, password: str) -> str:
