@@ -41,15 +41,11 @@ class DeviceService:
             The newly created unapproved device object.
         """
         new_device = models.DevicesUnapproved(
-            id=device.id,
-            type=device.type,
-            room_id=device.room_id,
+            device_id=device.id,
             is_taken=device.is_taken,
             last_taken=device.last_taken,
             last_returned=device.last_returned,
             last_owner_id=device.last_owner_id,
-            version=device.version,
-            code=device.code,
             activity_id=activity_id
         )
         self.db.add(new_device)
@@ -72,7 +68,7 @@ class UnapprovedDeviceService:
         Returns:
             True if the device was found and deleted, False otherwise.
         """
-        device_query = self.db.query(models.DevicesUnapproved).filter(models.DevicesUnapproved.id == device_id)
+        device_query = self.db.query(models.DevicesUnapproved).filter(models.DevicesUnapproved.device_id == device_id)
         device = device_query.first()
         if device:
             self.db.delete(device)
@@ -83,7 +79,7 @@ class UnapprovedDeviceService:
         """
         Updates the status of a device in the unapproved devices table.
 
-        ARgs:
+        Args:
             device: The unapproved device object to update.
             new_data: A dictionary containing the updated data.
 
@@ -114,8 +110,7 @@ class UnapprovedDeviceService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There is no unapproved device in database")
         for unapproved in unapproved_devs:
-            device = self.db.query(models.Devices).filter_by(type=unapproved.type, room_id=unapproved.room_id,
-                                                             version=unapproved.version).first()
+            device = self.db.query(models.Devices).filter_by(id=unapproved.device_id).first()
             if device:
                 device.is_taken = unapproved.is_taken
                 device.last_taken = unapproved.last_taken

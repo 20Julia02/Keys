@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
-from ..schemas import DeviceOut
+from ..schemas import DeviceUnapproved
 from .. import database, models, oauth2
 from .. import securityService, activityService, deviceService
 
@@ -12,7 +12,7 @@ router = APIRouter(
 )
 
 
-@router.get("/unapproved", response_model=DeviceOut)
+@router.get("/unapproved", response_model=DeviceUnapproved)
 def get_all_unapproved(current_concierge=Depends(oauth2.get_current_concierge),
                        db: Session = Depends(database.get_db)):
     devs = db.query(models.DevicesUnapproved).all()

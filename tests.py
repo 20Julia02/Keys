@@ -1,4 +1,3 @@
-from os import access
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -204,13 +203,13 @@ def test_get_all_devices(db: Session, test_concierge: models.User, test_device: 
     response = client.get("/devices/", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
     assert isinstance(response.json(), list)
-    assert len(response.json()) >= 2 
+    assert len(response.json()) >= 2
 
     # Test with filtering by type
     response = client.get("/devices/?type=key", headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
     assert response.status_code == 200
     assert isinstance(response.json(), list)
-    assert len(response.json()) >= 1 
+    assert len(response.json()) >= 1
 
 # Test get_device by ID
 def test_get_device_by_id(db: Session, test_concierge: models.User):
@@ -222,7 +221,8 @@ def test_get_device_by_id(db: Session, test_concierge: models.User):
     db.add(device)
     db.commit()
     db.refresh(device)
-    response = client.get(f"/devices/{device.id}", headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
+    response = client.get(f"/devices/{device.id}",
+                          headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
     assert response.status_code == 200
     assert response.json()["type"] == device.type.value
 
@@ -241,9 +241,9 @@ def test_create_device(db: Session, test_concierge: models.User):
         "type": "microphone",
         "code": "123467"
     }
-    
+
     response = client.post("/devices/", json=device_data, headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
-    
+
     assert response.status_code == 201
     assert response.json()["type"] == device_data["type"]
 
@@ -268,10 +268,11 @@ def test_changeStatus_invalid_activity(db: Session, test_concierge: models.User)
     db.commit()
     db.refresh(device)
 
-    response = client.post(f"/devices/changeStatus/{device.id}", 
-                           headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"}, 
+    response = client.post(f"/devices/changeStatus/{device.id}",
+                           headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"},
                            json={"access_token": "7u56ytrh5hgw4erfcds", "type": "bearer"})
     assert response.status_code == 401
+    print(response.json())
     assert response.json()["detail"] == "Invalid token"
 
 # Test changeStatus with valid ID - taking microphone
@@ -280,7 +281,7 @@ def test_changeStatus_with_valid_id_taking(db: Session, test_concierge: models.U
     db.add(room)
     db.commit()
     db.refresh(room)
-    
+
     device = models.Devices(room_id=room.id, type="microphone", version="primary", code="ghjjkhn1223")
     db.add(device)
     db.commit()
@@ -291,23 +292,23 @@ def test_changeStatus_with_valid_id_taking(db: Session, test_concierge: models.U
         "password": "password456"
     }
 
-    response1 = client.post("/start_activity", 
+    response1 = client.post("/start_activity",
                             headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"}, data=login_data)
     assert response1.status_code == 200
-    
-    response = client.post(f"/devices/changeStatus/{device.id}", 
+    response = client.post(f"/devices/changeStatus/{device.id}",
                            headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"},
                            json=response1.json())
     assert response.status_code == 200
-    assert response.json()["is_taken"] == True
+    assert response.json()["is_taken"] is True
+    assert response.json()["last_owner_id"] == test_user.id
 
 # Test changeStatus with valid ID - rescanning microphone during a single activity
-def test_changeStatus_with_valid_id_returning(db: Session, test_concierge: models.User, test_user: models.User): 
+def test_changeStatus_with_valid_id_returning(db: Session, test_concierge: models.User, test_user: models.User):
     room = models.Room(number="701")
     db.add(room)
     db.commit()
     db.refresh(room)
-    
+
     device = models.Devices(room_id=room.id, type="key", version="primary", code="12ghjjkhn1223")
     db.add(device)
     db.commit()
@@ -318,16 +319,19 @@ def test_changeStatus_with_valid_id_returning(db: Session, test_concierge: model
         "password": "password456"
     }
 
-    response1 = client.post("/start_activity", 
+    response1 = client.post("/start_activity",
                             headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"}, data=login_data)
     assert response1.status_code == 200
-    
-    client.post(f"/devices/changeStatus/{device.id}", 
+
+    client.post(f"/devices/changeStatus/{device.id}",
+                headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"},
+                json=response1.json())
+
+    response = client.post(f"/devices/changeStatus/{device.id}",
                            headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"},
                            json=response1.json())
-    response = client.post(f"/devices/changeStatus/{device.id}", 
-                           headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"},
-                           json=response1.json())
+
+    print(response.json())
     assert response.json()["detail"] == "Device removed from unapproved data."
 
 # Test get_user_permission with valid user ID
@@ -336,7 +340,7 @@ def test_get_user_permission_with_valid_user_id(db: Session, test_concierge: mod
     db.add(room)
     db.commit()
     db.refresh(room)
-    
+
     permission_data = {
         "user_id": test_user.id,
         "room_id": room.id,
@@ -345,12 +349,12 @@ def test_get_user_permission_with_valid_user_id(db: Session, test_concierge: mod
     }
     response1 = client.post(
         "/permissions",
-        headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"}, 
+        headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"},
         json=permission_data
     )
     assert response1.status_code == 200
     response = client.get(
-        f"/permissions/users/{test_user.id}", 
+        f"/permissions/users/{test_user.id}",
         headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"}
     )
     assert response.status_code == 200
@@ -370,7 +374,7 @@ def test_get_key_permission_with_valid_room_id(db: Session, test_concierge: mode
     db.add(room)
     db.commit()
     db.refresh(room)
-    
+
     permission_data = {
         "user_id": test_user.id,
         "room_id": room.id,
@@ -380,12 +384,12 @@ def test_get_key_permission_with_valid_room_id(db: Session, test_concierge: mode
 
     response1 = client.post(
         "/permissions",
-        headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"}, 
+        headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"},
         json=permission_data
     )
     assert response1.status_code == 200
     response = client.get(
-        f"/permissions/rooms/{room.id}", 
+        f"/permissions/rooms/{room.id}",
         headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"}
     )
     assert response.status_code == 200

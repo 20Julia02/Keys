@@ -31,26 +31,25 @@ class BaseDevice(Base):
     __abstract__ = True
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    type = Column(Enum(DeviceType), nullable=False)
-    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
     is_taken = Column(Boolean, nullable=False, server_default="false")
     last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
     last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
     last_owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    version = Column(Enum(DeviceVersion), nullable=False)
-    code = Column(String, unique=True, nullable=False)
 
     @declared_attr
     def owner(cls):
-        return relationship("User")
-
-    @declared_attr
-    def room(cls):
-        return relationship("Room")
+        return relationship("User", lazy="joined")
 
 
 class Devices(BaseDevice):
     __tablename__ = "devices"
+
+    type = Column(Enum(DeviceType), nullable=False)
+    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
+    version = Column(Enum(DeviceVersion), nullable=False)
+    code = Column(String, unique=True, nullable=False)
+
+    room = relationship("Room")
 
     __table_args__ = (UniqueConstraint(
         "type", "room_id", "version", name="uix_device"),)
@@ -59,11 +58,10 @@ class Devices(BaseDevice):
 class DevicesUnapproved(BaseDevice):
     __tablename__ = "devices_unapproved"
 
+    device_id = Column(Integer, ForeignKey("devices.id"), nullable=False)
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
-    activity = relationship("Activities")
 
-    __table_args__ = (UniqueConstraint(
-        "type", "room_id", "version", name="uix_unapproved"),)
+    activity = relationship("Activities")
 
 
 class UserRole(enum.Enum):
@@ -76,6 +74,7 @@ class UserRole(enum.Enum):
 
 class User(Base):
     __tablename__ = "users"
+
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     name = Column(String, nullable=False)
     surname = Column(String, nullable=False)

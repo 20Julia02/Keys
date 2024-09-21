@@ -110,7 +110,7 @@ def change_status(
         current_concierge (int): The current concierge ID, used for authorization.
 
     Returns:
-        DeviceOut: The updated device object or the information that the
+        DeviceOrDetailResponse: The updated device object or the information that the
         device was removed from unapproved data.
 
     Raises:
@@ -131,10 +131,11 @@ def change_status(
         "is_taken": not device.is_taken,
         "last_returned": datetime.datetime.now(datetime.timezone.utc) if device.is_taken else None,
         "last_taken": datetime.datetime.now(datetime.timezone.utc) if not device.is_taken else None,
-        "last_owner_id": activity.user_id if not device.is_taken else None
     }
+
+    if not device.is_taken:
+        new_data["last_owner_id"] = activity.user_id
 
     unapproved_device = device_service.clone_device_to_unapproved(device, activity.id)
     updated_device = unapproved_device_service.update_device_status(unapproved_device, new_data)
-
     return updated_device
