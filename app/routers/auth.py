@@ -53,7 +53,7 @@ def card_login(card_id: CardLogin, db: Session = Depends(database.get_db)) -> Lo
     return token_service.generate_tokens(concierge.id, concierge.role.value)
 
 
-@router.post("/start_activity", response_model=Token)
+@router.post("/start-activity", response_model=Token)
 def start_login_activity(user_credentials: OAuth2PasswordRequestForm = Depends(),
                          current_concierge=Depends(oauth2.get_current_concierge),
                          db: Session = Depends(database.get_db)) -> Token:
@@ -80,7 +80,7 @@ def start_login_activity(user_credentials: OAuth2PasswordRequestForm = Depends()
     return Token(access_token=access_token, type="bearer")
 
 
-@router.post("/start_activity/card", response_model=Token)
+@router.post("/start-activity/card", response_model=Token)
 def start_card_activity(card_id: CardLogin,
                         current_concierge=Depends(oauth2.get_current_concierge),
                         db: Session = Depends(database.get_db)) -> Token:

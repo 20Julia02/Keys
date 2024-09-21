@@ -268,7 +268,7 @@ def test_changeStatus_invalid_activity(db: Session, test_concierge: models.User)
     db.commit()
     db.refresh(device)
 
-    response = client.post(f"/devices/changeStatus/{device.id}",
+    response = client.post(f"/devices/change-status/{device.id}",
                            headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"},
                            json={"access_token": "7u56ytrh5hgw4erfcds", "type": "bearer"})
     assert response.status_code == 401
@@ -292,10 +292,10 @@ def test_changeStatus_with_valid_id_taking(db: Session, test_concierge: models.U
         "password": "password456"
     }
 
-    response1 = client.post("/start_activity",
+    response1 = client.post("/start-activity",
                             headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"}, data=login_data)
     assert response1.status_code == 200
-    response = client.post(f"/devices/changeStatus/{device.id}",
+    response = client.post(f"/devices/change-status/{device.id}",
                            headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"},
                            json=response1.json())
     assert response.status_code == 200
@@ -319,15 +319,15 @@ def test_changeStatus_with_valid_id_returning(db: Session, test_concierge: model
         "password": "password456"
     }
 
-    response1 = client.post("/start_activity",
+    response1 = client.post("/start-activity",
                             headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"}, data=login_data)
     assert response1.status_code == 200
 
-    client.post(f"/devices/changeStatus/{device.id}",
+    client.post(f"/devices/change-status/{device.id}",
                 headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"},
                 json=response1.json())
 
-    response = client.post(f"/devices/changeStatus/{device.id}",
+    response = client.post(f"/devices/change-status/{device.id}",
                            headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"},
                            json=response1.json())
 

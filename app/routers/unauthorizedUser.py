@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/unauthorized_users",
-    tags=['unauthorized_users']
+    tags=['unauthorized-users']
 )
 
 

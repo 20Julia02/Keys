@@ -8,7 +8,7 @@ from .. import securityService, activityService, deviceService
 
 router = APIRouter(
     prefix="/approve",
-    tags=['Authentication']
+    tags=['Approve']
 )
 
 

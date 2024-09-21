@@ -90,7 +90,7 @@ def create_device(device: DeviceCreate,
     return new_device
 
 
-@router.post("/changeStatus/{id}", response_model=DeviceOrDetailResponse)
+@router.post("/change-status/{id}", response_model=DeviceOrDetailResponse)
 def change_status(
     token: Token,
     id: int,

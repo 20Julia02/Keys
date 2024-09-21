@@ -66,6 +66,7 @@ class DeviceUnapproved(BaseModel):
     last_taken: Optional[datetime] = None
     last_returned: Optional[datetime] = None
     last_owner_id: Optional[int] = None
+
     model_config = ConfigDict(from_attributes=True)
 
 
