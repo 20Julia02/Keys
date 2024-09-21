@@ -430,7 +430,7 @@ def test_create_unauthorized_user(db: Session, test_concierge: models.User):
         "name": "Unauthorized",
         "surname": "User"
     }
-    response = client.post("/unauthorized_users", json=user_data, headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
+    response = client.post("/unauthorized-users", json=user_data, headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
     assert response.status_code == 201
     assert response.json()["surname"] == user_data["surname"]
 
@@ -439,7 +439,7 @@ def test_create_unauthorized_user_with_missing_data(test_concierge: models.User)
     user_data = {
         "name": "Unauthorized User"
     }
-    response = client.post("/unauthorized_users", json=user_data, headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
+    response = client.post("/unauthorized-users", json=user_data, headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
     assert response.status_code == 422  # Unprocessable Entity
 
 # Test get_unauthorized_user by ID
@@ -449,13 +449,13 @@ def test_get_unauthorized_user_by_id(db: Session, test_concierge: models.User):
     db.commit()
     db.refresh(user)
 
-    response = client.get(f"/unauthorized_users/{user.id}", headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
+    response = client.get(f"/unauthorized-users/{user.id}", headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
     assert response.status_code == 200
     assert response.json()["surname"] == user.surname
 
 # Test get_unauthorized_user with invalid ID
 def test_get_unauthorized_user_with_invalid_id(test_concierge: models.User):
-    response = client.get("/unauthorized_users/9999", headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
+    response = client.get("/unauthorized-users/9999", headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"})
     assert response.status_code == 404
     assert response.json()["detail"] == "Unauthorized user with id: 9999 doesn't exist"
 
