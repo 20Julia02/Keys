@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer
 from sqlalchemy.orm import Session
 import datetime
 from . import models, securityService
-from .schemas import Token
+from .schemas import Token, Activity
 from fastapi import status, HTTPException
 
 
@@ -33,7 +33,19 @@ class ActivityService:
         self.db.refresh(new_activity)
         return new_activity.id
 
-    def change_activity_status(self, activity_id: int):
+    def change_activity_status(self, activity_id: int) -> Activity:
+        """
+        Changes activity status to completed
+
+        Args:
+            activity_id (int): the ID of the activity
+
+        Returns:
+            _type_: schemas.Activity. The activity with completed status
+
+        Raises:
+            HTTPException: If the activity with given ID doesn't exist
+        """
         activity = self.db.query(models.Activities).filter_by(id=activity_id).first()
         if not activity:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
@@ -41,7 +53,7 @@ class ActivityService:
         self.db.commit()
         return activity
 
-    def validate_activity(self, token: Token) -> models.Activities:
+    def validate_activity(self, token: Token) -> Activity:
         """
         Validates an activity based on the provided authentication token.
 
@@ -51,7 +63,7 @@ class ActivityService:
             token (Token): The authentication token containing user and activity information.
 
         Returns:
-            models.Activities: The activity associated with the token.
+            achemas.Activity: The activity associated with the token.
 
         Raises:
             HTTPException: If the activity associated with the token does not exist.

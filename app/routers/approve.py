@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 from ..schemas import DeviceUnapproved
-from .. import database, models, oauth2
+from .. import database, oauth2
 from .. import securityService, activityService, deviceService
+from typing import List
 
 router = APIRouter(
     prefix="/approve",
@@ -14,9 +15,19 @@ router = APIRouter(
 
 @router.get("/unapproved", response_model=DeviceUnapproved)
 def get_all_unapproved(current_concierge=Depends(oauth2.get_current_concierge),
-                       db: Session = Depends(database.get_db)):
-    devs = db.query(models.DevicesUnapproved).all()
-    return devs
+                       db: Session = Depends(database.get_db)) -> List[DeviceUnapproved]:
+    """
+    Returns all unapproved devices form database
+
+    Args:
+        current_concierge: Currently logged-in user (concierge).
+        db (Session): Database session.
+
+    Returns:
+        List[DeviceUnapproved]: List of unapproved devices
+    """
+    unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
+    return unapproved_dev_service.unapproved_devices_all()
 
 
 @router.post("/activity/login")
@@ -85,6 +96,19 @@ def approve_activity_card(activity_id: int,
 def approve_all_login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
                       db: Session = Depends(database.get_db),
                       current_concierge=Depends(oauth2.get_current_concierge)) -> JSONResponse:
+    """
+    Approves all unapproved devices in database and changes the
+    data in the table of Devices according to the given data of unapproved devices
+
+
+    Args:
+        concierge_credentials (OAuth2PasswordRequestForm): Form with login credentials.
+        current_concierge: Currently logged-in user (concierge).
+        db (Session): Database session.
+
+    Returns:
+        JSONResponse: nformation that all operations approved and devices updated successfully.
+    """
 
     auth_service = securityService.AuthorizationService(db)
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)

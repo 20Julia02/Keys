@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
 
+
 def get_current_concierge(
-    token: str = Depends(oauth2_scheme), 
+    token: str = Depends(oauth2_scheme),
     db: Session = Depends(database.get_db)
 ) -> models.User:
     """
@@ -29,14 +30,15 @@ def get_current_concierge(
     auth_service = AuthorizationService(db)
     return auth_service.get_current_concierge(token)
 
+
 def get_current_concierge_token(
-    token: str = Depends(oauth2_scheme), 
+    token: str = Depends(oauth2_scheme),
     db: Session = Depends(database.get_db)
 ) -> str:
     """
     Retrieves the token associated with the currently authenticated concierge.
 
-    This function uses the `AuthorizationService` to validate and return the token 
+    This function uses the `AuthorizationService` to validate and return the token
     associated with the current concierge.
 
     Args:

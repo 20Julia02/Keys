@@ -3,13 +3,14 @@ from fastapi import HTTPException, status
 from typing import List
 from . import models
 from sqlalchemy import Column, Integer
+from .schemas import DeviceUnapproved, DeviceOut
 
 
 class DeviceService:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_device(self, device_id: int) -> models.Devices:
+    def get_device(self, device_id: int) -> DeviceOut:
         """
         Retrieves a device from the devices table by its ID.
 
@@ -29,7 +30,7 @@ class DeviceService:
         return device
 
     def clone_device_to_unapproved(self, device: models.Devices,
-                                   activity_id: Column[Integer]) -> models.DevicesUnapproved:
+                                   activity_id: Column[Integer]) -> DeviceUnapproved:
         """
         Clones a device from the approved devices table to the unapproved devices table.
 
@@ -75,7 +76,7 @@ class UnapprovedDeviceService:
             self.db.commit()
         return bool(device)
 
-    def update_device_status(self, device: models.DevicesUnapproved, new_data: dict) -> models.DevicesUnapproved:
+    def update_device_status(self, device: models.DevicesUnapproved, new_data: dict) -> DeviceUnapproved:
         """
         Updates the status of a device in the unapproved devices table.
 
@@ -84,7 +85,7 @@ class UnapprovedDeviceService:
             new_data: A dictionary containing the updated data.
 
         Returns:
-            The updated unapproved device object.
+            DeviceUnapproved: The updated unapproved device object.
         """
         for key, value in new_data.items():
             setattr(device, key, value)
@@ -92,20 +93,54 @@ class UnapprovedDeviceService:
         self.db.refresh(device)
         return device
 
-    def unapproved_devices_activity(self, activity_id: int):
+    def unapproved_devices_activity(self, activity_id: int) -> List[DeviceUnapproved]:
+        """
+        Returns every unapproved devices with given activity ID.
+
+        Args:
+            activity_id (int): activity ID associated with the unapproved devices
+
+        Raises:
+            HTTPException: if there is no unaproved devices in database associated with given activity ID
+
+        Returns:
+            List[DeviceUnapproved]: List of unapproved devices with given activity ID
+        """
         unapproved_devs = self.db.query(models.DevicesUnapproved).filter_by(activity_id=activity_id).all()
         if not unapproved_devs:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="No unapproved devices found for this activity")
         return unapproved_devs
 
-    def unapproved_devices_all(self):
+    def unapproved_devices_all(self) -> List[DeviceUnapproved]:
+        """
+        Returns every unapproved devices that are in database
+
+        Raises:
+            HTTPException: if there is no unaproved devices in database
+
+        Returns:
+            List[DeviceUnapproved]: List of unapproved devices
+        """
         unapproved_devs = self.db.query(models.DevicesUnapproved).all()
         if not unapproved_devs:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No unapproved devices found")
         return unapproved_devs
 
-    def transfer_devices(self, unapproved_devs: List[models.DevicesUnapproved]):
+    def transfer_devices(self, unapproved_devs: List[DeviceUnapproved]) -> bool:
+        """
+        Changes the data in the table of Devices according to the given data of unapproved devices
+
+        Args:
+            unapproved_devs (List[models.DevicesUnapproved]): List of the unapproved devices to transfer
+
+        Raises:
+            HTTPException: if there is no unapproved device in database
+            HTTPException: if there is no device with given id in Devices table
+
+        Returns:
+            True if the unapproved devs were transformed to Devices table
+        """
         if not unapproved_devs:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There is no unapproved device in database")
@@ -120,3 +155,4 @@ class UnapprovedDeviceService:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device is not saved in database")
             self.db.delete(unapproved)
         self.db.commit()
+        return True
