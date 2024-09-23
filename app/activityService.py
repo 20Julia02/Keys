@@ -1,4 +1,3 @@
-from sqlalchemy import Column, Integer
 from sqlalchemy.orm import Session
 import datetime
 from . import models, securityService
@@ -10,7 +9,7 @@ class ActivityService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_activity(self, user_id: Column[Integer], concierge_id: int) -> Column[Integer]:
+    def create_activity(self, user_id: int, concierge_id: int) -> Activity:
         """
         Creates a new activity in the database for a given user and concierge.
 
@@ -21,6 +20,7 @@ class ActivityService:
         Returns:
             int: The ID of the newly created activity.
         """
+
         start_time = datetime.datetime.now(datetime.timezone.utc)
         new_activity = models.Activities(
             user_id=user_id,
@@ -31,11 +31,13 @@ class ActivityService:
         self.db.add(new_activity)
         self.db.commit()
         self.db.refresh(new_activity)
-        return new_activity.id
+        return new_activity
 
-    def change_activity_status(self, activity_id: int) -> Activity:
+    def end_activity(self, activity_id: int, reject: str = False) -> Activity:
         """
-        Changes activity status to completed
+        Changes the status of the activity to rejected or completed
+        depending on the given value of the reject argument. The default
+        (reject = False) changes the status to completed.
 
         Args:
             activity_id (int): the ID of the activity
@@ -49,11 +51,12 @@ class ActivityService:
         activity = self.db.query(models.Activities).filter_by(id=activity_id).first()
         if not activity:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
-        activity.status = models.Status.completed
+        activity.status = models.Status.rejected if reject else models.Status.completed
+        activity.end_time = datetime.datetime.now(datetime.timezone.utc)
         self.db.commit()
         return activity
 
-    def validate_activity(self, token: Token) -> Activity:
+    def get_activity_token(self, token: Token) -> Activity:
         """
         Validates an activity based on the provided authentication token.
 

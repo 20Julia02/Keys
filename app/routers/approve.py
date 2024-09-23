@@ -27,7 +27,7 @@ def get_all_unapproved(current_concierge=Depends(oauth2.get_current_concierge),
         List[DeviceUnapproved]: List of unapproved devices
     """
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
-    return unapproved_dev_service.unapproved_devices_all()
+    return unapproved_dev_service.get_unapproved_dev_all()
 
 
 @router.post("/activity/login")
@@ -53,9 +53,9 @@ def approve_activity_login(activity_id: int,
 
     concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password)
     auth_service.check_if_entitled("concierge", concierge)
-    activity_service.change_activity_status(activity_id)
+    activity_service.end_activity(activity_id)
 
-    dev_activity = unapproved_dev_service.unapproved_devices_activity(activity_id)
+    dev_activity = unapproved_dev_service.get_unapproved_dev_activity(activity_id)
     unapproved_dev_service.transfer_devices(dev_activity)
 
     return JSONResponse({"detail": "Operations approved and devices updated successfully."})
@@ -85,8 +85,8 @@ def approve_activity_card(activity_id: int,
     concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password)
     auth_service.check_if_entitled("concierge", concierge)
 
-    activity_service.change_activity_status(activity_id)
-    dev_activity = unapproved_dev_service.unapproved_devices_activity(activity_id)
+    activity_service.end_activity(activity_id)
+    dev_activity = unapproved_dev_service.get_unapproved_dev_activity(activity_id)
     unapproved_dev_service.transfer_devices(dev_activity)
 
     return JSONResponse({"detail": "Operations approved and devices updated successfully."})
@@ -117,10 +117,10 @@ def approve_all_login(concierge_credentials: OAuth2PasswordRequestForm = Depends
     concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password)
     auth_service.check_if_entitled("concierge", concierge)
 
-    dev_all = unapproved_dev_service.unapproved_devices_all()
+    dev_all = unapproved_dev_service.get_unapproved_dev_all()
 
     for dev in dev_all:
-        activity_service.change_activity_status(dev.activity_id)
+        activity_service.end_activity(dev.activity_id)
     unapproved_dev_service.transfer_devices(dev_all)
 
     return JSONResponse({"detail": "All operations approved and devices updated successfully."})

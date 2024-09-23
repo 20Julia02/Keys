@@ -1,9 +1,8 @@
 import datetime
-from fastapi import status, Depends, APIRouter, HTTPException
+from fastapi import status, Depends, APIRouter
 from typing import List
-from sqlalchemy import cast, String
 from ..schemas import Token, DeviceCreate, DeviceOut, DetailMessage, DeviceOrDetailResponse
-from .. import database, models, oauth2, deviceService, securityService, activityService
+from .. import database, oauth2, deviceService, securityService, activityService
 from sqlalchemy.orm import Session
 
 
@@ -15,7 +14,7 @@ router = APIRouter(
 
 @router.get("/", response_model=List[DeviceOut])
 def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
-                    type: str = "",
+                    dev_type: str = "",
                     db: Session = Depends(database.get_db)) -> List[DeviceOut]:
     """
     Retrieves all devices from the database that match the specified type.
@@ -31,18 +30,12 @@ def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
     Raises:
         HTTPException: If no devices are found in the database.
     """
-    if type:
-        dev = db.query(models.Devices).filter(cast(models.Devices.type, String).contains(type)).all()
-    else:
-        dev = db.query(models.Devices).all()
-    if not dev:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="There are no devices of the given type in the database")
-    return dev
+    dev_service = deviceService.DeviceService(db)
+    return dev_service.get_all_devs(dev_type)
 
 
 @router.get("/{id}", response_model=DeviceOut)
-def get_device(id: int,
+def get_dev_id(id: int,
                current_concierge=Depends(oauth2.get_current_concierge),
                db: Session = Depends(database.get_db)) -> DeviceOut:
     """
@@ -59,8 +52,8 @@ def get_device(id: int,
     Raises:
         HTTPException: If the device with the specified ID doesn't exist.
     """
-    device_service = deviceService.DeviceService(db)
-    return device_service.get_device(id)
+    dev_service = deviceService.DeviceService(db)
+    return dev_service.get_dev_id(id)
 
 
 @router.post("/", response_model=DeviceOut, status_code=status.HTTP_201_CREATED)
@@ -83,11 +76,8 @@ def create_device(device: DeviceCreate,
     """
     auth_service = securityService.AuthorizationService(db)
     auth_service.check_if_entitled("admin", current_concierge)
-    new_device = models.Devices(**device.model_dump())
-    db.add(new_device)
-    db.commit()
-    db.refresh(new_device)
-    return new_device
+    dev_service = deviceService.DeviceService(db)
+    return dev_service.create_dev(device)
 
 
 @router.post("/change-status/{id}", response_model=DeviceOrDetailResponse)
@@ -117,25 +107,29 @@ def change_status(
         HTTPException: If the activity associated with the token does not exist.
         HTTPException: If an error occurs while updating the device status.
     """
-    unapproved_device_service = deviceService.UnapprovedDeviceService(db)
-    device_service = deviceService.DeviceService(db)
+    unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
+    dev_service = deviceService.DeviceService(db)
+    unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
     activity_service = activityService.ActivityService(db)
-    activity = activity_service.validate_activity(token)
 
-    if unapproved_device_service.delete_if_rescaned(id):
+    activity = activity_service.get_activity_token(token)
+
+    if unapproved_dev_service.delete_if_rescaned(id):
         return DetailMessage(detail="Device removed from unapproved data.")
 
-    device = device_service.get_device(id)
-
-    new_data = {
-        "is_taken": not device.is_taken,
-        "last_returned": datetime.datetime.now(datetime.timezone.utc) if device.is_taken else None,
-        "last_taken": datetime.datetime.now(datetime.timezone.utc) if not device.is_taken else None,
-    }
+    device = dev_service.get_dev_id(id)
 
     if not device.is_taken:
-        new_data["last_owner_id"] = activity.user_id
+        new_data = {
+            "is_taken": True,
+            "last_taken": datetime.datetime.now(datetime.timezone.utc),
+            "last_owner_id": activity.user_id
+        }
+    else:
+        new_data = {
+            "is_taken": False,
+            "last_returned": datetime.datetime.now(datetime.timezone.utc)
+        }
+    unapproved_dev_service.create_unapproved(id, activity.id)
 
-    unapproved_device = device_service.clone_device_to_unapproved(device, activity.id)
-    updated_device = unapproved_device_service.update_device_status(unapproved_device, new_data)
-    return updated_device
+    return unapproved_dev_service.update_device_status(id, new_data)

@@ -211,8 +211,8 @@ def test_get_all_devices(db: Session, test_concierge: models.User, test_device: 
     assert isinstance(response.json(), list)
     assert len(response.json()) >= 1
 
-# Test get_device by ID
-def test_get_device_by_id(db: Session, test_concierge: models.User):
+# Test get_dev_id by ID
+def test_get_dev_id_by_id(db: Session, test_concierge: models.User):
     room = models.Room(number="423")
     db.add(room)
     db.commit()
@@ -272,7 +272,6 @@ def test_changeStatus_invalid_activity(db: Session, test_concierge: models.User)
                            headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"},
                            json={"access_token": "7u56ytrh5hgw4erfcds", "type": "bearer"})
     assert response.status_code == 401
-    print(response.json())
     assert response.json()["detail"] == "Invalid token"
 
 # Test changeStatus with valid ID - taking microphone
@@ -331,7 +330,6 @@ def test_changeStatus_with_valid_id_returning(db: Session, test_concierge: model
                            headers={"Authorization": f"Bearer {securityService.TokenService(db).create_token({'user_id': test_concierge.id, 'user_role': test_concierge.role.value}, 'access')}"},
                            json=response1.json())
 
-    print(response.json())
     assert response.json()["detail"] == "Device removed from unapproved data."
 
 # Test get_user_permission with valid user ID

@@ -72,10 +72,10 @@ def start_login_activity(user_credentials: OAuth2PasswordRequestForm = Depends()
     user = auth_service.authenticate_user_login(user_credentials.username, user_credentials.password)
 
     activity_service = activityService.ActivityService(db)
-    activity_id = activity_service.create_activity(user.id, current_concierge.id)
+    activity = activity_service.create_activity(user.id, current_concierge.id)
 
     token_service = securityService.TokenService(db)
-    access_token = token_service.create_token({"user_id": user.id, "activity_id": activity_id}, "access")
+    access_token = token_service.create_token({"user_id": user.id, "activity_id": activity.id}, "access")
 
     return Token(access_token=access_token, type="bearer")
 
@@ -99,10 +99,10 @@ def start_card_activity(card_id: CardLogin,
     user = auth_service.authenticate_user_card(card_id)
 
     activity_service = activityService.ActivityService(db)
-    activity_id = activity_service.create_activity(user.id, current_concierge.id)
+    activity = activity_service.create_activity(user.id, current_concierge.id)
 
     token_service = securityService.TokenService(db)
-    access_token = token_service.create_token({"user_id": user.id, "activity_id": activity_id}, "access")
+    access_token = token_service.create_token({"user_id": user.id, "activity_id": activity.id}, "access")
 
     return Token(access_token=access_token, type="bearer")
 

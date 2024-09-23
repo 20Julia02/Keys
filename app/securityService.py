@@ -236,8 +236,6 @@ class AuthorizationService:
         _ = self.get_current_concierge(token)
         return token
 
-    # TODO
-    # sprawdzic jak z tym entitled
     def authenticate_user_login(self, username: str, password: str) -> User:
         """Authenticate user by email and password."""
         password_service = PasswordService()

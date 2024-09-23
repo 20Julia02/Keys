@@ -137,6 +137,7 @@ class UnauthorizedUserOut(UnauthorizedUserBase):
 
 
 class Activity(BaseModel):
+    id: int
     user_id: Optional[int] = None
     concierge_id: int
     status: str
