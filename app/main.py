@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from .routers import user, unauthorizedUser, auth, device, permission, room, approve
+from app.routers import user, unauthorizedUser, auth, device, permission, room, approve
 from fastapi.middleware.cors import CORSMiddleware
-from .database import create_tables
+from app.database import create_tables
 
 app = FastAPI()
 

@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 import datetime
-from . import models, securityService
-from .schemas import Token, Activity
+from app import models
+from app.services import securityService
+from app.schemas import Token, Activity
 from fastapi import status, HTTPException
 
 

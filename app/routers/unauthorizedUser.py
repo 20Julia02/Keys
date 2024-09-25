@@ -1,7 +1,7 @@
 from fastapi import status, HTTPException, Depends, APIRouter
 
-from ..schemas import UnauthorizedUserCreate, UnauthorizedUserOut
-from .. import database, models, oauth2
+from app.schemas import UnauthorizedUserCreate, UnauthorizedUserOut
+from app import database, models, oauth2
 from sqlalchemy.orm import Session
 
 router = APIRouter(

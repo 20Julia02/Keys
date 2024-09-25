@@ -1,8 +1,9 @@
 import datetime
 from fastapi import status, Depends, APIRouter
 from typing import List
-from ..schemas import Token, DeviceCreate, DeviceOut, DetailMessage, DeviceOrDetailResponse
-from .. import database, oauth2, deviceService, securityService, activityService
+from app.schemas import Token, DeviceCreate, DeviceOut, DetailMessage, DeviceOrDetailResponse
+from app import database, oauth2
+from app.services import deviceService, securityService, activityService
 from sqlalchemy.orm import Session
 
 

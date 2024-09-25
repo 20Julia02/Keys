@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from typing import List
-from . import models
+from app import models
 from sqlalchemy import cast, String
-from .schemas import DeviceUnapproved, DeviceOut, DeviceCreate
+from app.schemas import DeviceUnapproved, DeviceOut, DeviceCreate
 
 
 class DeviceService:

@@ -4,9 +4,9 @@ from fastapi import HTTPException, status
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
-from .config import settings
-from .schemas import TokenData, TokenDataUser, CardLogin, LoginConcierge
-from .models import TokenBlacklist, User
+from app.config import settings
+from app.schemas import TokenData, TokenDataUser, CardLogin, LoginConcierge
+from app.models import TokenBlacklist, User
 
 
 class PasswordService:

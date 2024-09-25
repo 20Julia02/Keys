@@ -2,7 +2,8 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from app.main import app
-from app import models, database, securityService
+from app import models, database
+from app.services import securityService
 from app.schemas import UserCreate
 from datetime import datetime
 from app.database import Base
@@ -142,6 +143,13 @@ def test_get_user_by_id(db: Session, test_concierge: models.User, concierge_toke
     assert response.json()["surname"] == test_concierge.surname
 
 
+def test_get_user_by_invalid_id(db: Session, concierge_token: str):
+    response = client.get(f"/users/{-1}",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 404
+    assert response.json()["detail"] == "User with id: -1 doesn't exist"
+
+
 def test_create_user(db: Session, test_concierge: models.User, concierge_token: str):
     user_data = {
         "name": "Witold",
@@ -235,30 +243,16 @@ def test_get_all_devices(db: Session,
     assert len(response.json()) >= 1
 
 
-def test_get_dev_id_by_id(db: Session, test_concierge: models.User, concierge_token: str):
-    room = models.Room(number="423")
-    db.add(room)
-    db.commit()
-    db.refresh(room)
-    device = models.Devices(room_id=room.id, type="key", is_taken=False, version="primary", code="ghjjkhn")
-    db.add(device)
-    db.commit()
-    db.refresh(device)
-
-    response = client.get(f"/devices/{device.id}",
+def test_get_dev_by_id(db: Session, test_device: models.Devices, test_concierge: models.User, concierge_token: str):
+    response = client.get(f"/devices/{test_device.id}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
-    assert response.json()["type"] == device.type.value
+    assert response.json()["type"] == test_device.type.value
 
 
-def test_create_device(db: Session, test_concierge: models.User, concierge_token: str):
-    room = models.Room(number="301")
-    db.add(room)
-    db.commit()
-    db.refresh(room)
-
+def test_create_device(db: Session, test_room: models.Room, test_concierge: models.User, concierge_token: str):
     device_data = {
-        "room_id": room.id,
+        "room_id": test_room.id,
         "version": "primary",
         "is_taken": False,
         "type": "microphone",
@@ -281,18 +275,11 @@ def test_create_device_with_invalid_data(test_concierge: models.User, concierge_
     assert response.status_code == 422
 
 
-def test_changeStatus_invalid_activity(db: Session, test_concierge: models.User, concierge_token: str):
-    room = models.Room(number="501")
-    db.add(room)
-    db.commit()
-    db.refresh(room)
-
-    device = models.Devices(room_id=room.id, type="remote_controler", version="primary", code="ghjjkhn122345")
-    db.add(device)
-    db.commit()
-    db.refresh(device)
-
-    response = client.post(f"/devices/change-status/{device.id}",
+def test_changeStatus_invalid_activity(db: Session,
+                                       test_device: models.Devices,
+                                       test_concierge: models.User,
+                                       concierge_token: str):
+    response = client.post(f"/devices/change-status/{test_device.id}",
                            headers={"Authorization": f"Bearer {concierge_token}"},
                            json={"access_token": "7u56ytrh5hgw4erfcds", "type": "bearer"})
     assert response.status_code == 401
@@ -302,16 +289,8 @@ def test_changeStatus_invalid_activity(db: Session, test_concierge: models.User,
 def test_changeStatus_with_valid_id_taking(db: Session,
                                            test_concierge: models.User,
                                            test_user: models.User,
+                                           test_device: models.Devices,
                                            concierge_token: str):
-    room = models.Room(number="601")
-    db.add(room)
-    db.commit()
-    db.refresh(room)
-
-    device = models.Devices(room_id=room.id, type="microphone", version="primary", code="ghjjkhn1223")
-    db.add(device)
-    db.commit()
-    db.refresh(device)
 
     login_data = {
         "username": test_user.email,
@@ -321,7 +300,7 @@ def test_changeStatus_with_valid_id_taking(db: Session,
     response1 = client.post("/start-activity",
                             headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
     assert response1.status_code == 200
-    response = client.post(f"/devices/change-status/{device.id}",
+    response = client.post(f"/devices/change-status/{test_device.id}",
                            headers={"Authorization": f"Bearer {concierge_token}"},
                            json=response1.json())
     assert response.status_code == 200
@@ -329,19 +308,11 @@ def test_changeStatus_with_valid_id_taking(db: Session,
     assert response.json()["last_owner_id"] == test_user.id
 
 
-def test_changeStatus_with_valid_id_returning(db: Session,
-                                              test_concierge: models.User,
-                                              test_user: models.User,
-                                              concierge_token: str):
-    room = models.Room(number="701")
-    db.add(room)
-    db.commit()
-    db.refresh(room)
-
-    device = models.Devices(room_id=room.id, type="key", version="primary", code="12ghjjkhn1223")
-    db.add(device)
-    db.commit()
-    db.refresh(device)
+def test_changeStatus_again(db: Session,
+                            test_concierge: models.User,
+                            test_user: models.User,
+                            test_device: models.Devices,
+                            concierge_token: str):
 
     login_data = {
         "username": test_user.email,
@@ -352,111 +323,82 @@ def test_changeStatus_with_valid_id_returning(db: Session,
                             headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
     assert response1.status_code == 200
 
-    client.post(f"/devices/change-status/{device.id}",
-                headers={"Authorization": f"Bearer {concierge_token}"},
-                json=response1.json())
-
-    response = client.post(f"/devices/change-status/{device.id}",
+    response = client.post(f"/devices/change-status/{test_device.id}",
                            headers={"Authorization": f"Bearer {concierge_token}"},
                            json=response1.json())
 
     assert response.json()["detail"] == "Device removed from unapproved data."
 
 
-def test_get_user_permission_with_valid_user_id(db: Session,
-                                                test_concierge: models.User,
-                                                test_user: models.User,
-                                                concierge_token: str):
-    room = models.Room(number="121")
-    db.add(room)
-    db.commit()
-    db.refresh(room)
-
+def test_create_permission(db: Session,
+                           test_concierge: models.User,
+                           test_user: models.User,
+                           test_room: models.Room,
+                           concierge_token: str):
     permission_data = {
         "user_id": test_user.id,
-        "room_id": room.id,
+        "room_id": test_room.id,
         "start_reservation": datetime(2024, 12, 6, 12, 45).isoformat(),
         "end_reservation": datetime(2024, 12, 6, 14, 45).isoformat()
     }
-    response1 = client.post(
+    response = client.post(
         "/permissions",
         headers={"Authorization": f"Bearer {concierge_token}"},
         json=permission_data
     )
-    assert response1.status_code == 200
+    assert response.status_code == 200
+    assert response.json()["start_reservation"] == "2024-12-06T12:45:00+01:00"
+    assert response.json()["end_reservation"] == "2024-12-06T14:45:00+01:00"
+
+
+def test_get_user_permission_with_valid_user_id(db: Session,
+                                                test_concierge: models.User,
+                                                test_user: models.User,
+                                                test_room: models.Room,
+                                                concierge_token: str):
     response = client.get(
         f"/permissions/users/{test_user.id}",
         headers={"Authorization": f"Bearer {concierge_token}"}
     )
     assert response.status_code == 200
-    assert response.json()[0]["start_reservation"] == "2024-12-06T12:45:00+01:00"
-    assert response.json()[0]["end_reservation"] == "2024-12-06T14:45:00+01:00"
     assert response.json()[0]["user"]["id"] == test_user.id
 
 
 def test_get_user_permission_with_invalid_user_id(test_concierge: models.User, concierge_token: str):
-    response = client.get("/permissions/users/9999", headers={"Authorization": f"Bearer {concierge_token}"})
+    response = client.get("/permissions/users/-1", headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
-    assert response.json()["detail"] == "User with id: 9999 doesn't exist"
+    assert response.json()["detail"] == "User with id: -1 doesn't exist"
 
 
 def test_get_key_permission_with_valid_room_id(db: Session,
                                                test_concierge: models.User,
                                                test_user: models.User,
+                                               test_room: models.Room,
                                                concierge_token: str):
-    room = models.Room(number="132")
-    db.add(room)
-    db.commit()
-    db.refresh(room)
-
-    permission_data = {
-        "user_id": test_user.id,
-        "room_id": room.id,
-        "start_reservation": datetime(2024, 8, 22, 11, 45).isoformat(),
-        "end_reservation": datetime(2024, 8, 22, 13, 45).isoformat()
-    }
-
-    response1 = client.post(
-        "/permissions",
-        headers={"Authorization": f"Bearer {concierge_token}"},
-        json=permission_data
-    )
-    assert response1.status_code == 200
     response = client.get(
-        f"/permissions/rooms/{room.id}",
+        f"/permissions/rooms/{test_room.id}",
         headers={"Authorization": f"Bearer {concierge_token}"}
     )
     assert response.status_code == 200
-    assert response.json()[0]["start_reservation"] == "2024-08-22T11:45:00+02:00"
-    assert response.json()[0]["end_reservation"] == "2024-08-22T13:45:00+02:00"
-    assert response.json()[0]["user"]["id"] == test_user.id
+    assert response.json()[0]["room"]["id"] == test_room.id
 
 
 def test_get_key_permission_with_invalid_room_id(test_concierge: models.User, concierge_token: str):
-    response = client.get("/permissions/rooms/9999", headers={"Authorization": f"Bearer {concierge_token}"})
+    response = client.get("/permissions/rooms/-1", headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
-    assert response.json()["detail"] == "Room with id: 9999 doesn't exist"
+    assert response.json()["detail"] == "Room with id: -1 doesn't exist"
 
 
 def test_get_all_rooms(db: Session, test_concierge: models.User, concierge_token: str):
-    room = models.Room(number="202")
-    db.add(room)
-    db.commit()
-
     response = client.get("/rooms", headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
 
-def test_get_room_by_id(db: Session, test_concierge: models.User, concierge_token: str):
-    room = models.Room(number="303")
-    db.add(room)
-    db.commit()
-    db.refresh(room)
-
-    response = client.get(f"/rooms/{room.id}", headers={"Authorization": f"Bearer {concierge_token}"})
+def test_get_room_by_id(db: Session, test_room: models.Room, test_concierge: models.User, concierge_token: str):
+    response = client.get(f"/rooms/{test_room.id}", headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
-    assert response.json()["number"] == room.number
+    assert response.json()["number"] == test_room.number
 
 
 def test_create_unauthorized_user(db: Session, test_concierge: models.User, concierge_token: str):

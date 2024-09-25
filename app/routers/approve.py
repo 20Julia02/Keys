@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
-from ..schemas import DeviceUnapproved
-from .. import database, oauth2
-from .. import securityService, activityService, deviceService
+from app.schemas import DeviceUnapproved
+from app import database, oauth2
+from app.services import securityService, activityService, deviceService
 from typing import List
 
 router = APIRouter(

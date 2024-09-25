@@ -1,5 +1,5 @@
-from . import database, models
-from .securityService import AuthorizationService
+from app import database, models
+from app.services.securityService import AuthorizationService
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
