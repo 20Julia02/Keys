@@ -13,7 +13,7 @@ router = APIRouter(
 )
 
 
-@router.get("/unapproved", response_model=DeviceUnapproved)
+@router.get("/unapproved", response_model=List[DeviceUnapproved])
 def get_all_unapproved(current_concierge=Depends(oauth2.get_current_concierge),
                        db: Session = Depends(database.get_db)) -> List[DeviceUnapproved]:
     """

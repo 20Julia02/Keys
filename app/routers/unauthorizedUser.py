@@ -1,5 +1,5 @@
 from fastapi import status, HTTPException, Depends, APIRouter
-
+from typing import List
 from app.schemas import UnauthorizedUserCreate, UnauthorizedUserOut
 from app import database, models, oauth2
 from sqlalchemy.orm import Session
@@ -10,10 +10,33 @@ router = APIRouter(
 )
 
 
+@router.get("/", response_model=List[UnauthorizedUserOut])
+def get_all_unathorized_users(current_concierge=Depends(oauth2.get_current_concierge),
+                              db: Session = Depends(database.get_db)) -> List[UnauthorizedUserOut]:
+    """
+    Retrieves all unathorized users from the database.
+
+    Args:
+        current_concierge: The current user object (used for authorization).
+        db (Session): The database session.
+
+    Returns:
+        List[UnauthorizedUserOut]: A list of all unauthorized users in the database.
+
+    Raises:
+        HTTPException: If no unauthorized users are found in the database.
+    """
+    user = db.query(models.unauthorized_users).all()
+    if (user is None):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="There is no unauthorized user in database")
+    return user
+
+
 @router.get("/{id}", response_model=UnauthorizedUserOut)
-def get_user(id: int,
-             current_concierge=Depends(oauth2.get_current_concierge),
-             db: Session = Depends(database.get_db)) -> UnauthorizedUserOut:
+def get_unathorized_user(id: int,
+                         current_concierge=Depends(oauth2.get_current_concierge),
+                         db: Session = Depends(database.get_db)) -> UnauthorizedUserOut:
     """
     Retrieves an unauthorized user by their ID from the database.
 
@@ -37,9 +60,9 @@ def get_user(id: int,
 
 
 @router.post("/", response_model=UnauthorizedUserOut, status_code=status.HTTP_201_CREATED)
-def create_user(user: UnauthorizedUserCreate,
-                db: Session = Depends(database.get_db),
-                current_concierge=Depends(oauth2.get_current_concierge)) -> UnauthorizedUserOut:
+def create_unauthorized_user(user: UnauthorizedUserCreate,
+                             db: Session = Depends(database.get_db),
+                             current_concierge=Depends(oauth2.get_current_concierge)) -> UnauthorizedUserOut:
     """
     Creates a new unauthorized user in the database.
 
