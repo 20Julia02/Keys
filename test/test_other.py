@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from app.main import app
 from app import models, database
-from app.services import securityService
+from app.services import securityService, deviceService
 from app.schemas import UserCreate
 from datetime import datetime
 from app.database import Base
@@ -499,6 +499,104 @@ def test_get_all_unapproved_authenticated(db: Session,
 def test_get_all_unapproved_unauthorized(test_concierge: models.User):
     response = client.get("/approve/unapproved")
     assert response.status_code == 401
+
+
+def test_approve_activity_login_success(db: Session,
+                                        test_concierge: models.User,
+                                        test_activity: models.Activities,
+                                        concierge_token: str):
+    login_data = {
+        "username": test_concierge.email,
+        "password": "password123"
+    }
+    response = client.post(
+        f"/approve/activity/login/{test_activity.id}",
+        headers={"Authorization": f"Bearer {concierge_token}"},
+        data=login_data
+    )
+    print(response.json())
+    assert response.status_code == 200
+    assert response.json() == {"detail": "Operations approved and devices updated successfully."}
+
+
+def test_approve_activity_login_invalid_credentials(db: Session,
+                                                    test_concierge: models.User,
+                                                    test_activity: models.Activities,
+                                                    concierge_token: str):
+    login_data = {
+        "username": test_concierge.email,
+        "password": "invalidpassword123"
+    }
+    response = client.post(
+        f"/approve/activity/login/{test_activity.id}",
+        headers={"Authorization": f"Bearer {concierge_token}"},
+        data=login_data
+    )
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Invalid credentials"}
+
+
+def test_approve_activity_login_no_permission(db: Session,
+                                              test_user: models.User,
+                                              test_activity: models.Activities,
+                                              concierge_token: str):
+    login_data = {
+        "username": test_user.email,
+        "password": "password456"
+    }
+    response = client.post(
+        f"/approve/activity/login/{test_activity.id}",
+        headers={"Authorization": f"Bearer {concierge_token}"},
+        data=login_data
+    )
+    assert response.status_code == 403
+    assert response.json() == {"detail": "You cannot perform this operation without the concierge role"}
+
+
+def test_approve_activity_card_no_devices(db: Session,
+                                          test_user: models.User,
+                                          test_activity: models.Activities,
+                                          concierge_token: str):
+    response = client.post(
+        f"/approve/activity/card/{test_activity.id}",
+        headers={"Authorization": f"Bearer {concierge_token}"},
+        json={"card_id": "123456"}
+    )
+    print(response.json())
+    assert response.status_code == 404
+    assert response.json() == {"detail": "No unapproved devices found for this activity"}
+
+
+def test_approve_activity_card_invalid_card(db: Session,
+                                            test_user: models.User,
+                                            test_activity: models.Activities,
+                                            concierge_token: str):
+    response = client.post(
+        f"/approve/activity/card/{test_activity.id}",
+        headers={"Authorization": f"Bearer {concierge_token}"},
+        json={"card_id": "87635refw"}
+    )
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Invalid credentials"}
+
+
+def test_approve_activity_card_success(db: Session,
+                                       test_user: models.User,
+                                       test_device: models.Devices,
+                                       test_activity: models.Activities,
+                                       concierge_token: str):
+
+    unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
+    unapproved_dev_service.create_unapproved(test_device.id, test_activity.id)
+
+    response = client.post(
+        f"/approve/activity/card/{test_activity.id}",
+        headers={"Authorization": f"Bearer {concierge_token}"},
+        json={"card_id": "123456"}
+    )
+    assert response.status_code == 200
+    print(response.json())
+    assert response.json()["detail"] == 'Operations approved and devices updated successfully.'
 
 
 def test_logout_with_valid_token(test_concierge: models.User, concierge_token: str):

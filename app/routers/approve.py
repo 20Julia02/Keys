@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
-from app.schemas import DeviceUnapproved
+from app.schemas import DeviceUnapproved, CardLogin
 from app import database, oauth2
 from app.services import securityService, activityService, deviceService
 from typing import List
@@ -30,8 +30,8 @@ def get_all_unapproved(current_concierge=Depends(oauth2.get_current_concierge),
     return unapproved_dev_service.get_unapproved_dev_all()
 
 
-@router.post("/activity/login")
-def approve_activity_login(activity_id: int,
+@router.post("/activity/login/{id}")
+def approve_activity_login(id: int,
                            db: Session = Depends(database.get_db),
                            concierge_credentials: OAuth2PasswordRequestForm = Depends(),
                            current_concierge=Depends(oauth2.get_current_concierge)) -> JSONResponse:
@@ -53,19 +53,20 @@ def approve_activity_login(activity_id: int,
 
     concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password)
     auth_service.check_if_entitled("concierge", concierge)
-    activity_service.end_activity(activity_id)
+    activity_service.end_activity(id)
 
-    dev_activity = unapproved_dev_service.get_unapproved_dev_activity(activity_id)
+    dev_activity = unapproved_dev_service.get_unapproved_dev_activity(id)
     unapproved_dev_service.transfer_devices(dev_activity)
 
     return JSONResponse({"detail": "Operations approved and devices updated successfully."})
 
 
-@router.post("/activity/card")
-def approve_activity_card(activity_id: int,
-                          concierge_credentials: OAuth2PasswordRequestForm = Depends(),
+@router.post("/activity/card/{id}")
+def approve_activity_card(id: int,
+                          card_data: CardLogin,
                           db: Session = Depends(database.get_db),
-                          current_concierge=Depends(oauth2.get_current_concierge)) -> JSONResponse:
+                          current_concierge=Depends(oauth2.get_current_concierge)
+                          ) -> JSONResponse:
     """
     Approves operations for a given activity, authenticating using credentials.
 
@@ -81,12 +82,11 @@ def approve_activity_card(activity_id: int,
     auth_service = securityService.AuthorizationService(db)
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
     activity_service = activityService.ActivityService(db)
-
-    concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password)
+    concierge = auth_service.authenticate_user_card(card_data)
     auth_service.check_if_entitled("concierge", concierge)
 
-    activity_service.end_activity(activity_id)
-    dev_activity = unapproved_dev_service.get_unapproved_dev_activity(activity_id)
+    activity_service.end_activity(id)
+    dev_activity = unapproved_dev_service.get_unapproved_dev_activity(id)
     unapproved_dev_service.transfer_devices(dev_activity)
 
     return JSONResponse({"detail": "Operations approved and devices updated successfully."})
