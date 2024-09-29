@@ -10,10 +10,10 @@ class CardLogin(BaseModel):
 class UserBase(BaseModel):
     name: str
     surname: str
-    role: str
 
 
 class UserCreate(UserBase):
+    role: str
     email: EmailStr
     password: str
     faculty: Optional[str] = None
@@ -24,9 +24,18 @@ class UserCreate(UserBase):
 
 class UserOut(UserBase):
     id: int
+    role: str
     faculty: Optional[str]
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class NoteCreate(BaseModel):
+    additional_info: str
+
+
+class NoteUserOut(UserBase):
+    additional_info: Optional[str] = None
 
 
 class DeviceBase(BaseModel):

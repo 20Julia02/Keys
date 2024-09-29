@@ -80,7 +80,8 @@ def create_device(device: DeviceCreate,
     dev_service = deviceService.DeviceService(db)
     return dev_service.create_dev(device)
 
-
+#todo
+#sprawdzac czy uprawniony, tabela operacje -kazda zmiana statusu
 @router.post("/change-status/{id}", response_model=DeviceOrDetailResponse)
 def change_status(
     token: Token,

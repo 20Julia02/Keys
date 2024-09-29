@@ -10,7 +10,8 @@ router = APIRouter(
     prefix="/permissions",
     tags=['Permissions']
 )
-
+#todo
+#dane o pozwoleniach brac z systemu pw
 
 @router.get("/users/{id}", response_model=List[PermissionOut])
 def get_user_permission(id: int,

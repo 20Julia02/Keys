@@ -80,3 +80,37 @@ def create_unauthorized_user(user: UnauthorizedUserCreate,
     db.commit()
     db.refresh(new_user)
     return new_user
+
+# todo
+# testy do tego
+
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_unauthorized_user(id: int,
+                             db: Session = Depends(database.get_db),
+                             current_concierge=Depends(oauth2.get_current_concierge)):
+    """
+    Deletes an unauthorized user by their ID from the database.
+
+    Args:
+        id (int): The ID of the unauthorized user to delete.
+        db (Session): The database session.
+        current_concierge: The current user object (used for authorization).
+
+    Returns:
+        HTTP 204 NO CONTENT: If the user was successfully deleted.
+
+    Raises:
+        HTTPException: If the unauthorized user with the specified ID doesn't exist.
+    """
+    user = db.query(models.unauthorized_users).filter(
+        models.unauthorized_users.id == id).first()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Unauthorized user with id: {id} doesn't exist")
+
+    db.delete(user)
+    db.commit()
+
+    return {"detail": "Unauthorized user deleted successfully"}

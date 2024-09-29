@@ -11,7 +11,8 @@ router = APIRouter(
     tags=['Authentication']
 )
 
-
+#todo
+#uwierzytelniane ze3wnetrzne, wysylanie requesta z kartą
 @router.post("/login", response_model=LoginConcierge)
 def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
           db: Session = Depends(database.get_db)) -> LoginConcierge:

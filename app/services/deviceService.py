@@ -190,6 +190,9 @@ class UnapprovedDeviceService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No unapproved devices found")
         return unapproved_devs
 
+
+#todo
+#usun z unapproved
     def transfer_devices(self, unapproved_devs: List[DeviceUnapproved]) -> bool:
         """
         Changes the data in the table of Devices according to the given data of unapproved devices

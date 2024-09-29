@@ -40,6 +40,9 @@ class BaseDevice(Base):
     def owner(cls):
         return relationship("User", lazy="joined")
 
+# todo
+# usunac id, activity id, czy_uprawniony
+
 
 class Devices(BaseDevice):
     __tablename__ = "devices"
