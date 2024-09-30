@@ -29,6 +29,9 @@ class Operation(Base):
     time = Column(TIMESTAMP(timezone=True), nullable=False)
     entitled = Column(Boolean, nullable=False)
 
+    activity = relationship("Activities")
+    devices = relationship("Devices")
+
 
 class DeviceVersion(enum.Enum):
     primary = "primary"
@@ -48,7 +51,6 @@ class BaseDevice(Base):
     last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
     last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
     last_owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    operation_id = Column(Integer, ForeignKey("operations.id"), nullable=True)
 
     @declared_attr
     def owner(cls):
@@ -76,6 +78,7 @@ class DevicesUnapproved(BaseDevice):
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
 
     activity = relationship("Activities")
+    device = relationship("Devices")
 
 
 class UserRole(enum.Enum):
@@ -150,3 +153,25 @@ class Permission(Base):
 
     user = relationship("User")
     room = relationship("Room")
+
+
+class OperationNote(Base):
+    __tablename__ = "operationNote"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    operation_id = Column(Integer, ForeignKey("operations.id"), nullable=False)
+    note = Column(String, nullable=False)
+    time = Column(TIMESTAMP(timezone=True), nullable=False)
+
+    operation = relationship("Operation")
+
+
+class UserNote(Base):
+    __tablename__ = "userNote"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    note = Column(String, nullable=False)
+    time = Column(TIMESTAMP(timezone=True), nullable=False)
+
+    user = relationship("User")

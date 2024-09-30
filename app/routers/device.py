@@ -152,6 +152,6 @@ def change_status(
         operation_data["operation_type"] = models.OperationType.return_dev
 
     new_operation = operation_service.create_operation(Operation(**operation_data))
-    unapproved_dev_service.create_unapproved(id, activity.id, new_operation.id)
+    unapproved_dev_service.create_unapproved(id, activity.id)
 
     return unapproved_dev_service.update_device_status(id, new_dev_data)

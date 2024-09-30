@@ -148,4 +148,16 @@ class Activity(BaseModel):
     user_id: Optional[int] = None
     concierge_id: int
     status: str
-    start_time: datetime
+    start_time: datetime  
+
+
+class OperationNote(BaseModel):
+    operation_id: int
+    note: str
+    time: datetime
+
+
+class UserNote(BaseModel):
+    user_id: int
+    note: str
+    time: datetime

@@ -94,7 +94,7 @@ class UnapprovedDeviceService:
         return device
 
     def create_unapproved(self, dev_id: int,
-                          activity_id: int, operation_id: int) -> DeviceUnapproved:
+                          activity_id: int) -> DeviceUnapproved:
         """
         Clones a device from the approved devices table to the unapproved devices table.
 
@@ -109,8 +109,7 @@ class UnapprovedDeviceService:
         device = device_service.get_dev_id(dev_id)
         new_device = models.DevicesUnapproved(
             device_id=device.id,
-            activity_id=activity_id,
-            operation_id=operation_id
+            activity_id=activity_id
         )
 
         self.db.add(new_device)
