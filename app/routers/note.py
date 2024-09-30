@@ -50,7 +50,7 @@ def add_user_note(user_id: int,
 
 
 @router.get("/operations", response_model=List[schemas.OperationNote])
-def get_all_user_note(current_concierge=Depends(oauth2.get_current_concierge),
+def get_all_operation_note(current_concierge=Depends(oauth2.get_current_concierge),
                   db: Session = Depends(database.get_db)) -> schemas.OperationNote:
     notes = db.query(models.OperationNote).all()
     if (notes is None):
@@ -60,7 +60,7 @@ def get_all_user_note(current_concierge=Depends(oauth2.get_current_concierge),
 
 
 @router.get("/operations/{operation_id}", response_model=List[schemas.UserNote])
-def get_user_note(operation_id:int,
+def get_operation_note(operation_id:int,
                   current_concierge=Depends(oauth2.get_current_concierge),
                   db: Session = Depends(database.get_db)) -> schemas.UserNote:
     note = db.query(models.OperationNote).filter(models.OperationNote.operation_id == operation_id).first()
