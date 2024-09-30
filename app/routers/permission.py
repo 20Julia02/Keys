@@ -2,7 +2,7 @@ from fastapi import status, Depends, APIRouter, HTTPException
 
 from app.schemas import PermissionOut, PermissionCreate
 from app import database, models, oauth2
-from app.services import securityService
+from app.services import securityService, permissionService
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -10,8 +10,9 @@ router = APIRouter(
     prefix="/permissions",
     tags=['Permissions']
 )
-#todo
-#dane o pozwoleniach brac z systemu pw
+
+# todo dane o pozwoleniach brac z systemu pw
+
 
 @router.get("/users/{id}", response_model=List[PermissionOut])
 def get_user_permission(id: int,
@@ -31,23 +32,15 @@ def get_user_permission(id: int,
     Raises:
         HTTPException: If the user doesn't exist or has no permissions.
     """
-    user = db.query(models.User).filter(models.User.id == id).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"User with id: {id} doesn't exist")
-
-    perm = db.query(models.Permission).filter(
-        models.Permission.user_id == id).all()
-    if not perm:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"There is no one with id {id} who has permission")
+    permission_service = permissionService.PermissionService(db)
+    perm = permission_service.get_user_permission(id)
     return perm
 
 
 @router.get("/rooms/{id}", response_model=List[PermissionOut])
-def get_key_permission(id: int,
-                       current_concierge=Depends(oauth2.get_current_concierge),
-                       db: Session = Depends(database.get_db)) -> List[PermissionOut]:
+def get_room_permission(id: int,
+                        current_concierge=Depends(oauth2.get_current_concierge),
+                        db: Session = Depends(database.get_db)) -> List[PermissionOut]:
     """
     Retrieves all permissions associated with a specific room.
 
@@ -62,15 +55,9 @@ def get_key_permission(id: int,
     Raises:
         HTTPException: If the room doesn't exist or has no permissions.
     """
-    room = db.query(models.Room).filter(models.Room.id == id).first()
-    if not room:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Room with id: {id} doesn't exist")
-    perm = db.query(models.Permission).filter(
-        models.Permission.room_id == id).all()
-    if perm is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"There is no one with permission to key number {id}")
+    permission_service = permissionService.PermissionService(db)
+    perm = permission_service.get_room_permission(id)
+
     return perm
 
 
@@ -95,8 +82,6 @@ def create_permission(permission: PermissionCreate,
 
     auth_service = securityService.AuthorizationService(db)
     auth_service.check_if_entitled("admin", current_concierge)
-    new_permission = models.Permission(**permission.model_dump())
-    db.add(new_permission)
-    db.commit()
-    db.refresh(new_permission)
+    permission_service = permissionService.PermissionService(db)
+    new_permission = permission_service.create_permission(permission)
     return new_permission

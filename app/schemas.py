@@ -18,7 +18,6 @@ class UserCreate(UserBase):
     password: str
     faculty: Optional[str] = None
     photo_url: Optional[str] = None
-    additional_info: Optional[str] = None
     card_code: str
 
 
@@ -30,12 +29,12 @@ class UserOut(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-class NoteCreate(BaseModel):
-    additional_info: str
-
-
-class NoteUserOut(UserBase):
-    additional_info: Optional[str] = None
+class Operation(BaseModel):
+    operation_type: str
+    device_id: int
+    activity_id: int
+    entitled: bool
+    time: datetime
 
 
 class DeviceBase(BaseModel):
@@ -135,7 +134,6 @@ class UnauthorizedUserBase(BaseModel):
 
 
 class UnauthorizedUserCreate(UnauthorizedUserBase):
-    additional_info: Optional[str] = None
     id_concierge_who_accepted: Optional[int] = None
 
 

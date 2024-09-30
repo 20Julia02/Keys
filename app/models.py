@@ -15,6 +15,21 @@ class TokenBlacklist(Base):
                             nullable=False, server_default=text('now()'))
 
 
+class OperationType(enum.Enum):
+    issue_dev = "issue_dev"
+    return_dev = "return_dev"
+
+
+class Operation(Base):
+    __tablename__ = "operations"
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    operation_type = Column(Enum(OperationType), nullable=False)
+    device_id = Column(Integer, ForeignKey("devices.id"), nullable=False)
+    activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
+    time = Column(TIMESTAMP(timezone=True), nullable=False)
+    entitled = Column(Boolean, nullable=False)
+
+
 class DeviceVersion(enum.Enum):
     primary = "primary"
     backup = "backup"
@@ -29,24 +44,20 @@ class DeviceType(enum.Enum):
 
 class BaseDevice(Base):
     __abstract__ = True
-
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     is_taken = Column(Boolean, nullable=False, server_default="false")
     last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
     last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
     last_owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    operation_id = Column(Integer, ForeignKey("operations.id"), nullable=True)
 
     @declared_attr
     def owner(cls):
         return relationship("User", lazy="joined")
 
-# todo
-# usunac id, activity id, czy_uprawniony
-
 
 class Devices(BaseDevice):
     __tablename__ = "devices"
-
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     type = Column(Enum(DeviceType), nullable=False)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
     version = Column(Enum(DeviceVersion), nullable=False)
@@ -61,7 +72,7 @@ class Devices(BaseDevice):
 class DevicesUnapproved(BaseDevice):
     __tablename__ = "devices_unapproved"
 
-    device_id = Column(Integer, ForeignKey("devices.id"), nullable=False)
+    device_id = Column(Integer, ForeignKey("devices.id"), primary_key=True, nullable=False)
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
 
     activity = relationship("Activities")
@@ -87,7 +98,6 @@ class User(Base):
     email = Column(String, nullable=False, unique=True)
     password = Column(String, nullable=False)
     card_code = Column(String, unique=True, nullable=False)
-    additional_info = Column(String, nullable=True)
 
     __table_args__ = (UniqueConstraint(
         "email", "password", name="uix_user"),)
@@ -118,7 +128,6 @@ class unauthorized_users(Base):
     surname = Column(String, nullable=False)
     id_concierge_who_accepted = Column(
         Integer, ForeignKey("users.id"), nullable=True)
-    additional_info = Column(String, nullable=True)
 
     concierge = relationship("User")
 

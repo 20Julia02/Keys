@@ -19,7 +19,7 @@ class DeviceService:
 
         Returns:
             DeviceOut: The newly created device.
-    """
+        """
         new_device = models.Devices(**device.model_dump())
         self.db.add(new_device)
         self.db.commit()
@@ -94,7 +94,7 @@ class UnapprovedDeviceService:
         return device
 
     def create_unapproved(self, dev_id: int,
-                          activity_id: int) -> DeviceUnapproved:
+                          activity_id: int, operation_id: int) -> DeviceUnapproved:
         """
         Clones a device from the approved devices table to the unapproved devices table.
 
@@ -109,11 +109,8 @@ class UnapprovedDeviceService:
         device = device_service.get_dev_id(dev_id)
         new_device = models.DevicesUnapproved(
             device_id=device.id,
-            is_taken=device.is_taken,
-            last_taken=device.last_taken,
-            last_returned=device.last_returned,
-            last_owner_id=device.last_owner_id,
-            activity_id=activity_id
+            activity_id=activity_id,
+            operation_id=operation_id
         )
 
         self.db.add(new_device)
@@ -190,9 +187,6 @@ class UnapprovedDeviceService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No unapproved devices found")
         return unapproved_devs
 
-
-#todo
-#usun z unapproved
     def transfer_devices(self, unapproved_devs: List[DeviceUnapproved]) -> bool:
         """
         Changes the data in the table of Devices according to the given data of unapproved devices

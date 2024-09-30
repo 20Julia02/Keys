@@ -1,11 +1,12 @@
 import pytest
+from sqlalchemy import text
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from app.main import app
 from app import models, database
-from app.services import securityService, deviceService
-from app.schemas import UserCreate
-from datetime import datetime
+from app.services import securityService, deviceService, operationService
+from app.schemas import UserCreate, Operation
+from datetime import datetime, timezone
 from app.database import Base
 
 
@@ -80,6 +81,17 @@ def test_room(db: Session):
 
 
 @pytest.fixture(scope="module")
+def test_permission(db: Session, test_user, test_room):
+    permission = models.Permission(user_id=test_user.id, room_id=test_room.id,
+                                   start_reservation=datetime(2024, 12, 6, 12, 45).isoformat(),
+                                   end_reservation=datetime(2024, 12, 6, 14, 45).isoformat())
+    db.add(permission)
+    db.commit()
+    db.refresh(permission)
+    return permission
+
+
+@pytest.fixture(scope="module")
 def test_activity(db: Session, test_user: models.User, test_concierge: models.User):
     activity = models.Activities(
         user_id=test_user.id,
@@ -126,9 +138,14 @@ def test_device_microphone(db: Session, test_room: models.Room):
 @pytest.fixture(scope="module", autouse=True)
 def cleanup_db_after_tests(db: Session):
     yield
+    db.execute(text("SET session_replication_role = 'replica';"))
+
     for table in reversed(Base.metadata.sorted_tables):
         db.execute(table.delete())
+
     db.commit()
+
+    db.execute(text("SET session_replication_role = 'origin';"))
 
 
 @pytest.fixture(scope="module")
@@ -304,13 +321,13 @@ def test_changeStatus_with_valid_id_taking(db: Session,
                                            test_concierge: models.User,
                                            test_user: models.User,
                                            test_device: models.Devices,
+                                           test_permission: models.Permission,
                                            concierge_token: str):
 
     login_data = {
         "username": test_user.email,
         "password": "password456"
     }
-
     response1 = client.post("/start-activity",
                             headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
     assert response1.status_code == 200
@@ -587,7 +604,19 @@ def test_approve_activity_card_success(db: Session,
                                        concierge_token: str):
 
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
-    unapproved_dev_service.create_unapproved(test_device.id, test_activity.id)
+    operation_service = operationService.OperationService(db)
+
+    operation_data = {
+        "device_id": test_device.id,
+        "activity_id": test_activity.id,
+        "entitled": True,
+        "time": datetime.now(timezone.utc),
+        "operation_type": "issue_dev"
+    }
+
+    operation = operation_service.create_operation(Operation(**operation_data))
+
+    unapproved_dev_service.create_unapproved(test_device.id, test_activity.id, operation.id)
 
     response = client.post(
         f"/approve/activity/card/{test_activity.id}",
