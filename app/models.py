@@ -132,6 +132,8 @@ class unauthorized_users(Base):
     surname = Column(String, nullable=False)
     id_concierge_who_accepted = Column(
         Integer, ForeignKey("users.id"), nullable=True)
+    addition_time = Column(TIMESTAMP(timezone=True), nullable=False)
+    additional_info = Column(String, nullable=True)
 
     concierge = relationship("User")
 

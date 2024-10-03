@@ -2,8 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
-from app.schemas import RefreshToken, Token, LoginConcierge
-from app.schemas import CardLogin
+from app.schemas import RefreshToken, Token, LoginConcierge, CardLogin, LoginActivity
 from app import database, models, oauth2
 from app.services import securityService, activityService
 
@@ -11,8 +10,7 @@ router = APIRouter(
     tags=['Authentication']
 )
 
-#todo
-#uwierzytelniane ze3wnetrzne, wysylanie requesta z kartą
+# todo uwierzytelniane zewnetrzne, wysylanie requesta z kartą
 @router.post("/login", response_model=LoginConcierge)
 def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
           db: Session = Depends(database.get_db)) -> LoginConcierge:
@@ -57,7 +55,7 @@ def card_login(card_id: CardLogin, db: Session = Depends(database.get_db)) -> Lo
 @router.post("/start-activity")
 def start_login_activity(user_credentials: OAuth2PasswordRequestForm = Depends(),
                          current_concierge=Depends(oauth2.get_current_concierge),
-                         db: Session = Depends(database.get_db)) -> int:
+                         db: Session = Depends(database.get_db)) -> LoginActivity:
     """
     Starts an activity for a user by authenticating them with credentials.
 
@@ -67,15 +65,15 @@ def start_login_activity(user_credentials: OAuth2PasswordRequestForm = Depends()
         db (Session): Database session.
 
     Returns:
-        Token: Object containing the generated access token.
+        LoginActivity: Object containing the activity id and user data.
     """
     auth_service = securityService.AuthorizationService(db)
     user = auth_service.authenticate_user_login(user_credentials.username, user_credentials.password)
 
     activity_service = activityService.ActivityService(db)
     activity = activity_service.create_activity(user.id, current_concierge.id)
-
-    return activity.id
+    login_activity = LoginActivity(activity_id=activity.id, user=user)
+    return login_activity
 
 
 @router.post("/start-activity/card", response_model=Token)

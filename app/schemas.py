@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional, Union
 from pydantic import BaseModel, EmailStr, ConfigDict
 
+# todo uporządkować to
 
 class CardLogin(BaseModel):
     card_id: str
@@ -134,6 +135,7 @@ class UnauthorizedUserBase(BaseModel):
 
 
 class UnauthorizedUserCreate(UnauthorizedUserBase):
+    addition_time: datetime
     id_concierge_who_accepted: Optional[int] = None
 
 
@@ -176,3 +178,8 @@ class UserNote(BaseModel):
 class ChangeStatus(BaseModel):
     activity_id: int
     force: Optional[bool] = False
+
+
+class LoginActivity(BaseModel):
+    activity_id: int
+    user: UserOut

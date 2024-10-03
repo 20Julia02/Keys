@@ -16,6 +16,7 @@ router = APIRouter(
 @router.get("/", response_model=List[DeviceOut])
 def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
                     dev_type: str = "",
+                    dev_version: str = "",
                     db: Session = Depends(database.get_db)) -> List[DeviceOut]:
     """
     Retrieves all devices from the database that match the specified type.
@@ -32,11 +33,20 @@ def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
         HTTPException: If no devices are found in the database.
     """
     dev_service = deviceService.DeviceService(db)
-    return dev_service.get_all_devs(dev_type)
+    return dev_service.get_all_devs(dev_type, dev_version)
 
 
-@router.get("/{id}", response_model=DeviceOut)
-def get_dev_id(id: int,
+@router.get("/code/{dev_code}", response_model=DeviceOut)
+def get_dev_code(dev_code: int,
+                 current_concierge=Depends(oauth2.get_current_concierge),
+                 db: Session = Depends(database.get_db)) -> DeviceOut:
+
+    dev_service = deviceService.DeviceService(db)
+    return dev_service.get_dev_code(dev_code)
+
+
+@router.get("/{dev_id}", response_model=DeviceOut)
+def get_dev_id(dev_id: int,
                current_concierge=Depends(oauth2.get_current_concierge),
                db: Session = Depends(database.get_db)) -> DeviceOut:
     """
@@ -54,7 +64,7 @@ def get_dev_id(id: int,
         HTTPException: If the device with the specified ID doesn't exist.
     """
     dev_service = deviceService.DeviceService(db)
-    return dev_service.get_dev_id(id)
+    return dev_service.get_dev_id(dev_id)
 
 
 @router.post("/", response_model=DeviceOut, status_code=status.HTTP_201_CREATED)
@@ -80,6 +90,7 @@ def create_device(device: DeviceCreate,
     dev_service = deviceService.DeviceService(db)
     return dev_service.create_dev(device)
 
+# todo zmiana statusu unauthorized
 
 @router.post("/change-status/{dev_id}", response_model=DeviceOrDetailResponse)
 def change_status(

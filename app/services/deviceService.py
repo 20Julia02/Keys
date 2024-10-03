@@ -44,14 +44,34 @@ class DeviceService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Device with id: {dev_id} doesn't exist")
         return device
+    
+    def get_dev_code(self, dev_code: str) -> DeviceOut:
+        """
+        Retrieves a device from the devices table by its code.
 
-    def get_all_devs(self, dev_type="") -> List[DeviceOut]:
+        Args:
+            device_code: The code of the device to retrieve.
+
+        Returns:
+            The device object if found.
+
+        Raises:
+            HTTPException: If the device is not found, a 404 error is raised.
+        """
+        device = self.db.query(models.Devices).filter(models.Devices.code == dev_code).first()
+        if not device:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Device with code: {dev_code} doesn't exist")
+        return device
+
+    def get_all_devs(self, dev_type="", dev_version="") -> List[DeviceOut]:
         """
         Retrieves all devices from the database that match the specified type.
 
         Args:
             current_concierge: The current user object (used for authorization).
             type (str): The type of device to filter by.
+            version (str): The version of device to filter by.
             db (Session): The database session.
 
         Returns:
@@ -61,12 +81,13 @@ class DeviceService:
             HTTPException: If no devices are found in the database.
         """
         if dev_type:
-            dev = self.db.query(models.Devices).filter(cast(models.Devices.type, String).contains(dev_type)).all()
+            dev = self.db.query(models.Devices).filter(cast(models.Devices.type, String).contains(dev_type), 
+                                                       cast(models.Devices.version, String).contains(dev_version)).all()
         else:
             dev = self.db.query(models.Devices).all()
         if not dev:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="There are no devices of the given type in the database")
+                                detail="There are no devices of the given type and version in the database")
         return dev
 
 

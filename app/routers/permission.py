@@ -12,6 +12,7 @@ router = APIRouter(
 )
 
 # todo dane o pozwoleniach brac z systemu pw
+# todo sprawdzac date i godzine
 @router.get("/}", response_model=List[PermissionOut])
 def get_all_permissions(current_concierge=Depends(oauth2.get_current_concierge),
                         db: Session = Depends(database.get_db)) -> List[PermissionOut]:

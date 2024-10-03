@@ -81,9 +81,6 @@ def create_unauthorized_user(user: UnauthorizedUserCreate,
     db.refresh(new_user)
     return new_user
 
-# todo
-# testy do tego
-
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_unauthorized_user(id: int,

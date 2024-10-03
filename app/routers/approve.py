@@ -13,6 +13,14 @@ router = APIRouter(
 )
 
 
+@router.get("/unapproved/{activity_id}")
+def get_unapproved_activity_id(activity_id, 
+                               current_concierge=Depends(oauth2.get_current_concierge),
+                               db: Session = Depends(database.get_db)):
+    unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
+    return unapproved_dev_service.get_unapproved_dev_activity(activity_id)
+
+
 @router.get("/unapproved", response_model=List[DeviceUnapproved])
 def get_all_unapproved(current_concierge=Depends(oauth2.get_current_concierge),
                        db: Session = Depends(database.get_db)) -> List[DeviceUnapproved]:

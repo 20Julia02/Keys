@@ -49,6 +49,13 @@ class NoteService:
         if not notes:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No note found for operation id: {operation_id}")
         return notes
+    
+    def get_dev_notes_by_id(self, dev_id: int):
+        operation_ids_subquery = self.db.query(models.Operation.id).filter(models.Operation.device_id == dev_id)
+        notes = self.db.query(models.OperationNote).filter(models.OperationNote.operation_id.in_(operation_ids_subquery)).all()
+        if not notes:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No note found for device id: {dev_id}")
+        return notes
 
     def create_operation_note(self, operation_id: int, note_text: str):
         """Create a new operation note."""

@@ -1,4 +1,5 @@
 import pytest
+import datetime
 from sqlalchemy import text
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -6,7 +7,6 @@ from app.main import app
 from app import models, database
 from app.services import securityService, deviceService
 from app.schemas import UserCreate
-from datetime import datetime
 from app.database import Base
 
 
@@ -83,8 +83,8 @@ def test_room(db: Session):
 @pytest.fixture(scope="module")
 def test_permission(db: Session, test_user, test_room):
     permission = models.Permission(user_id=test_user.id, room_id=test_room.id,
-                                   start_reservation=datetime(2024, 12, 6, 12, 45).isoformat(),
-                                   end_reservation=datetime(2024, 12, 6, 14, 45).isoformat())
+                                   start_reservation=datetime.datetime(2024, 12, 6, 12, 45).isoformat(),
+                                   end_reservation=datetime.datetime(2024, 12, 6, 14, 45).isoformat())
     db.add(permission)
     db.commit()
     db.refresh(permission)
@@ -96,7 +96,7 @@ def test_activity(db: Session, test_user: models.User, test_concierge: models.Us
     activity = models.Activities(
         user_id=test_user.id,
         concierge_id=test_concierge.id,
-        start_time=datetime(2024, 12, 6, 12, 45).isoformat(),
+        start_time=datetime.datetime(2024, 12, 6, 12, 45).isoformat(),
         status=models.Status.in_progress
     )
     db.add(activity)
@@ -265,7 +265,7 @@ def test_get_all_devices(test_device: models.Devices,
     assert isinstance(response.json(), list)
     assert len(response.json()) >= 2
 
-    response = client.get("/devices/?type=key",
+    response = client.get("/devices/?type=key?version=primary",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
     assert isinstance(response.json(), list)
@@ -330,7 +330,7 @@ def test_changeStatus_with_valid_id_taking(test_concierge: models.User,
     assert response1.status_code == 200
     response = client.post(f"/devices/change-status/{test_device.id}",
                            headers={"Authorization": f"Bearer {concierge_token}"},
-                           json={"activity_id": response1.json()})
+                           json={"activity_id": response1.json()["activity_id"]})
     assert response.status_code == 200
     assert response.json()["device_id"] == test_device.id
     assert response.json()["is_taken"] is True
@@ -353,11 +353,11 @@ def test_changeStatus_again(test_concierge: models.User,
 
     client.post(f"/devices/change-status/{test_device.id}",
                            headers={"Authorization": f"Bearer {concierge_token}"},
-                           json={"activity_id": response1.json()})
+                           json={"activity_id": response1.json()["activity_id"]})
     
     response = client.post(f"/devices/change-status/{test_device.id}",
                            headers={"Authorization": f"Bearer {concierge_token}"},
-                           json={"activity_id": response1.json()})
+                           json={"activity_id": response1.json()["activity_id"]})
     assert response.json()["detail"] == "Device removed from unapproved data."
 
 
@@ -368,8 +368,8 @@ def test_create_permission(test_concierge: models.User,
     permission_data = {
         "user_id": test_user.id,
         "room_id": test_room.id,
-        "start_reservation": datetime(2024, 12, 6, 12, 45).isoformat(),
-        "end_reservation": datetime(2024, 12, 6, 14, 45).isoformat()
+        "start_reservation": datetime.datetime(2024, 12, 6, 12, 45).isoformat(),
+        "end_reservation": datetime.datetime(2024, 12, 6, 14, 45).isoformat()
     }
     response = client.post(
         "/permissions",
@@ -432,9 +432,13 @@ def test_get_room_by_id(test_room: models.Room, test_concierge: models.User, con
 
 
 def test_create_unauthorized_user(test_concierge: models.User, concierge_token: str):
+    token_service = securityService.TokenService(db)
+    concierge = token_service.verify_concierge_token(concierge_token)
     user_data = {
         "name": "Unauthorized",
-        "surname": "User"
+        "surname": "User",
+        "addition_time": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "id_concierge_who_accepted": concierge.id
     }
     response = client.post("/unauthorized-users", json=user_data,
                            headers={"Authorization": f"Bearer {concierge_token}"})
@@ -459,7 +463,7 @@ def test_get_all_unauthorized_users(test_concierge: models.User, concierge_token
 
 
 def test_get_unauthorized_user_by_id(db: Session, test_concierge: models.User, concierge_token: str):
-    user = models.unauthorized_users(name="Unauthorized", surname="User 2")
+    user = models.unauthorized_users(name="Unauthorized", surname="User 2", addition_time=datetime.datetime.now(datetime.timezone.utc).isoformat())
     db.add(user)
     db.commit()
     db.refresh(user)

@@ -102,33 +102,6 @@ class TokenService:
                                 detail="Invalid token")
         return token_data
 
-    def verify_user_token(self, token: str) -> TokenDataUser:
-        """
-        Verifies the given JWT token and extracts user-specific token data.
-
-        Args:
-            token (str): The JWT token to verify.
-
-        Returns:
-            TokenDataUser: An object containing the extracted token data (user_id and activity_id).
-
-        Raises:
-            HTTPException: If the token is invalid or missing required data.
-        """
-        try:
-            payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
-            id = payload.get("user_id")
-            activity = payload.get("activity_id")
-
-            if id is None or activity is None:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                    detail="Invalid token")
-            token_data = TokenDataUser(user_id=id, activity=activity)
-        except JWTError:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail="Invalid token")
-        return token_data
-
     def is_token_blacklisted(self, token: str) -> bool:
         """
         Checks if a token is in the blacklist.

@@ -1,7 +1,7 @@
 import datetime
 from fastapi import status, Depends, APIRouter, HTTPException
 from typing import List
-from app import database, oauth2, schemas
+from app import database, oauth2, schemas, models
 from app.services import noteService
 from sqlalchemy.orm import Session
 
@@ -9,6 +9,7 @@ router = APIRouter(
     prefix="/notes",
     tags=['Notes']
 )
+
 
 @router.get("/users", response_model=List[schemas.UserNote])
 def get_all_user_note(
@@ -105,6 +106,15 @@ def get_operation_note(operation_id: int,
     return note_service.get_operation_note_by_id(operation_id)
 
 
+@router.get("/devices/{dev_id}", response_model=List[schemas.OperationNote])
+def get_dev_notes(dev_id: int,
+                 current_concierge=Depends(oauth2.get_current_concierge),
+                 db: Session = Depends(database.get_db)) -> List[schemas.OperationNote]:
+
+    note_service = noteService.NoteService(db)
+    return note_service.get_dev_note_by_id(dev_id)
+
+
 @router.post("/operations/{operation_id}", response_model=schemas.OperationNote)
 def add_operation_note(operation_id: int,
                        note: str,
@@ -143,3 +153,18 @@ def get_all_device_note(dev_id: int,
     """
     note_service = noteService.NoteService(db)
     return note_service.get_device_operation_notes(dev_id)
+
+
+@router.delete("/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_unauthorized_user(note_id: int,
+                             db: Session = Depends(database.get_db),
+                             current_concierge=Depends(oauth2.get_current_concierge)):
+    note = db.query(models.OperationNote).filter(
+            models.OperationNote.id == note_id).first()
+
+    if not note:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Note with id: {note_id} doesn't exist")
+
+    db.delete(note)
+    db.commit()
