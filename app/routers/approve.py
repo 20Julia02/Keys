@@ -30,8 +30,8 @@ def get_all_unapproved(current_concierge=Depends(oauth2.get_current_concierge),
     return unapproved_dev_service.get_unapproved_dev_all()
 
 
-@router.post("/activity/login/{id}")
-def approve_activity_login(id: int,
+@router.post("/activity/login/{activity_id}")
+def approve_activity_login(activity_id: int,
                            db: Session = Depends(database.get_db),
                            concierge_credentials: OAuth2PasswordRequestForm = Depends(),
                            current_concierge=Depends(oauth2.get_current_concierge)) -> JSONResponse:
@@ -53,9 +53,9 @@ def approve_activity_login(id: int,
 
     concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password)
     auth_service.check_if_entitled("concierge", concierge)
-    activity_service.end_activity(id)
+    activity_service.end_activity(activity_id)
 
-    dev_activity = unapproved_dev_service.get_unapproved_dev_activity(id)
+    dev_activity = unapproved_dev_service.get_unapproved_dev_activity(activity_id)
     unapproved_dev_service.transfer_devices(dev_activity)
 
     return JSONResponse({"detail": "Operations approved and devices updated successfully."})

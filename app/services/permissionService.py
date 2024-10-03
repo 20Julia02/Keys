@@ -28,6 +28,16 @@ class PermissionService:
                                 detail=f"User with id: {user_id} doesn't exist")
         return user
 
+    def get_all_permissions(self) -> List[schemas.PermissionOut]:
+        """
+        Helper function to retrieve permissions by user_id or room_id.
+        """
+        perm = self.db.query(models.Permission).all()
+        if not perm:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"No permissions found")
+        return perm
+
     def get_permissions_by_field(self, field_name: str, field_value: int) -> List[schemas.PermissionOut]:
         """
         Helper function to retrieve permissions by user_id or room_id.
@@ -52,9 +62,23 @@ class PermissionService:
         self.get_user_or_404(user_id)
         return self.get_permissions_by_field('user_id', user_id)
 
-    def check_if_permitted(self, user_id: int, room_id: int):
+    def check_if_permitted(self, user_id: int, room_id: int, force: bool = False) -> bool:
         """
-        Checks if a user has permission to access a room.
+        Checks if a user has permission to access a specific room.
+        
+        If the user doesn't have permission and the operation is not forced, it raises
+        an HTTPException with a 403 status code. If the operation is forced, it returns False.
+
+        Args:
+            user_id (int): ID of the user whose permissions are being checked.
+            room_id (int): ID of the room to check access for.
+            force (bool, optional): Whether to force the operation despite lack of permissions.
+
+        Returns:
+            bool: True if the user has permission, False if permission is absent but the operation is forced.
+
+        Raises:
+            HTTPException: If the user doesn't have permission and the operation is not forced.
         """
         self.get_user_or_404(user_id)
         self.get_room_or_404(room_id)
@@ -63,7 +87,17 @@ class PermissionService:
             models.Permission.user_id == user_id,
             models.Permission.room_id == room_id
         ).first()
-        return perm is not None
+
+        if perm:
+            return True
+
+        if not perm and force:
+            return False
+        
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"User with id {user_id} does not have permission to access room {room_id}")
+      
 
     def create_permission(self, permission: schemas.PermissionCreate):
         """

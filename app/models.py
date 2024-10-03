@@ -47,6 +47,8 @@ class DeviceType(enum.Enum):
 
 class BaseDevice(Base):
     __abstract__ = True
+
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     is_taken = Column(Boolean, nullable=False, server_default="false")
     last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
     last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
@@ -59,7 +61,6 @@ class BaseDevice(Base):
 
 class Devices(BaseDevice):
     __tablename__ = "devices"
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     type = Column(Enum(DeviceType), nullable=False)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
     version = Column(Enum(DeviceVersion), nullable=False)
@@ -74,7 +75,7 @@ class Devices(BaseDevice):
 class DevicesUnapproved(BaseDevice):
     __tablename__ = "devices_unapproved"
 
-    device_id = Column(Integer, ForeignKey("devices.id"), primary_key=True, nullable=False)
+    device_id = Column(Integer, ForeignKey("devices.id"), nullable=False)
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
 
     activity = relationship("Activities")

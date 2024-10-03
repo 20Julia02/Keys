@@ -150,14 +150,29 @@ class Activity(BaseModel):
     status: str
     start_time: datetime  
 
+class OperationOut(BaseModel):
+    operation_type: str
+    device: DeviceOut
+    entitled: bool
+
+    model_config = ConfigDict(from_attributes=True)
 
 class OperationNote(BaseModel):
-    operation_id: int
+    operation: OperationOut
     note: str
     time: datetime
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserNote(BaseModel):
-    user_id: int
+    user: UserOut
     note: str
     time: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ChangeStatus(BaseModel):
+    activity_id: int
+    force: Optional[bool] = False

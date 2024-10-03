@@ -1,7 +1,7 @@
 import datetime
 from fastapi import status, Depends, APIRouter, HTTPException
 from typing import List
-from app.schemas import Token, DeviceCreate, DeviceOut, DetailMessage, DeviceOrDetailResponse, Operation
+from app.schemas import ChangeStatus, Token, DeviceCreate, DeviceOut, DetailMessage, DeviceOrDetailResponse, Operation
 from app import database, oauth2, models
 from app.services import deviceService, securityService, activityService, operationService, permissionService
 from sqlalchemy.orm import Session
@@ -80,16 +80,13 @@ def create_device(device: DeviceCreate,
     dev_service = deviceService.DeviceService(db)
     return dev_service.create_dev(device)
 
-# todo, sprawdzac czy uprawniony, tabela operacje -kazda zmiana statusu
 
-
-@router.post("/change-status/{id}", response_model=DeviceOrDetailResponse)
+@router.post("/change-status/{dev_id}", response_model=DeviceOrDetailResponse)
 def change_status(
-    token: Token,
-    id: int,
+    dev_id: int,
+    request: ChangeStatus,
     db: Session = Depends(database.get_db),
     current_concierge: int = Depends(oauth2.get_current_concierge),
-    force: bool = False
 ) -> DeviceOrDetailResponse:
     """
     Changes the status of a device based on the provided token (with activity ID and user ID).
@@ -117,41 +114,35 @@ def change_status(
     operation_service = operationService.OperationService(db)
     permission_service = permissionService.PermissionService(db)
 
-    activity = activity_service.get_activity_token(token)
-
-    if unapproved_dev_service.delete_if_rescaned(id):
+    device = db.query(models.DevicesUnapproved).filter(models.DevicesUnapproved.device_id == dev_id, 
+                                                       models.DevicesUnapproved.activity_id == request.activity_id).first()
+    if device:
+        db.delete(device)
+        db.commit()
         return DetailMessage(detail="Device removed from unapproved data.")
+    
+    activity = activity_service.get_activity_id(request.activity_id)
+    
+    device = dev_service.get_dev_id(dev_id)
+    entitled = permission_service.check_if_permitted(activity.user_id, device.room.id, request.force)
 
-    device = dev_service.get_dev_id(id)
+    if not device.is_taken:  
+        operation_type = models.OperationType.issue_dev.value
 
-    operation_data = {
-            "device_id": id,
-            "activity_id": activity.id,
-            "entitled": True,
-            "time": datetime.datetime.now(datetime.timezone.utc)
-        }
-
-    if not permission_service.check_if_permitted(activity.user_id, device.room_id):
-        if force is True:
-            operation_data["entitled"] = False
-        else:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                detail=f"User with id: {activity.user_id} does not have permission to room {device.room_id}")
-    if not device.is_taken:
         new_dev_data = {
             "is_taken": True,
             "last_taken": datetime.datetime.now(datetime.timezone.utc),
             "last_owner_id": activity.user_id,
         }
-        operation_data["operation_type"] = models.OperationType.issue_dev.value
+
     else:
+        operation_type = models.OperationType.return_dev.value
+
         new_dev_data = {
             "is_taken": False,
             "last_returned": datetime.datetime.now(datetime.timezone.utc)
         }
-        operation_data["operation_type"] = models.OperationType.return_dev
 
-    new_operation = operation_service.create_operation(Operation(**operation_data))
-    unapproved_dev_service.create_unapproved(id, activity.id)
-
-    return unapproved_dev_service.update_device_status(id, new_dev_data)
+    operation_service.create_operation(dev_id, activity.id, entitled, operation_type)
+    unapproved_dev_service.create_unapproved(dev_id, activity.id)
+    return unapproved_dev_service.update_device_status(dev_id, new_dev_data)

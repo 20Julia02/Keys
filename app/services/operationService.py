@@ -1,3 +1,4 @@
+import datetime
 from app.schemas import Operation
 from sqlalchemy.orm import Session
 from app import models
@@ -8,7 +9,7 @@ class OperationService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_operation(self, operation: Operation):
+    def create_operation(self, dev_id: int, activity_id: int, entitled: bool, operation_type: str):
         """
         Creates a new operation in the database.
 
@@ -18,8 +19,17 @@ class OperationService:
         Returns:
             Operation: The newly created operation.
         """
+        operation_data = {
+            "device_id": dev_id,
+            "activity_id": activity_id,
+            "entitled": entitled,
+            "time": datetime.datetime.now(datetime.timezone.utc),
+            "operation_type": operation_type
+        }
+        operation = Operation(**operation_data)
+
         new_operation = models.Operation(**operation.model_dump())
-        print(operation.operation_type)
+        
         self.db.add(new_operation)
         self.db.commit()
         self.db.refresh(new_operation)

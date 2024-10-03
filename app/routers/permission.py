@@ -12,7 +12,12 @@ router = APIRouter(
 )
 
 # todo dane o pozwoleniach brac z systemu pw
-
+@router.get("/}", response_model=List[PermissionOut])
+def get_all_permissions(current_concierge=Depends(oauth2.get_current_concierge),
+                        db: Session = Depends(database.get_db)) -> List[PermissionOut]:
+    permission_service = permissionService.PermissionService(db)
+    perm = permission_service.get_all_permissions()
+    return perm
 
 @router.get("/users/{id}", response_model=List[PermissionOut])
 def get_user_permission(id: int,

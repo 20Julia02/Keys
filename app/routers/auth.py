@@ -54,10 +54,10 @@ def card_login(card_id: CardLogin, db: Session = Depends(database.get_db)) -> Lo
     return token_service.generate_tokens(concierge.id, concierge.role.value)
 
 
-@router.post("/start-activity", response_model=Token)
+@router.post("/start-activity")
 def start_login_activity(user_credentials: OAuth2PasswordRequestForm = Depends(),
                          current_concierge=Depends(oauth2.get_current_concierge),
-                         db: Session = Depends(database.get_db)) -> Token:
+                         db: Session = Depends(database.get_db)) -> int:
     """
     Starts an activity for a user by authenticating them with credentials.
 
@@ -75,10 +75,7 @@ def start_login_activity(user_credentials: OAuth2PasswordRequestForm = Depends()
     activity_service = activityService.ActivityService(db)
     activity = activity_service.create_activity(user.id, current_concierge.id)
 
-    token_service = securityService.TokenService(db)
-    access_token = token_service.create_token({"user_id": user.id, "activity_id": activity.id}, "access")
-
-    return Token(access_token=access_token, type="bearer")
+    return activity.id
 
 
 @router.post("/start-activity/card", response_model=Token)

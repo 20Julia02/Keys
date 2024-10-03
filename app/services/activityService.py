@@ -57,24 +57,9 @@ class ActivityService:
         self.db.commit()
         return activity
 
-    def get_activity_token(self, token: Token) -> Activity:
-        """
-        Validates an activity based on the provided authentication token.
-
-        The token is verified to retrieve the associated activity.
-
-        Args:
-            token (Token): The authentication token containing user and activity information.
-
-        Returns:
-            achemas.Activity: The activity associated with the token.
-
-        Raises:
-            HTTPException: If the activity associated with the token does not exist.
-        """
-        token_data = securityService.TokenService(self.db).verify_user_token(token.access_token)
+    def get_activity_id(self, activity_id: int) -> Activity:
         activity = self.db.query(models.Activities).filter(
-                    models.Activities.id == token_data.activity
+                    models.Activities.id == activity_id
                 ).first()
 
         if not activity:
