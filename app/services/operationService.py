@@ -9,7 +9,7 @@ class OperationService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_operation(self, dev_id: int, activity_id: int, entitled: bool, operation_type: str):
+    def create_operation(self, dev_code: str, activity_id: int, entitled: bool, operation_type: str):
         """
         Creates a new operation in the database.
 
@@ -20,7 +20,7 @@ class OperationService:
             Operation: The newly created operation.
         """
         operation_data = {
-            "device_id": dev_id,
+            "device_code": dev_code,
             "activity_id": activity_id,
             "entitled": entitled,
             "time": datetime.datetime.now(datetime.timezone.utc),

@@ -273,7 +273,7 @@ def test_get_all_devices(test_device: models.Devices,
 
 
 def test_get_dev_by_id(test_device: models.Devices, concierge_token: str):
-    response = client.get(f"/devices/{test_device.id}",
+    response = client.get(f"/devices/{test_device.code}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
     assert response.json()["type"] == test_device.type.value
@@ -307,7 +307,7 @@ def test_create_device_with_invalid_data(concierge_token: str):
 def test_changeStatus_invalid_activity(test_device: models.Devices,
                                        test_concierge: models.User,
                                        concierge_token: str):
-    response = client.post(f"/devices/change-status/{test_device.id}",
+    response = client.post(f"/devices/change-status/{test_device.code}",
                            headers={"Authorization": f"Bearer {concierge_token}"},
                            json={"activity_id": 0, "force": False})
     assert response.status_code == 404
@@ -328,11 +328,11 @@ def test_changeStatus_with_valid_id_taking(test_concierge: models.User,
                             headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
     print(response1.json())
     assert response1.status_code == 200
-    response = client.post(f"/devices/change-status/{test_device.id}",
+    response = client.post(f"/devices/change-status/{test_device.code}",
                            headers={"Authorization": f"Bearer {concierge_token}"},
                            json={"activity_id": response1.json()["activity_id"]})
     assert response.status_code == 200
-    assert response.json()["device_id"] == test_device.id
+    assert response.json()["device_code"] == test_device.code
     assert response.json()["is_taken"] is True
     assert response.json()["last_owner_id"] == test_user.id
 
@@ -351,11 +351,11 @@ def test_changeStatus_again(test_concierge: models.User,
                             headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
     assert response1.status_code == 200
 
-    client.post(f"/devices/change-status/{test_device.id}",
+    client.post(f"/devices/change-status/{test_device.code}",
                 headers={"Authorization": f"Bearer {concierge_token}"},
                 json={"activity_id": response1.json()["activity_id"]})
 
-    response = client.post(f"/devices/change-status/{test_device.id}",
+    response = client.post(f"/devices/change-status/{test_device.code}",
                            headers={"Authorization": f"Bearer {concierge_token}"},
                            json={"activity_id": response1.json()["activity_id"]})
     assert response.json()["detail"] == "Device removed from unapproved data."
@@ -507,7 +507,7 @@ def test_get_all_unapproved_authenticated(db: Session,
                                           concierge_token: str):
     device = models.DevicesUnapproved(
         is_taken=False,
-        device_id=test_device.id,
+        device_code=test_device.code,
         activity_id=test_activity.id
     )
     db.add(device)
@@ -603,7 +603,7 @@ def test_approve_activity_card_success(db: Session,
                                        concierge_token: str):
 
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
-    unapproved_dev_service.create_unapproved(test_device.id, test_activity.id)
+    unapproved_dev_service.create_unapproved(test_device.code, test_activity.id)
 
     response = client.post(
         f"/approve/activity/card/{test_activity.id}",

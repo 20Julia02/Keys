@@ -26,25 +26,6 @@ class DeviceService:
         self.db.refresh(new_device)
         return new_device
 
-    def get_dev_id(self, dev_id: int) -> DeviceOut:
-        """
-        Retrieves a device from the devices table by its ID.
-
-        Args:
-            device_id: The ID of the device to retrieve.
-
-        Returns:
-            The device object if found.
-
-        Raises:
-            HTTPException: If the device is not found, a 404 error is raised.
-        """
-        device = self.db.query(models.Devices).filter(models.Devices.id == dev_id).first()
-        if not device:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Device with id: {dev_id} doesn't exist")
-        return device
-    
     def get_dev_code(self, dev_code: str) -> DeviceOut:
         """
         Retrieves a device from the devices table by its code.
@@ -95,41 +76,19 @@ class UnapprovedDeviceService:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_dev_id(self, dev_id: int) -> models.DevicesUnapproved:
-        """
-        Retrieves a device from the unapproved devices table by its ID.
-
-        Args:
-            device_id: The ID of the device to retrieve.
-
-        Returns:
-            The unapproved device object if found.
-
-        Raises:
-            HTTPException: If the unapproved device is not found, a 404 error is raised.
-        """
-        device = self.db.query(models.DevicesUnapproved).filter(models.DevicesUnapproved.device_id == dev_id).first()
+    def get_dev_code(self, dev_code: str) -> models.DevicesUnapproved:
+        device = self.db.query(models.DevicesUnapproved).filter(models.DevicesUnapproved.device_code == dev_code).first()
         if not device:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Device with id: {dev_id} doesn't exist")
+                                detail=f"Device with id: {dev_code} doesn't exist")
         return device
 
-    def create_unapproved(self, dev_id: int,
+    def create_unapproved(self, dev_code: str,
                           activity_id: int) -> DeviceUnapproved:
-        """
-        Clones a device from the approved devices table to the unapproved devices table.
-
-        Args:
-            device: The device object to clone.
-            activity_id: The ID of the associated activity.
-
-        Returns:
-            The newly created unapproved device object.
-        """
         device_service = DeviceService(self.db)
-        device = device_service.get_dev_id(dev_id)
+        device = device_service.get_dev_code(dev_code)
         new_device = models.DevicesUnapproved(
-            device_id=device.id,
+            device_code=device.code,
             activity_id=activity_id
         )
 
@@ -138,18 +97,8 @@ class UnapprovedDeviceService:
         self.db.refresh(new_device)
         return new_device
 
-    def update_device_status(self, dev_id: int, new_data: dict) -> DeviceUnapproved:
-        """
-        Updates the status of a device in the unapproved devices table.
-
-        Args:
-            device: The unapproved device object to update.
-            new_data: A dictionary containing the updated data.
-
-        Returns:
-            DeviceUnapproved: The updated unapproved device object.
-        """
-        device = self.get_dev_id(dev_id)
+    def update_device_status(self, dev_code: str, new_data: dict) -> DeviceUnapproved:
+        device = self.get_dev_code(dev_code)
         for key, value in new_data.items():
             setattr(device, key, value)
         self.db.commit()
@@ -157,18 +106,6 @@ class UnapprovedDeviceService:
         return device
 
     def get_unapproved_dev_activity(self, activity_id: int) -> List[DeviceUnapproved]:
-        """
-        Returns every unapproved devices with given activity ID.
-
-        Args:
-            activity_id (int): activity ID associated with the unapproved devices
-
-        Raises:
-            HTTPException: if there is no unaproved devices in database associated with given activity ID
-
-        Returns:
-            List[DeviceUnapproved]: List of unapproved devices with given activity ID
-        """
         unapproved_devs = self.db.query(models.DevicesUnapproved).filter_by(activity_id=activity_id).all()
         if not unapproved_devs:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -176,39 +113,17 @@ class UnapprovedDeviceService:
         return unapproved_devs
 
     def get_unapproved_dev_all(self) -> List[DeviceUnapproved]:
-        """
-        Returns every unapproved devices that are in database
-
-        Raises:
-            HTTPException: if there is no unaproved devices in database
-
-        Returns:
-            List[DeviceUnapproved]: List of unapproved devices
-        """
         unapproved_devs = self.db.query(models.DevicesUnapproved).all()
         if not unapproved_devs:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No unapproved devices found")
         return unapproved_devs
 
     def transfer_devices(self, unapproved_devs: List[DeviceUnapproved]) -> bool:
-        """
-        Changes the data in the table of Devices according to the given data of unapproved devices
-
-        Args:
-            unapproved_devs (List[models.DevicesUnapproved]): List of the unapproved devices to transfer
-
-        Raises:
-            HTTPException: if there is no unapproved device in database
-            HTTPException: if there is no device with given id in Devices table
-
-        Returns:
-            True if the unapproved devs were transformed to Devices table
-        """
         if not unapproved_devs:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There is no unapproved device in database")
         for unapproved in unapproved_devs:
-            device = self.db.query(models.Devices).filter_by(id=unapproved.device_id).first()
+            device = self.db.query(models.Devices).filter_by(code=unapproved.device_code).first()
             if device:
                 device.is_taken = unapproved.is_taken
                 device.last_taken = unapproved.last_taken

@@ -106,13 +106,13 @@ def get_operation_note(operation_id: int,
     return note_service.get_operation_note_by_id(operation_id)
 
 
-@router.get("/devices/{dev_id}", response_model=List[schemas.OperationNote])
-def get_dev_notes(dev_id: int,
+@router.get("/devices/{dev_code}", response_model=List[schemas.OperationNote])
+def get_dev_notes(dev_code: str,
                  current_concierge=Depends(oauth2.get_current_concierge),
                  db: Session = Depends(database.get_db)) -> List[schemas.OperationNote]:
 
     note_service = noteService.NoteService(db)
-    return note_service.get_dev_note_by_id(dev_id)
+    return note_service.get_dev_notes_by_code(dev_code)
 
 
 @router.post("/operations/{operation_id}", response_model=schemas.OperationNote)
@@ -134,25 +134,6 @@ def add_operation_note(operation_id: int,
     """
     note_service = noteService.NoteService(db)
     return note_service.create_operation_note(operation_id, note)
-
-
-@router.get("/devices/{dev_id}", response_model=List[schemas.OperationNote])
-def get_all_device_note(dev_id: int,
-                        current_concierge=Depends(oauth2.get_current_concierge),
-                        db: Session = Depends(database.get_db)) -> List[schemas.OperationNote]:
-    """
-    Retrieve all operation notes related to a specific device.
-
-    Args:
-        dev_id: The ID of the device.
-        current_concierge: The currently authenticated concierge.
-        db: The database session.
-
-    Returns:
-        A list of operation notes for the given device.
-    """
-    note_service = noteService.NoteService(db)
-    return note_service.get_device_operation_notes(dev_id)
 
 
 @router.delete("/{note_id}", status_code=status.HTTP_204_NO_CONTENT)

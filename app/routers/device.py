@@ -19,52 +19,50 @@ def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
                     dev_version: str = "",
                     db: Session = Depends(database.get_db)) -> List[DeviceOut]:
     """
-    Retrieves all devices from the database that match the specified type.
+    Retrieve all devices from the database, optionally filtered by type or version.
 
+    This endpoint retrieves a list of devices from the database. Optionally, 
+    the list can be filtered by device type and version if these parameters are provided.
+    
     Args:
-        current_concierge: The current user object (used for authorization).
-        type (str): The type of device to filter by.
-        db (Session): The database session.
+        current_concierge: The currently authenticated concierge (used for authorization).
+        dev_type (str): Optional filter for device type.
+        dev_version (str): Optional filter for device version.
+        db (Session): The active database session.
 
     Returns:
-        List[DeviceOut]: A list of devices that match the specified type.
-
+        List[DeviceOut]: A list of devices that match the optional filters, if any.
+    
     Raises:
-        HTTPException: If no devices are found in the database.
+        HTTPException: If no devices are found or there is a database error.
     """
     dev_service = deviceService.DeviceService(db)
     return dev_service.get_all_devs(dev_type, dev_version)
 
 
-@router.get("/code/{dev_code}", response_model=DeviceOut)
-def get_dev_code(dev_code: int,
+@router.get("/{dev_code}", response_model=DeviceOut)
+def get_dev_code(dev_code: str,
                  current_concierge=Depends(oauth2.get_current_concierge),
                  db: Session = Depends(database.get_db)) -> DeviceOut:
-
-    dev_service = deviceService.DeviceService(db)
-    return dev_service.get_dev_code(dev_code)
-
-
-@router.get("/{dev_id}", response_model=DeviceOut)
-def get_dev_id(dev_id: int,
-               current_concierge=Depends(oauth2.get_current_concierge),
-               db: Session = Depends(database.get_db)) -> DeviceOut:
     """
-    Retrieves a device by its ID from the database.
+    Retrieve a device by its unique device code.
+
+    This endpoint retrieves a device from the database using the device's unique code. 
+    Device codes are typically used to identify devices more easily than by ID.
 
     Args:
-        id (int): The ID of the device.
-        current_concierge: The current user object (used for authorization).
-        db (Session): The database session.
+        dev_code (int): The unique code of the device.
+        current_concierge: The currently authenticated concierge (used for authorization).
+        db (Session): The active database session.
 
     Returns:
-        DeviceOut: The device with the specified ID.
+        DeviceOut: The device that matches the provided code.
 
     Raises:
-        HTTPException: If the device with the specified ID doesn't exist.
+        HTTPException: If the device with the given code is not found.
     """
     dev_service = deviceService.DeviceService(db)
-    return dev_service.get_dev_id(dev_id)
+    return dev_service.get_dev_code(dev_code)
 
 
 @router.post("/", response_model=DeviceOut, status_code=status.HTTP_201_CREATED)
@@ -92,9 +90,9 @@ def create_device(device: DeviceCreate,
 
 # todo zmiana statusu unauthorized
 
-@router.post("/change-status/{dev_id}", response_model=DeviceOrDetailResponse)
+@router.post("/change-status/{dev_code}", response_model=DeviceOrDetailResponse)
 def change_status(
-    dev_id: int,
+    dev_code: str,
     request: ChangeStatus,
     db: Session = Depends(database.get_db),
     current_concierge: int = Depends(oauth2.get_current_concierge),
@@ -125,7 +123,7 @@ def change_status(
     operation_service = operationService.OperationService(db)
     permission_service = permissionService.PermissionService(db)
 
-    device = db.query(models.DevicesUnapproved).filter(models.DevicesUnapproved.device_id == dev_id, 
+    device = db.query(models.DevicesUnapproved).filter(models.DevicesUnapproved.device_code == dev_code, 
                                                        models.DevicesUnapproved.activity_id == request.activity_id).first()
     if device:
         db.delete(device)
@@ -134,7 +132,7 @@ def change_status(
     
     activity = activity_service.get_activity_id(request.activity_id)
     
-    device = dev_service.get_dev_id(dev_id)
+    device = dev_service.get_dev_code(dev_code)
     entitled = permission_service.check_if_permitted(activity.user_id, device.room.id, request.force)
 
     if not device.is_taken:  
@@ -154,6 +152,6 @@ def change_status(
             "last_returned": datetime.datetime.now(datetime.timezone.utc)
         }
 
-    operation_service.create_operation(dev_id, activity.id, entitled, operation_type)
-    unapproved_dev_service.create_unapproved(dev_id, activity.id)
-    return unapproved_dev_service.update_device_status(dev_id, new_dev_data)
+    operation_service.create_operation(dev_code, activity.id, entitled, operation_type)
+    unapproved_dev_service.create_unapproved(dev_code, activity.id)
+    return unapproved_dev_service.update_device_status(dev_code, new_dev_data)

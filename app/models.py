@@ -24,7 +24,7 @@ class Operation(Base):
     __tablename__ = "operations"
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     operation_type = Column(Enum(OperationType), nullable=False)
-    device_id = Column(Integer, ForeignKey("devices.id"), nullable=False)
+    device_code = Column(String, ForeignKey("devices.code"), nullable=False)
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
     time = Column(TIMESTAMP(timezone=True), nullable=False)
     entitled = Column(Boolean, nullable=False)
@@ -47,8 +47,6 @@ class DeviceType(enum.Enum):
 
 class BaseDevice(Base):
     __abstract__ = True
-
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     is_taken = Column(Boolean, nullable=False, server_default="false")
     last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
     last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
@@ -61,10 +59,11 @@ class BaseDevice(Base):
 
 class Devices(BaseDevice):
     __tablename__ = "devices"
+
+    code = Column(String, primary_key=True, unique=True, nullable=False)
     type = Column(Enum(DeviceType), nullable=False)
     room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
     version = Column(Enum(DeviceVersion), nullable=False)
-    code = Column(String, unique=True, nullable=False)
 
     room = relationship("Room")
 
@@ -74,8 +73,8 @@ class Devices(BaseDevice):
 
 class DevicesUnapproved(BaseDevice):
     __tablename__ = "devices_unapproved"
-
-    device_id = Column(Integer, ForeignKey("devices.id"), nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    device_code = Column(String, ForeignKey("devices.code"), nullable=False)
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
 
     activity = relationship("Activities")

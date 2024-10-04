@@ -17,14 +17,21 @@ router = APIRouter(
 def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
           db: Session = Depends(database.get_db)) -> LoginConcierge:
     """
-    Authenticates a cocnierge using their credentials (username and password).
+    Authenticate a concierge using their login credentials (username and password).
+    
+    This endpoint allows a concierge to log in by providing valid credentials.
+    Upon successful authentication, the system generates and returns an access token 
+    and a refresh token that can be used for subsequent API requests and token refreshing.
 
     Args:
-        concierge_credentials (OAuth2PasswordRequestForm): Form with login credentials.
-        db (Session): Database session.
+        concierge_credentials (OAuth2PasswordRequestForm): The login form containing the username and password.
+        db (Session): The active database session.
 
     Returns:
-        LoginConcierge: Object containing generated access and refresh tokens.
+        LoginConcierge: An object containing both the access token and refresh token.
+    
+    Raises:
+        HTTPException: If authentication fails or if the user does not have the appropriate permissions.
     """
     auth_service = securityService.AuthorizationService(db)
     concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password)
@@ -38,14 +45,21 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
 def card_login(card_id: CardLogin,
                db: Session = Depends(database.get_db)) -> LoginConcierge:
     """
-    Authenticates a concierge using their card ID.
+    Authenticate a concierge using their card ID.
+
+    This endpoint allows a concierge to authenticate by providing their card ID.
+    Upon successful authentication, the system generates and returns both an access token 
+    and a refresh token for future API requests and token refreshing.
 
     Args:
         card_id (CardLogin): Object containing the card ID.
-        db (Session): Database session.
+        db (Session): The active database session.
 
     Returns:
-        LoginConcierge: Object containing generated access and refresh tokens.
+        LoginConcierge: An object containing both the access token and refresh token.
+    
+    Raises:
+        HTTPException: If authentication fails or if the user does not have the appropriate permissions.
     """
     auth_service = securityService.AuthorizationService(db)
     concierge = auth_service.authenticate_user_card(card_id)
@@ -60,21 +74,29 @@ def start_login_activity(user_credentials: OAuth2PasswordRequestForm = Depends()
                          current_concierge=Depends(oauth2.get_current_concierge),
                          db: Session = Depends(database.get_db)) -> LoginActivity:
     """
-    Starts an activity for a user by authenticating them with credentials.
+    Start an activity by authenticating a user with credentials (username and password).
+
+    This endpoint allows a concierge to initiate an activity for a user by verifying 
+    their login credentials. Once authenticated, the system creates an activity for 
+    the user and assigns it to the current concierge.
 
     Args:
-        user_credentials (OAuth2PasswordRequestForm): Form with user login credentials.
-        current_concierge: Currently logged-in concierge.
-        db (Session): Database session.
+        user_credentials (OAuth2PasswordRequestForm): The login credentials (username and password) of the user.
+        current_concierge: The currently authenticated concierge (extracted from the OAuth2 token).
+        db (Session): The active database session.
 
     Returns:
-        LoginActivity: Object containing the activity id and user data.
+        LoginActivity: An object containing the ID of the newly created activity and the user's details.
+    
+    Raises:
+        HTTPException: If user authentication fails or if the activity cannot be created.
     """
     auth_service = securityService.AuthorizationService(db)
-    user = auth_service.authenticate_user_login(user_credentials.username, user_credentials.password)
-
     activity_service = activityService.ActivityService(db)
+
+    user = auth_service.authenticate_user_login(user_credentials.username, user_credentials.password)
     activity = activity_service.create_activity(user.id, current_concierge.id)
+
     login_activity = LoginActivity(activity_id=activity.id, user=user)
     return login_activity
 
@@ -84,21 +106,29 @@ def start_card_activity(card_id: CardLogin,
                         current_concierge=Depends(oauth2.get_current_concierge),
                         db: Session = Depends(database.get_db)) -> LoginActivity:
     """
-    Starts an activity for a user by authenticating them with a card ID.
+    Start an activity by authenticating a user with a card ID.
+
+    This endpoint allows a concierge to initiate an activity for a user 
+    by verifying their card ID. Once authenticated, the system creates an activity 
+    for the user and assigns it to the current concierge.
 
     Args:
-        card_id (CardLogin): Object containing the card ID.
-        current_concierge: Currently logged-in concierge).
-        db (Session): Database session.
+        card_id (CardLogin): Object containing the card ID of the user.
+        current_concierge: The currently authenticated concierge (extracted from the OAuth2 token).
+        db (Session): The active database session.
 
     Returns:
-        LoginActivity: Object containing the activity id and user data.
+        LoginActivity: An object containing the ID of the newly created activity and the user's details.
+    
+    Raises:
+        HTTPException: If card authentication fails or if the activity cannot be created.
     """
     auth_service = securityService.AuthorizationService(db)
-    user = auth_service.authenticate_user_card(card_id)
-
     activity_service = activityService.ActivityService(db)
+
+    user = auth_service.authenticate_user_card(card_id)
     activity = activity_service.create_activity(user.id, current_concierge.id)
+
     login_activity = LoginActivity(activity_id=activity.id, user=user)
     return login_activity
 
@@ -106,14 +136,20 @@ def start_card_activity(card_id: CardLogin,
 @router.post("/refresh", response_model=Token)
 def refresh_token(refresh_token: RefreshToken, db: Session = Depends(database.get_db)) -> Token:
     """
-    Refreshes the access token using the provided refresh token.
+    Refresh the access token using a valid refresh token.
+
+    This endpoint allows users to renew their access token by providing 
+    a valid refresh token. The system verifies the refresh token and generates a new access token.
 
     Args:
-        refresh_token (RefreshToken): Object containing the refresh token.
-        db (Session): Database session.
+        refresh_token (RefreshToken): Object containing the refresh token provided during login.
+        db (Session): The active database session.
 
     Returns:
-        Token: Object containing the new access token.
+        Token: An object containing the newly generated access token.
+    
+    Raises:
+        HTTPException: If the refresh token is invalid or expired.
     """
     token_service = securityService.TokenService(db)
     token_data = token_service.verify_concierge_token(refresh_token.refresh_token)
@@ -130,14 +166,20 @@ def refresh_token(refresh_token: RefreshToken, db: Session = Depends(database.ge
 def logout(token: str = Depends(oauth2.get_current_concierge_token),
            db: Session = Depends(database.get_db)) -> JSONResponse:
     """
-    Logs out the user by adding the token to the blacklist.
+    Log out the concierge by blacklisting their token.
+
+    This endpoint allows a concierge to log out by adding their access token to a blacklist,
+    effectively invalidating it for future requests.
 
     Args:
-        token (str): The current user's token.
-        db (Session): Database session.
+        token (str): The current access token used by the concierge.
+        db (Session): The active database session.
 
     Returns:
-        JSONResponse: Object indicating the result of the logout operation.
+        JSONResponse: A message indicating that the user was logged out successfully.
+    
+    Raises:
+        HTTPException: If the token is invalid or if there is an error during the logout process.
     """
     token_service = securityService.TokenService(db)
     token_data = token_service.verify_concierge_token(token)

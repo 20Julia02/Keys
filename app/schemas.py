@@ -33,17 +33,17 @@ class UserOut(UserBase):
 
 class Operation(BaseModel):
     operation_type: str
-    device_id: int
+    device_code: str
     activity_id: int
     entitled: bool
     time: datetime
 
 
 class DeviceBase(BaseModel):
+    code: str
     version: str
     is_taken: bool
     type: str
-    code: str
 
 
 class DeviceCreate(DeviceBase):
@@ -60,7 +60,6 @@ class RoomOut(BaseModel):
 
 
 class DeviceOut(DeviceBase):
-    id: int
     room: RoomOut
     last_taken: Optional[datetime] = None
     last_returned: Optional[datetime] = None
@@ -70,7 +69,7 @@ class DeviceOut(DeviceBase):
 
 
 class DeviceUnapproved(BaseModel):
-    device_id: int
+    device_code: str
     activity_id: int
     is_taken: bool
     last_taken: Optional[datetime] = None

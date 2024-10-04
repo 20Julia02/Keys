@@ -50,11 +50,11 @@ class NoteService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No note found for operation id: {operation_id}")
         return notes
     
-    def get_dev_notes_by_id(self, dev_id: int):
-        operation_ids_subquery = self.db.query(models.Operation.id).filter(models.Operation.device_id == dev_id)
+    def get_dev_notes_by_code(self, dev_code: str):
+        operation_ids_subquery = self.db.query(models.Operation.id).filter(models.Operation.device_code == dev_code)
         notes = self.db.query(models.OperationNote).filter(models.OperationNote.operation_id.in_(operation_ids_subquery)).all()
         if not notes:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No note found for device id: {dev_id}")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No note found for device id: {dev_code}")
         return notes
 
     def create_operation_note(self, operation_id: int, note_text: str):
@@ -68,13 +68,3 @@ class NoteService:
         self.db.commit()
         self.db.refresh(note_data)
         return note_data
-
-    def get_device_operation_notes(self, device_id: int):
-        """Retrieve all notes for operations linked to a specific device."""
-        operations = self.db.query(models.Operation).filter(models.Operation.device_id == device_id).all()
-        operation_ids = [operation.id for operation in operations]
-
-        notes = self.db.query(models.OperationNote).filter(models.OperationNote.operation_id.in_(operation_ids)).all()
-        if not notes:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No notes found for device id: {device_id}")
-        return notes
