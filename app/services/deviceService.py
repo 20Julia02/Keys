@@ -82,28 +82,22 @@ class UnapprovedDeviceService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Device with id: {dev_code} doesn't exist")
         return device
-
+    
     def create_unapproved(self, dev_code: str,
-                          activity_id: int) -> DeviceUnapproved:
-        device_service = DeviceService(self.db)
-        device = device_service.get_dev_code(dev_code)
+                            activity_id: int,
+                            new_data: dict = None)-> DeviceUnapproved:
         new_device = models.DevicesUnapproved(
-            device_code=device.code,
+            device_code=dev_code,
             activity_id=activity_id
         )
-
+        if new_data is not None:
+            for key, value in new_data.items():
+                setattr(new_device, key, value)
         self.db.add(new_device)
         self.db.commit()
         self.db.refresh(new_device)
-        return new_device
 
-    def update_device_status(self, dev_code: str, new_data: dict) -> DeviceUnapproved:
-        device = self.get_dev_code(dev_code)
-        for key, value in new_data.items():
-            setattr(device, key, value)
-        self.db.commit()
-        self.db.refresh(device)
-        return device
+        return new_device
 
     def get_unapproved_dev_activity(self, activity_id: int) -> List[DeviceUnapproved]:
         unapproved_devs = self.db.query(models.DevicesUnapproved).filter_by(activity_id=activity_id).all()

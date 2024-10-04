@@ -100,24 +100,29 @@ def change_status(
     current_concierge: int = Depends(oauth2.get_current_concierge),
 ) -> DeviceOrDetailResponse:
     """
-    Changes the status of a device based on the provided token (with activity ID and user ID).
-    It checks if the device has already been scanned for approval.
-    If so, it removes the device from the unapproved data.
-    Otherwise, it updates the device information and saves it as unconfirmed data.
+   changes the status of the device based on the given activity id and whether to force the operation 
+   without permissions (if the parameter force == true the operation will be performed even 
+   without the corresponding user rights)
+
+    If the device has already been approved, it removes the device 
+    from unapproved data. 
+    
+    Otherwise, it checks user permissions, updates the device information and saves it as 
+    unconfirmed data. The status change reflects whether the device has been issued or returned.
 
     Args:
-        token (Token): The authentication token containing user and activity information.
-        id (int): The ID of the device to change the status for.
-        db (Session): The database session.
+        dev_id (int): The ID of the device whose status is being changed.
+        request (ChangeStatus): The request object containing activity ID and other details.
+        db (Session): The active database session.
         current_concierge (int): The current concierge ID, used for authorization.
 
     Returns:
-        DeviceOrDetailResponse: The updated device object or the information that the
-        device was removed from unapproved data.
-
+        DeviceOrDetailResponse: The updated device object or a message confirming the 
+        device's removal from unapproved data.
+    
     Raises:
-        HTTPException: If the activity associated with the token does not exist.
-        HTTPException: If an error occurs while updating the device status.
+        HTTPException: If the associated activity does not exist or there is an error 
+        updating the device status.
     """
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
     dev_service = deviceService.DeviceService(db)
@@ -125,10 +130,10 @@ def change_status(
     operation_service = operationService.OperationService(db)
     permission_service = permissionService.PermissionService(db)
 
-    device = db.query(models.DevicesUnapproved).filter(models.DevicesUnapproved.device_code == dev_code, 
+    dev_unapproved = db.query(models.DevicesUnapproved).filter(models.DevicesUnapproved.device_code == dev_code, 
                                                        models.DevicesUnapproved.activity_id == request.activity_id).first()
-    if device:
-        db.delete(device)
+    if dev_unapproved:
+        db.delete(dev_unapproved)
         db.commit()
         return DetailMessage(detail="Device removed from unapproved data.")
     
@@ -155,5 +160,5 @@ def change_status(
         }
 
     operation_service.create_operation(dev_code, activity.id, entitled, operation_type)
-    unapproved_dev_service.create_unapproved(dev_code, activity.id)
-    return unapproved_dev_service.update_device_status(dev_code, new_dev_data)
+    
+    return unapproved_dev_service.create_unapproved(dev_code, activity.id, new_dev_data)
