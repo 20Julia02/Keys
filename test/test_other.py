@@ -494,7 +494,7 @@ def test_get_all_unapproved_no_devices(db: Session, test_concierge: models.User,
         db.commit()
 
     response = client.get(
-        "/approve/unapproved",
+        "/unapproved",
         headers={"Authorization": f"Bearer {concierge_token}"}
     )
     assert response.status_code == 404
@@ -515,7 +515,7 @@ def test_get_all_unapproved_authenticated(db: Session,
     db.refresh(device)
 
     response = client.get(
-        "/approve/unapproved",
+        "/unapproved",
         headers={"Authorization": f"Bearer {concierge_token}"}
     )
     assert response.status_code == 200
@@ -523,7 +523,7 @@ def test_get_all_unapproved_authenticated(db: Session,
 
 
 def test_get_all_unapproved_unauthorized(test_concierge: models.User):
-    response = client.get("/approve/unapproved")
+    response = client.get("/unapproved")
     assert response.status_code == 401
 
 
@@ -535,7 +535,7 @@ def test_approve_activity_login_success(test_concierge: models.User,
         "password": "password123"
     }
     response = client.post(
-        f"/approve/activity/login/{test_activity.id}",
+        f"/approve/login/activity/{test_activity.id}",
         headers={"Authorization": f"Bearer {concierge_token}"},
         data=login_data
     )
@@ -551,7 +551,7 @@ def test_approve_activity_login_invalid_credentials(test_concierge: models.User,
         "password": "invalidpassword123"
     }
     response = client.post(
-        f"/approve/activity/login/{test_activity.id}",
+        f"/approve/login/activity/{test_activity.id}",
         headers={"Authorization": f"Bearer {concierge_token}"},
         data=login_data
     )
@@ -567,7 +567,7 @@ def test_approve_activity_login_no_permission(test_user: models.User,
         "password": "password456"
     }
     response = client.post(
-        f"/approve/activity/login/{test_activity.id}",
+        f"/approve/login/activity/{test_activity.id}",
         headers={"Authorization": f"Bearer {concierge_token}"},
         data=login_data
     )
@@ -578,7 +578,7 @@ def test_approve_activity_login_no_permission(test_user: models.User,
 def test_approve_activity_card_no_devices(test_activity: models.Activities,
                                           concierge_token: str):
     response = client.post(
-        f"/approve/activity/card/{test_activity.id}",
+        f"/approve/card/activity/{test_activity.id}",
         headers={"Authorization": f"Bearer {concierge_token}"},
         json={"card_id": "123456"}
     )
@@ -589,7 +589,7 @@ def test_approve_activity_card_no_devices(test_activity: models.Activities,
 def test_approve_activity_card_invalid_card(test_activity: models.Activities,
                                             concierge_token: str):
     response = client.post(
-        f"/approve/activity/card/{test_activity.id}",
+        f"/approve/card/activity/{test_activity.id}",
         headers={"Authorization": f"Bearer {concierge_token}"},
         json={"card_id": "87635refw"}
     )
@@ -606,7 +606,7 @@ def test_approve_activity_card_success(db: Session,
     unapproved_dev_service.create_unapproved(test_device.code, test_activity.id)
 
     response = client.post(
-        f"/approve/activity/card/{test_activity.id}",
+        f"/approve/card/activity/{test_activity.id}",
         headers={"Authorization": f"Bearer {concierge_token}"},
         json={"card_id": "123456"}
     )

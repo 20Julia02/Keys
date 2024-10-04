@@ -8,7 +8,6 @@ from app.services import securityService, activityService, deviceService
 from typing import List
 
 router = APIRouter(
-    prefix="/approve",
     tags=['Approve']
 )
 
@@ -61,7 +60,7 @@ def get_all_unapproved(current_concierge=Depends(oauth2.get_current_concierge),
     return unapproved_dev_service.get_unapproved_dev_all()
 
 
-@router.post("/activity/login/{activity_id}")
+@router.post("/approve/login/activity/{activity_id}")
 def approve_activity_login(activity_id: int,
                            db: Session = Depends(database.get_db),
                            concierge_credentials: OAuth2PasswordRequestForm = Depends(),
@@ -99,7 +98,7 @@ def approve_activity_login(activity_id: int,
     return JSONResponse({"detail": "Operations approved and devices updated successfully."})
 
 
-@router.post("/activity/card/{activity_id}")
+@router.post("/approve/card/activity/{activity_id}")
 def approve_activity_card(activity_id: int,
                           card_data: CardLogin,
                           db: Session = Depends(database.get_db),
@@ -137,7 +136,7 @@ def approve_activity_card(activity_id: int,
     return JSONResponse({"detail": "Operations approved and devices updated successfully."})
 
 
-@router.post("/")
+@router.post("/approve/login")
 def approve_all_login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
                       db: Session = Depends(database.get_db),
                       current_concierge=Depends(oauth2.get_current_concierge)) -> JSONResponse:
