@@ -13,10 +13,21 @@ router = APIRouter(
 )
 
 
-@router.get("/unapproved/{activity_id}")
-def get_unapproved_activity_id(activity_id, 
+@router.get("/unapproved/{activity_id}", response_model=DeviceUnapproved)
+def get_unapproved_activity_id(activity_id,
                                current_concierge=Depends(oauth2.get_current_concierge),
-                               db: Session = Depends(database.get_db)):
+                               db: Session = Depends(database.get_db)) -> DeviceUnapproved:
+    """
+    Returns unapproved device based on the activity id.
+
+    Args:
+        activity_id (int): The activity's ID.
+        current_concierge: Currently logged-in user (concierge).
+        db (Session): Database session.
+
+    Returns:
+        DeviceUnapproved: object of unapproved divice created during the activity with given ID
+    """
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
     return unapproved_dev_service.get_unapproved_dev_activity(activity_id)
 
@@ -44,7 +55,7 @@ def approve_activity_login(activity_id: int,
                            concierge_credentials: OAuth2PasswordRequestForm = Depends(),
                            current_concierge=Depends(oauth2.get_current_concierge)) -> JSONResponse:
     """
-    Approves operations for a given activity, authenticating using credentials.
+    Approves operations for a given activity, authenticating concierge using credentials.
 
     Args:
         activity_id (int): The activity's ID.
@@ -69,14 +80,15 @@ def approve_activity_login(activity_id: int,
     return JSONResponse({"detail": "Operations approved and devices updated successfully."})
 
 
-@router.post("/activity/card/{id}")
-def approve_activity_card(id: int,
+@router.post("/activity/card/{activity_id}")
+def approve_activity_card(activity_id: int,
                           card_data: CardLogin,
                           db: Session = Depends(database.get_db),
                           current_concierge=Depends(oauth2.get_current_concierge)
                           ) -> JSONResponse:
     """
     Approves operations for a given activity, authenticating using credentials.
+    It changes activity status to completed and transfers data from UnapprovedDevices to Devices.
 
     Args:
         activity_id (int): The activity's ID.
@@ -91,12 +103,12 @@ def approve_activity_card(id: int,
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
     activity_service = activityService.ActivityService(db)
     concierge = auth_service.authenticate_user_card(card_data)
+
     auth_service.check_if_entitled("concierge", concierge)
+    activity_service.end_activity(activity_id)
+    dev_activity = unapproved_dev_service.get_unapproved_dev_activity(activity_id)
 
-    activity_service.end_activity(id)
-    dev_activity = unapproved_dev_service.get_unapproved_dev_activity(id)
     unapproved_dev_service.transfer_devices(dev_activity)
-
     return JSONResponse({"detail": "Operations approved and devices updated successfully."})
 
 
@@ -105,9 +117,8 @@ def approve_all_login(concierge_credentials: OAuth2PasswordRequestForm = Depends
                       db: Session = Depends(database.get_db),
                       current_concierge=Depends(oauth2.get_current_concierge)) -> JSONResponse:
     """
-    Approves all unapproved devices in database and changes the
-    data in the table of Devices according to the given data of unapproved devices
-
+    Approves all unapproved devices in database and changes the data in the Devices table
+     according to the given data of unapproved devices
 
     Args:
         concierge_credentials (OAuth2PasswordRequestForm): Form with login credentials.
@@ -115,7 +126,7 @@ def approve_all_login(concierge_credentials: OAuth2PasswordRequestForm = Depends
         db (Session): Database session.
 
     Returns:
-        JSONResponse: nformation that all operations approved and devices updated successfully.
+        JSONResponse: information that all operations approved and devices updated successfully.
     """
 
     auth_service = securityService.AuthorizationService(db)

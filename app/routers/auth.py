@@ -11,6 +11,8 @@ router = APIRouter(
 )
 
 # todo uwierzytelniane zewnetrzne, wysylanie requesta z kartą
+
+
 @router.post("/login", response_model=LoginConcierge)
 def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
           db: Session = Depends(database.get_db)) -> LoginConcierge:
@@ -33,7 +35,8 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
 
 
 @router.post("/card-login", response_model=LoginConcierge)
-def card_login(card_id: CardLogin, db: Session = Depends(database.get_db)) -> LoginConcierge:
+def card_login(card_id: CardLogin,
+               db: Session = Depends(database.get_db)) -> LoginConcierge:
     """
     Authenticates a concierge using their card ID.
 
@@ -52,7 +55,7 @@ def card_login(card_id: CardLogin, db: Session = Depends(database.get_db)) -> Lo
     return token_service.generate_tokens(concierge.id, concierge.role.value)
 
 
-@router.post("/start-activity")
+@router.post("/start-activity", response_model=LoginActivity)
 def start_login_activity(user_credentials: OAuth2PasswordRequestForm = Depends(),
                          current_concierge=Depends(oauth2.get_current_concierge),
                          db: Session = Depends(database.get_db)) -> LoginActivity:
@@ -76,10 +79,10 @@ def start_login_activity(user_credentials: OAuth2PasswordRequestForm = Depends()
     return login_activity
 
 
-@router.post("/start-activity/card", response_model=Token)
+@router.post("/start-activity/card", response_model=LoginActivity)
 def start_card_activity(card_id: CardLogin,
                         current_concierge=Depends(oauth2.get_current_concierge),
-                        db: Session = Depends(database.get_db)) -> Token:
+                        db: Session = Depends(database.get_db)) -> LoginActivity:
     """
     Starts an activity for a user by authenticating them with a card ID.
 
@@ -89,18 +92,15 @@ def start_card_activity(card_id: CardLogin,
         db (Session): Database session.
 
     Returns:
-        Token: Object containing the generated access token.
+        LoginActivity: Object containing the activity id and user data.
     """
     auth_service = securityService.AuthorizationService(db)
     user = auth_service.authenticate_user_card(card_id)
 
     activity_service = activityService.ActivityService(db)
     activity = activity_service.create_activity(user.id, current_concierge.id)
-
-    token_service = securityService.TokenService(db)
-    access_token = token_service.create_token({"user_id": user.id, "activity_id": activity.id}, "access")
-
-    return Token(access_token=access_token, type="bearer")
+    login_activity = LoginActivity(activity_id=activity.id, user=user)
+    return login_activity
 
 
 @router.post("/refresh", response_model=Token)
@@ -147,6 +147,6 @@ def logout(token: str = Depends(oauth2.get_current_concierge_token),
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
     if token_service.add_token_to_blacklist(token):
-        return JSONResponse({'result': True})
+        return JSONResponse({"detail": "User logged out successfully"})
 
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are logged out")

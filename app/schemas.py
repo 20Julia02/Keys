@@ -4,6 +4,7 @@ from pydantic import BaseModel, EmailStr, ConfigDict
 
 # todo uporządkować to
 
+
 class CardLogin(BaseModel):
     card_id: str
 
@@ -150,7 +151,8 @@ class Activity(BaseModel):
     user_id: Optional[int] = None
     concierge_id: int
     status: str
-    start_time: datetime  
+    start_time: datetime
+
 
 class OperationOut(BaseModel):
     operation_type: str
@@ -158,6 +160,7 @@ class OperationOut(BaseModel):
     entitled: bool
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class OperationNote(BaseModel):
     operation: OperationOut

@@ -352,9 +352,9 @@ def test_changeStatus_again(test_concierge: models.User,
     assert response1.status_code == 200
 
     client.post(f"/devices/change-status/{test_device.id}",
-                           headers={"Authorization": f"Bearer {concierge_token}"},
-                           json={"activity_id": response1.json()["activity_id"]})
-    
+                headers={"Authorization": f"Bearer {concierge_token}"},
+                json={"activity_id": response1.json()["activity_id"]})
+
     response = client.post(f"/devices/change-status/{test_device.id}",
                            headers={"Authorization": f"Bearer {concierge_token}"},
                            json={"activity_id": response1.json()["activity_id"]})
@@ -463,7 +463,9 @@ def test_get_all_unauthorized_users(test_concierge: models.User, concierge_token
 
 
 def test_get_unauthorized_user_by_id(db: Session, test_concierge: models.User, concierge_token: str):
-    user = models.unauthorized_users(name="Unauthorized", surname="User 2", addition_time=datetime.datetime.now(datetime.timezone.utc).isoformat())
+    user = models.unauthorized_users(name="Unauthorized",
+                                     surname="User 2",
+                                     addition_time=datetime.datetime.now(datetime.timezone.utc).isoformat())
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -615,7 +617,7 @@ def test_approve_activity_card_success(db: Session,
 def test_logout_with_valid_token(test_concierge: models.User, concierge_token: str):
     response = client.post("/logout", headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
-    assert response.json() == {"result": True}
+    assert response.json() == {"detail": "User logged out successfully"}
 
 
 def test_logout_with_invalid_token():

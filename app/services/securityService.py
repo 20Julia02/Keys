@@ -5,7 +5,7 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from app.config import settings
-from app.schemas import TokenData, TokenDataUser, CardLogin, LoginConcierge
+from app.schemas import TokenData, CardLogin, LoginConcierge
 from app.models import TokenBlacklist, User
 
 
