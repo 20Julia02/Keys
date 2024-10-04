@@ -88,8 +88,7 @@ def approve_activity_login(activity_id: int,
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
     activity_service = activityService.ActivityService(db)
 
-    concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password)
-    auth_service.check_if_entitled("concierge", concierge)
+    concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password, "concierge")
     activity_service.end_activity(activity_id)
 
     dev_activity = unapproved_dev_service.get_unapproved_dev_activity(activity_id)
@@ -126,9 +125,8 @@ def approve_activity_card(activity_id: int,
     auth_service = securityService.AuthorizationService(db)
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
     activity_service = activityService.ActivityService(db)
-    concierge = auth_service.authenticate_user_card(card_data)
+    auth_service.authenticate_user_card(card_data, "concierge")
 
-    auth_service.check_if_entitled("concierge", concierge)
     activity_service.end_activity(activity_id)
     dev_activity = unapproved_dev_service.get_unapproved_dev_activity(activity_id)
 
@@ -163,8 +161,7 @@ def approve_all_login(concierge_credentials: OAuth2PasswordRequestForm = Depends
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
     activity_service = activityService.ActivityService(db)
 
-    concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password)
-    auth_service.check_if_entitled("concierge", concierge)
+    concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password, "concierge")
 
     dev_all = unapproved_dev_service.get_unapproved_dev_all()
 

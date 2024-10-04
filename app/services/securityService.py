@@ -145,7 +145,7 @@ class AuthorizationService:
         """
         self.db = db
 
-    def check_if_entitled(self, role: str, current_concierge):
+    def check_if_entitled(self, role: str, user: User):
         """
         Checks if the current user has the required role or is an admin.
         Raises an HTTP 403 Forbidden exception if the user is not entitled.
@@ -157,7 +157,7 @@ class AuthorizationService:
         Raises:
             HTTPException: If the user does not have the required role.
         """
-        if not (current_concierge.role.value == role or current_concierge.role.value == "admin"):
+        if not (user.role.value == role or user.role.value == "admin"):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"You cannot perform this operation without the {role} role")
@@ -176,9 +176,6 @@ class AuthorizationService:
         Raises:
             HTTPException: If the token is invalid, blacklisted, or the user is not found.
         """
-        credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                              detail="Could not validate credentials",
-                                              headers={"Authenticate": "Bearer"})
         token_service = TokenService(self.db)
         if token_service.is_token_blacklisted(token):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
@@ -192,7 +189,10 @@ class AuthorizationService:
         ).first()
 
         if user is None:
-            raise credentials_exception
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                              detail="Could not validate credentials",
+                                              headers={"Authenticate": "Bearer"})
+        self.check_if_entitled("concierge", user)
         return user
 
     def get_current_concierge_token(self, token: str) -> str:
@@ -209,15 +209,16 @@ class AuthorizationService:
         _ = self.get_current_concierge(token)
         return token
 
-    def authenticate_user_login(self, username: str, password: str) -> User:
+    def authenticate_user_login(self, username: str, password: str, role: str) -> User:
         """Authenticate user by email and password."""
         password_service = PasswordService()
         user = self.db.query(User).filter_by(email=username).first()
         if not (user and password_service.verify_hashed(password, user.password)):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials")
+        self.check_if_entitled(role, user)
         return user
 
-    def authenticate_user_card(self, card_id: CardLogin) -> User:
+    def authenticate_user_card(self, card_id: CardLogin, role: str) -> User:
         password_service = PasswordService()
         users = self.db.query(User).filter(User.card_code.isnot(None)).all()
         if not users:
@@ -225,5 +226,7 @@ class AuthorizationService:
 
         for user in users:
             if password_service.verify_hashed(card_id.card_id, user.card_code):
+                self.check_if_entitled(role, user)
                 return user
+        
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials")

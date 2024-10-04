@@ -34,8 +34,7 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
         HTTPException: If authentication fails or if the user does not have the appropriate permissions.
     """
     auth_service = securityService.AuthorizationService(db)
-    concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password)
-    auth_service.check_if_entitled("concierge", concierge)
+    concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password, "concierge")
 
     token_service = securityService.TokenService(db)
     return token_service.generate_tokens(concierge.id, concierge.role.value)
@@ -62,8 +61,7 @@ def card_login(card_id: CardLogin,
         HTTPException: If authentication fails or if the user does not have the appropriate permissions.
     """
     auth_service = securityService.AuthorizationService(db)
-    concierge = auth_service.authenticate_user_card(card_id)
-    auth_service.check_if_entitled("concierge", concierge)
+    concierge = auth_service.authenticate_user_card(card_id, "concierge")
 
     token_service = securityService.TokenService(db)
     return token_service.generate_tokens(concierge.id, concierge.role.value)
@@ -94,7 +92,7 @@ def start_login_activity(user_credentials: OAuth2PasswordRequestForm = Depends()
     auth_service = securityService.AuthorizationService(db)
     activity_service = activityService.ActivityService(db)
 
-    user = auth_service.authenticate_user_login(user_credentials.username, user_credentials.password)
+    user = auth_service.authenticate_user_login(user_credentials.username, user_credentials.password, "employee")
     activity = activity_service.create_activity(user.id, current_concierge.id)
 
     login_activity = LoginActivity(activity_id=activity.id, user=user)
@@ -126,7 +124,8 @@ def start_card_activity(card_id: CardLogin,
     auth_service = securityService.AuthorizationService(db)
     activity_service = activityService.ActivityService(db)
 
-    user = auth_service.authenticate_user_card(card_id)
+    user = auth_service.authenticate_user_card(card_id, "employee")
+    
     activity = activity_service.create_activity(user.id, current_concierge.id)
 
     login_activity = LoginActivity(activity_id=activity.id, user=user)

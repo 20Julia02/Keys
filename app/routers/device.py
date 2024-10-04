@@ -47,11 +47,10 @@ def get_dev_code(dev_code: str,
     """
     Retrieve a device by its unique device code.
 
-    This endpoint retrieves a device from the database using the device's unique code. 
-    Device codes are typically used to identify devices more easily than by ID.
+    This endpoint retrieves a device from the database using the device's unique code.
 
     Args:
-        dev_code (int): The unique code of the device.
+        dev_code (str): The unique code of the device.
         current_concierge: The currently authenticated concierge (used for authorization).
         db (Session): The active database session.
 
@@ -70,12 +69,15 @@ def create_device(device: DeviceCreate,
                   db: Session = Depends(database.get_db),
                   current_concierge=Depends(oauth2.get_current_concierge)) -> DeviceOut:
     """
-    Creates a new device in the database.
+    Create a new device in the database.
+
+    This endpoint allows concierge to create a new device by providing the necessary 
+    data. Only users with the 'admin' role are permitted to create devices.
 
     Args:
-        device (DeviceCreate): The data required to create a new device.
-        db (Session): The database session.
-        current_concierge: The current user object (used for authorization).
+        device (DeviceCreate): The data required to create the new device.
+        db (Session): The active database session.
+        current_concierge: The currently authenticated concierge (used for authorization).
 
     Returns:
         DeviceOut: The newly created device.

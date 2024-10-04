@@ -30,7 +30,6 @@ def get_all_rooms(current_concierge=Depends(oauth2.get_current_concierge),
         HTTPException: If no rooms are found in the database.
     """
     auth_service = securityService.AuthorizationService(db)
-    auth_service.check_if_entitled("admin", current_concierge)
     room = db.query(models.Room).filter(models.Room.number == number).all()
     if room is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -57,7 +56,6 @@ def get_room(id: int,
         HTTPException: If the room with the specified ID doesn't exist.
     """
     auth_service = securityService.AuthorizationService(db)
-    auth_service.check_if_entitled("admin", current_concierge)
     room = db.query(models.Room).filter(models.Room.id == id).first()
     if not room:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
