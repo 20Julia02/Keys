@@ -1,7 +1,7 @@
 import datetime
 from fastapi import status, Depends, APIRouter
 from typing import List
-from app.schemas import ChangeStatus, DeviceCreate, DeviceOut, DetailMessage, DeviceOrDetailResponse, Operation
+from app.schemas import ChangeStatusOperation, ChangeStatus, DeviceCreate, DeviceOut, DetailMessage, OperationOrDetailResponse, Operation
 from app import database, oauth2, models
 from app.services import deviceService, securityService, activityService, operationService, permissionService
 from sqlalchemy.orm import Session
@@ -92,32 +92,33 @@ def create_device(device: DeviceCreate,
 
 # todo zmiana statusu unauthorized
 
-@router.post("/change-status/{dev_code}", response_model=DeviceOrDetailResponse)
+@router.post("/change-status/{dev_code}", response_model=OperationOrDetailResponse)
 def change_status(
     dev_code: str,
     request: ChangeStatus,
     db: Session = Depends(database.get_db),
     current_concierge: int = Depends(oauth2.get_current_concierge),
-) -> DeviceOrDetailResponse:
+) -> OperationOrDetailResponse:
     """
-   changes the status of the device based on the given activity id and whether to force the operation 
-   without permissions (if the parameter force == true the operation will be performed even 
-   without the corresponding user rights)
+    changes the status of the device with given code based on the given activity id and whether to force the operation 
+    without permissions (if the parameter force == true the operation will be performed even 
+    without the corresponding user rights)
 
-    If the device has already been approved, it removes the device 
-    from unapproved data. 
+    If the device has already been added to the unapproved data in the current activity (with givenn activity id),
+    it removes the device from unapproved data. 
     
-    Otherwise, it checks user permissions, updates the device information and saves it as 
-    unconfirmed data. The status change reflects whether the device has been issued or returned.
+    Otherwise, it checks user permissions and creates the operation containing all information about the status change 
+    performed. Then, it updates the device information and saves it as unconfirmed data.
+    The new device data depends on whether the device has been issued or returned.
 
     Args:
-        dev_id (int): The ID of the device whose status is being changed.
-        request (ChangeStatus): The request object containing activity ID and other details.
+        dev_code (str): The code of the device whose status is being changed.
+        request (ChangeStatus): The request object containing activity ID and the force parameter.
         db (Session): The active database session.
-        current_concierge (int): The current concierge ID, used for authorization.
+        current_concierge: The current concierge ID, used for authorization.
 
     Returns:
-        DeviceOrDetailResponse: The updated device object or a message confirming the 
+        OperationOrDetailResponse: The updated device object and the operation Object or a message confirming the 
         device's removal from unapproved data.
     
     Raises:
@@ -131,7 +132,7 @@ def change_status(
     permission_service = permissionService.PermissionService(db)
 
     dev_unapproved = db.query(models.DevicesUnapproved).filter(models.DevicesUnapproved.device_code == dev_code, 
-                                                       models.DevicesUnapproved.activity_id == request.activity_id).first()
+                                                               models.DevicesUnapproved.activity_id == request.activity_id).first()
     if dev_unapproved:
         db.delete(dev_unapproved)
         db.commit()
@@ -159,6 +160,7 @@ def change_status(
             "last_returned": datetime.datetime.now(datetime.timezone.utc)
         }
 
-    operation_service.create_operation(dev_code, activity.id, entitled, operation_type)
+    unapproved_dev = unapproved_dev_service.create_unapproved(dev_code, activity.id, new_dev_data)
+    operation = operation_service.create_operation(dev_code, activity.id, entitled, operation_type)
     
-    return unapproved_dev_service.create_unapproved(dev_code, activity.id, new_dev_data)
+    return ChangeStatusOperation(unapproved_device=unapproved_dev, operation=operation)

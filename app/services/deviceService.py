@@ -84,8 +84,8 @@ class UnapprovedDeviceService:
         return device
     
     def create_unapproved(self, dev_code: str,
-                            activity_id: int,
-                            new_data: dict = None)-> DeviceUnapproved:
+                          activity_id: int,
+                          new_data: dict = None)-> DeviceUnapproved:
         new_device = models.DevicesUnapproved(
             device_code=dev_code,
             activity_id=activity_id
@@ -96,7 +96,6 @@ class UnapprovedDeviceService:
         self.db.add(new_device)
         self.db.commit()
         self.db.refresh(new_device)
-
         return new_device
 
     def get_unapproved_dev_activity(self, activity_id: int) -> List[DeviceUnapproved]:

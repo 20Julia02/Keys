@@ -326,15 +326,14 @@ def test_changeStatus_with_valid_id_taking(test_concierge: models.User,
     }
     response1 = client.post("/start-activity",
                             headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
-    print(response1.json())
     assert response1.status_code == 200
     response = client.post(f"/devices/change-status/{test_device.code}",
                            headers={"Authorization": f"Bearer {concierge_token}"},
                            json={"activity_id": response1.json()["activity_id"]})
     assert response.status_code == 200
-    assert response.json()["device_code"] == test_device.code
-    assert response.json()["is_taken"] is True
-    assert response.json()["last_owner_id"] == test_user.id
+    assert response.json()["unapproved_device"]["device_code"] == test_device.code
+    assert response.json()["unapproved_device"]["is_taken"] is True
+    assert response.json()["operation"]["operation_type"] == "issue_dev"
 
 
 def test_changeStatus_again(test_concierge: models.User,

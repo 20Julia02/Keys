@@ -1,5 +1,5 @@
 import datetime
-from app.schemas import Operation
+from app.schemas import Operation, OperationOut
 from sqlalchemy.orm import Session
 from app import models
 from fastapi import HTTPException, status
@@ -9,7 +9,7 @@ class OperationService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_operation(self, dev_code: str, activity_id: int, entitled: bool, operation_type: str):
+    def create_operation(self, dev_code: str, activity_id: int, entitled: bool, operation_type: str) -> OperationOut:
         """
         Creates a new operation in the database.
 
@@ -26,15 +26,14 @@ class OperationService:
             "time": datetime.datetime.now(datetime.timezone.utc),
             "operation_type": operation_type
         }
-        operation = Operation(**operation_data)
 
-        new_operation = models.Operation(**operation.model_dump())
+        new_operation = models.Operation(**operation_data)
         
         self.db.add(new_operation)
         self.db.commit()
         self.db.refresh(new_operation)
 
-        return new_operation
+        return  OperationOut.model_validate(new_operation)
 
     def get_operation_id(self, operation_id: int):
         operation = self.db.query(models.Operation).filter(models.Operation.id == operation_id).first()

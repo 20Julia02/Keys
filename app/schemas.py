@@ -79,13 +79,6 @@ class DeviceUnapproved(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class DetailMessage(BaseModel):
-    detail: str
-
-
-DeviceOrDetailResponse = Union[DeviceUnapproved, DetailMessage]
-
-
 class PermissionCreate(BaseModel):
     user_id: int
     room_id: int
@@ -155,8 +148,9 @@ class Activity(BaseModel):
 
 class OperationOut(BaseModel):
     operation_type: str
-    device: DeviceOut
+    devices: DeviceOut
     entitled: bool
+    activity_id:int
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -180,6 +174,18 @@ class UserNote(BaseModel):
 class ChangeStatus(BaseModel):
     activity_id: int
     force: Optional[bool] = False
+
+
+class DetailMessage(BaseModel):
+    detail: str
+
+
+class ChangeStatusOperation(BaseModel):
+    unapproved_device: DeviceUnapproved
+    operation: OperationOut
+
+
+OperationOrDetailResponse = Union[ChangeStatusOperation, DetailMessage]
 
 
 class LoginActivity(BaseModel):
