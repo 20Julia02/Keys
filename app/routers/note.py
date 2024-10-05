@@ -57,8 +57,7 @@ def get_user_note(user_id: int,
 
 
 @router.post("/users/{user_id}", response_model=schemas.UserNote)
-def add_user_note(user_id: int,
-                  note: str,
+def add_user_note(note_data: schemas.UserNote,
                   current_concierge=Depends(oauth2.get_current_concierge),
                   db: Session = Depends(database.get_db)) -> schemas.UserNote:
     """
@@ -78,7 +77,7 @@ def add_user_note(user_id: int,
         HTTPException: If the note creation fails for any reason.
     """
     note_service = noteService.NoteService(db)
-    return note_service.create_user_note(user_id, note)
+    return note_service.create_user_note(note_data)
 
 
 @router.get("/devices", response_model=List[schemas.DeviceNoteOut])

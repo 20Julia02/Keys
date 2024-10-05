@@ -142,7 +142,6 @@ class DeviceNote(BaseModel):
     activity_id: int
     device_code: str
     note: str
-    time: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -150,7 +149,6 @@ class DeviceNoteOut(BaseModel):
     activity: Activity
     device: DeviceOut
     note: str
-    time: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -158,7 +156,6 @@ class DeviceNoteOut(BaseModel):
 class UserNote(BaseModel):
     user: UserOut
     note: str
-    time: datetime
 
     model_config = ConfigDict(from_attributes=True)
 

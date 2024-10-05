@@ -160,7 +160,6 @@ class DeviceNote(Base):
     activity_id = Column(Integer, ForeignKey("activity.id"), nullable=False)
     device_code = Column(String, ForeignKey("device.code"), nullable=False)
     note = Column(String, nullable=False)
-    time = Column(TIMESTAMP(timezone=True), nullable=False)
 
     device = relationship("Device")
     activity = relationship("Activity")
@@ -175,6 +174,5 @@ class UserNote(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
     note = Column(String, nullable=False)
-    time = Column(TIMESTAMP(timezone=True), nullable=False)
 
     user = relationship("User")

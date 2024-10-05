@@ -25,13 +25,9 @@ class NoteService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No note found for user id: {user_id}")
         return notes
 
-    def create_user_note(self, user_id: int, note_text: str):
+    def create_user_note(self, note_data: schemas.UserNote):
         """Create a new user note."""
-        note_data = models.UserNote(
-            user_id=user_id,
-            note=note_text,
-            time=datetime.datetime.now(datetime.timezone.utc)
-        )
+        note_data = models.UserNote(**note_data)
         self.db.add(note_data)
         self.db.commit()
         self.db.refresh(note_data)
