@@ -101,7 +101,7 @@ class User(Base):
         "email", "password", name="uix_user"),)
 
 
-class Status(enum.Enum):
+class ActivityStatus(enum.Enum):
     in_progress = "in progress"
     completed = "completed"
     rejected = "rejected"
@@ -116,7 +116,7 @@ class Activity (Base):
     concierge_id = Column(Integer, ForeignKey("user.id"), nullable=False)
     start_time = Column(TIMESTAMP(timezone=True), nullable=False)
     end_time = Column(TIMESTAMP(timezone=True), nullable=True)
-    status = Column(Enum(Status), nullable=False)
+    status = Column(Enum(ActivityStatus), nullable=False)
 
 
 class UnauthorizedUser(Base):

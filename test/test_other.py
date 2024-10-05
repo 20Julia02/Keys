@@ -97,7 +97,7 @@ def test_activity(db: Session, test_user: models.User, test_concierge: models.Us
         user_id=test_user.id,
         concierge_id=test_concierge.id,
         start_time=datetime.datetime(2024, 12, 6, 12, 45).isoformat(),
-        status=models.Status.in_progress
+        status=models.ActivityStatus.in_progress
     )
     db.add(activity)
     db.commit()

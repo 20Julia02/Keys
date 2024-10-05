@@ -27,7 +27,7 @@ class ActivityService:
             user_id=user_id,
             concierge_id=concierge_id,
             start_time=start_time,
-            status=models.Status.in_progress
+            status=models.ActivityStatus.in_progress
         )
         self.db.add(new_activity)
         self.db.commit()
@@ -52,7 +52,7 @@ class ActivityService:
         activity = self.db.query(models.Activity).filter_by(id=activity_id).first()
         if not activity:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
-        activity.status = models.Status.rejected if reject else models.Status.completed
+        activity.status = models.ActivityStatus.rejected if reject else models.ActivityStatus.completed
         activity.end_time = datetime.datetime.now(datetime.timezone.utc)
         self.db.commit()
         return activity
