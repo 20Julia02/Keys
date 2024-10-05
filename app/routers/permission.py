@@ -1,7 +1,7 @@
 from fastapi import status, Depends, APIRouter, HTTPException
 
 from app.schemas import PermissionOut, PermissionCreate
-from app import database, models, oauth2
+from app import database, oauth2
 from app.services import securityService, permissionService
 from sqlalchemy.orm import Session
 from typing import List

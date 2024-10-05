@@ -4,33 +4,14 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 import enum
 from sqlalchemy.sql.expression import text
-from sqlalchemy.ext.declarative import declared_attr
 
 
 class TokenBlacklist(Base):
     __tablename__ = 'token_blacklist'
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     token = Column(String, unique=True, nullable=False)
-    blacklisted_at = Column(TIMESTAMP(timezone=True),
+    when_blacklisted = Column(TIMESTAMP(timezone=True),
                             nullable=False, server_default=text('now()'))
-
-
-class OperationType(enum.Enum):
-    issue_dev = "issue_dev"
-    return_dev = "return_dev"
-
-
-class Operation(Base):
-    __tablename__ = "operations"
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    operation_type = Column(Enum(OperationType), nullable=False)
-    device_code = Column(String, ForeignKey("devices.code"), nullable=False)
-    activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
-    time = Column(TIMESTAMP(timezone=True), nullable=False)
-    entitled = Column(Boolean, nullable=False)
-
-    activity = relationship("Activities")
-    devices = relationship("Devices")
 
 
 class DeviceVersion(enum.Enum):
@@ -45,40 +26,54 @@ class DeviceType(enum.Enum):
     remote_controler = "remote_controler"
 
 
-class BaseDevice(Base):
-    __abstract__ = True
+class Device(Base):
+    __tablename__ = "device"
+    code = Column(String, primary_key=True, unique=True, nullable=False)
+    type = Column(Enum(DeviceType), nullable=False)
+    room_id = Column(Integer, ForeignKey("room.id"), nullable=False)
+    version = Column(Enum(DeviceVersion), nullable=False)
+    entitled = Column(Boolean, nullable=True)
     is_taken = Column(Boolean, nullable=False, server_default="false")
     last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
     last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
-    last_owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-
-    @declared_attr
-    def owner(cls):
-        return relationship("User", lazy="joined")
-
-
-class Devices(BaseDevice):
-    __tablename__ = "devices"
-
-    code = Column(String, primary_key=True, unique=True, nullable=False)
-    type = Column(Enum(DeviceType), nullable=False)
-    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
-    version = Column(Enum(DeviceVersion), nullable=False)
+    last_owner_id = Column(Integer, ForeignKey("user.id"), nullable=True)
 
     room = relationship("Room")
+    user = relationship("User")
 
     __table_args__ = (UniqueConstraint(
         "type", "room_id", "version", name="uix_device"),)
 
-
-class DevicesUnapproved(BaseDevice):
-    __tablename__ = "devices_unapproved"
+class DeviceUnapproved(Base):
+    __tablename__ = "device_unapproved"
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    device_code = Column(String, ForeignKey("devices.code"), nullable=False)
-    activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
+    device_code = Column(String, ForeignKey("device.code"), nullable=False)
+    activity_id = Column(Integer, ForeignKey("activity.id"), nullable=False)
+    entitled = Column(Boolean, nullable=False)
+    is_taken = Column(Boolean, nullable=False, server_default="false")
+    last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
+    last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
+    last_owner_id = Column(Integer, ForeignKey("user.id"), nullable=True)
 
-    activity = relationship("Activities")
-    device = relationship("Devices")
+    user = relationship("User")
+    activity = relationship("Activity")
+    device = relationship("Device")
+
+
+class OperationType(enum.Enum):
+    issue_dev = "issue_dev"
+    return_dev = "return_dev"
+
+
+class Operation(Base):
+    __tablename__ = "device_activity"
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    device_code = Column(String, ForeignKey("device.code"), nullable=False)
+    activity_id = Column(Integer, ForeignKey("activity.id"), nullable=False)
+    operation_type = Column(Enum(OperationType), nullable=False)
+
+    __table_args__ = (UniqueConstraint(
+        "device_code", "activity_id", name="uix_device_activity"),)
 
 
 class UserRole(enum.Enum):
@@ -90,7 +85,7 @@ class UserRole(enum.Enum):
 
 
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = "user"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     name = Column(String, nullable=False)
@@ -111,26 +106,27 @@ class Status(enum.Enum):
     completed = "completed"
     rejected = "rejected"
 
+# todo concierge who started and who accepted
 
-class Activities (Base):
-    __tablename__ = "activities"
+class Activity (Base):
+    __tablename__ = "activity"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    concierge_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=True)
+    concierge_id = Column(Integer, ForeignKey("user.id"), nullable=False)
     start_time = Column(TIMESTAMP(timezone=True), nullable=False)
     end_time = Column(TIMESTAMP(timezone=True), nullable=True)
     status = Column(Enum(Status), nullable=False)
 
 
-class unauthorized_users(Base):
-    __tablename__ = "unauthorized_users"
+class UnauthorizedUser(Base):
+    __tablename__ = "unauthorized_user"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     name = Column(String, nullable=False)
     surname = Column(String, nullable=False)
     id_concierge_who_accepted = Column(
-        Integer, ForeignKey("users.id"), nullable=True)
+        Integer, ForeignKey("user.id"), nullable=True)
     addition_time = Column(TIMESTAMP(timezone=True), nullable=False)
     additional_info = Column(String, nullable=True)
 
@@ -138,18 +134,18 @@ class unauthorized_users(Base):
 
 
 class Room(Base):
-    __tablename__ = "rooms"
+    __tablename__ = "room"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     number = Column(String, nullable=False, unique=True)
 
 
 class Permission(Base):
-    __tablename__ = "permissions"
+    __tablename__ = "permission"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    room_id = Column(Integer, ForeignKey("room.id"), nullable=False)
     start_reservation = Column(TIMESTAMP(timezone=True), nullable=False)
     end_reservation = Column(TIMESTAMP(timezone=True), nullable=False)
 
@@ -157,22 +153,27 @@ class Permission(Base):
     room = relationship("Room")
 
 
-class OperationNote(Base):
-    __tablename__ = "operationNote"
+class DeviceNote(Base):
+    __tablename__ = "device_note"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    operation_id = Column(Integer, ForeignKey("operations.id"), nullable=False)
+    activity_id = Column(Integer, ForeignKey("activity.id"), nullable=False)
+    device_code = Column(String, ForeignKey("device.code"), nullable=False)
     note = Column(String, nullable=False)
     time = Column(TIMESTAMP(timezone=True), nullable=False)
 
-    operation = relationship("Operation")
+    device = relationship("Device")
+    activity = relationship("Activity")
+
+    __table_args__ = (UniqueConstraint(
+        "device_code", "activity_id", name="uix_device_activity_note"),)
 
 
 class UserNote(Base):
-    __tablename__ = "userNote"
+    __tablename__ = "user_note"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
     note = Column(String, nullable=False)
     time = Column(TIMESTAMP(timezone=True), nullable=False)
 

@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from app.main import app
 from app import models, database
-from app.services import securityService, deviceService
+from app.services import securityService, deviceService, activityService
 from app.schemas import UserCreate
 from app.database import Base
 
@@ -93,7 +93,7 @@ def test_permission(db: Session, test_user, test_room):
 
 @pytest.fixture(scope="module")
 def test_activity(db: Session, test_user: models.User, test_concierge: models.User):
-    activity = models.Activities(
+    activity = models.Activity(
         user_id=test_user.id,
         concierge_id=test_concierge.id,
         start_time=datetime.datetime(2024, 12, 6, 12, 45).isoformat(),
@@ -107,7 +107,7 @@ def test_activity(db: Session, test_user: models.User, test_concierge: models.Us
 
 @pytest.fixture(scope="module")
 def test_device(db: Session, test_room: models.Room):
-    device = models.Devices(
+    device = models.Device(
         type="key",
         room_id=test_room.id,
         is_taken=False,
@@ -122,7 +122,7 @@ def test_device(db: Session, test_room: models.Room):
 
 @pytest.fixture(scope="module")
 def test_device_microphone(db: Session, test_room: models.Room):
-    device = models.Devices(
+    device = models.Device(
         type="microphone",
         room_id=test_room.id,
         is_taken=False,
@@ -257,8 +257,8 @@ def test_refresh_token_with_valid_token(test_concierge: models.User):
     assert "access_token" in response.json()
 
 
-def test_get_all_devices(test_device: models.Devices,
-                         test_device_microphone: models.Devices,
+def test_get_all_devices(test_device: models.Device,
+                         test_device_microphone: models.Device,
                          concierge_token: str):
     response = client.get("/devices/", headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
@@ -272,7 +272,7 @@ def test_get_all_devices(test_device: models.Devices,
     assert len(response.json()) >= 1
 
 
-def test_get_dev_by_id(test_device: models.Devices, concierge_token: str):
+def test_get_dev_by_id(test_device: models.Device, concierge_token: str):
     response = client.get(f"/devices/{test_device.code}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
@@ -304,7 +304,7 @@ def test_create_device_with_invalid_data(concierge_token: str):
     assert response.status_code == 422
 
 
-def test_changeStatus_invalid_activity(test_device: models.Devices,
+def test_changeStatus_invalid_activity(test_device: models.Device,
                                        test_concierge: models.User,
                                        concierge_token: str):
     response = client.post(f"/devices/change-status/{test_device.code}",
@@ -316,7 +316,7 @@ def test_changeStatus_invalid_activity(test_device: models.Devices,
 
 def test_changeStatus_with_valid_id_taking(test_concierge: models.User,
                                            test_user: models.User,
-                                           test_device: models.Devices,
+                                           test_device: models.Device,
                                            test_permission: models.Permission,
                                            concierge_token: str):
 
@@ -331,14 +331,13 @@ def test_changeStatus_with_valid_id_taking(test_concierge: models.User,
                            headers={"Authorization": f"Bearer {concierge_token}"},
                            json={"activity_id": response1.json()["activity_id"]})
     assert response.status_code == 200
-    assert response.json()["unapproved_device"]["device_code"] == test_device.code
-    assert response.json()["unapproved_device"]["is_taken"] is True
-    assert response.json()["operation"]["operation_type"] == "issue_dev"
+    assert response.json()["device_code"] == test_device.code
+    assert response.json()["is_taken"] is True
 
 
 def test_changeStatus_again(test_concierge: models.User,
                             test_user: models.User,
-                            test_device: models.Devices,
+                            test_device: models.Device,
                             concierge_token: str):
 
     login_data = {
@@ -462,7 +461,7 @@ def test_get_all_unauthorized_users(test_concierge: models.User, concierge_token
 
 
 def test_get_unauthorized_user_by_id(db: Session, test_concierge: models.User, concierge_token: str):
-    user = models.unauthorized_users(name="Unauthorized",
+    user = models.UnauthorizedUser(name="Unauthorized",
                                      surname="User 2",
                                      addition_time=datetime.datetime.now(datetime.timezone.utc).isoformat())
     db.add(user)
@@ -487,7 +486,7 @@ def test_refresh_token_with_invalid_token():
 
 
 def test_get_all_unapproved_no_devices(db: Session, test_concierge: models.User, concierge_token: str):
-    devices = db.query(models.DevicesUnapproved).all()
+    devices = db.query(models.DeviceUnapproved).all()
     for device in devices:
         db.delete(device)
         db.commit()
@@ -501,13 +500,14 @@ def test_get_all_unapproved_no_devices(db: Session, test_concierge: models.User,
 
 
 def test_get_all_unapproved_authenticated(db: Session,
-                                          test_activity: models.Activities,
-                                          test_device: models.Devices,
+                                          test_activity: models.Activity,
+                                          test_device: models.Device,
                                           concierge_token: str):
-    device = models.DevicesUnapproved(
+    device = models.DeviceUnapproved(
         is_taken=False,
         device_code=test_device.code,
-        activity_id=test_activity.id
+        activity_id=test_activity.id,
+        entitled = True
     )
     db.add(device)
     db.commit()
@@ -527,7 +527,7 @@ def test_get_all_unapproved_unauthorized(test_concierge: models.User):
 
 
 def test_approve_activity_login_success(test_concierge: models.User,
-                                        test_activity: models.Activities,
+                                        test_activity: models.Activity,
                                         concierge_token: str):
     login_data = {
         "username": test_concierge.email,
@@ -543,7 +543,7 @@ def test_approve_activity_login_success(test_concierge: models.User,
 
 
 def test_approve_activity_login_invalid_credentials(test_concierge: models.User,
-                                                    test_activity: models.Activities,
+                                                    test_activity: models.Activity,
                                                     concierge_token: str):
     login_data = {
         "username": test_concierge.email,
@@ -559,7 +559,7 @@ def test_approve_activity_login_invalid_credentials(test_concierge: models.User,
 
 
 def test_approve_activity_login_no_permission(test_user: models.User,
-                                              test_activity: models.Activities,
+                                              test_activity: models.Activity,
                                               concierge_token: str):
     login_data = {
         "username": test_user.email,
@@ -574,7 +574,7 @@ def test_approve_activity_login_no_permission(test_user: models.User,
     assert response.json() == {"detail": "You cannot perform this operation without the concierge role"}
 
 
-def test_approve_activity_card_no_devices(test_activity: models.Activities,
+def test_approve_activity_card_no_devices(test_activity: models.Activity,
                                           concierge_token: str):
     response = client.post(
         f"/approve/card/activity/{test_activity.id}",
@@ -585,7 +585,7 @@ def test_approve_activity_card_no_devices(test_activity: models.Activities,
     assert response.json() == {"detail": "No unapproved devices found for this activity"}
 
 
-def test_approve_activity_card_invalid_card(test_activity: models.Activities,
+def test_approve_activity_card_invalid_card(test_activity: models.Activity,
                                             concierge_token: str):
     response = client.post(
         f"/approve/card/activity/{test_activity.id}",
@@ -597,15 +597,25 @@ def test_approve_activity_card_invalid_card(test_activity: models.Activities,
 
 
 def test_approve_activity_card_success(db: Session,
-                                       test_device: models.Devices,
-                                       test_activity: models.Activities,
+                                       test_device: models.Device,
+                                       test_user: models.User,
+                                       test_concierge: models.User,
                                        concierge_token: str):
 
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
-    unapproved_dev_service.create_unapproved(test_device.code, test_activity.id)
+    activity_service = activityService.ActivityService(db)
+    activity = activity_service.create_activity(test_user.id, test_concierge.id)
+
+    new_data = {
+        "device_code": test_device.code,
+        "activity_id": activity.id,
+        "is_taken": False,
+        "entitled": True
+    }
+    unapproved_dev_service.create_unapproved(new_data)
 
     response = client.post(
-        f"/approve/card/activity/{test_activity.id}",
+        f"/approve/card/activity/{activity.id}",
         headers={"Authorization": f"Bearer {concierge_token}"},
         json={"card_id": "123456"}
     )

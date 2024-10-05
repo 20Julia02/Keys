@@ -31,19 +31,12 @@ class UserOut(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-class Operation(BaseModel):
-    operation_type: str
-    device_code: str
-    activity_id: int
-    entitled: bool
-    time: datetime
-
-
 class DeviceBase(BaseModel):
     code: str
     version: str
     is_taken: bool
     type: str
+    entitled: Optional[bool] = True
 
 
 class DeviceCreate(DeviceBase):
@@ -72,6 +65,7 @@ class DeviceUnapproved(BaseModel):
     device_code: str
     activity_id: int
     is_taken: bool
+    entitled: bool
     last_taken: Optional[datetime] = None
     last_returned: Optional[datetime] = None
     last_owner_id: Optional[int] = None
@@ -142,21 +136,19 @@ class Activity(BaseModel):
     id: int
     user_id: Optional[int] = None
     concierge_id: int
-    status: str
     start_time: datetime
 
-
-class OperationOut(BaseModel):
-    operation_type: str
-    devices: DeviceOut
-    entitled: bool
-    activity_id:int
+class DeviceNote(BaseModel):
+    activity_id: int
+    device_code: str
+    note: str
+    time: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
-
-class OperationNote(BaseModel):
-    operation: OperationOut
+class DeviceNoteOut(BaseModel):
+    activity: Activity
+    device: DeviceOut
     note: str
     time: datetime
 
@@ -180,12 +172,7 @@ class DetailMessage(BaseModel):
     detail: str
 
 
-class ChangeStatusOperation(BaseModel):
-    unapproved_device: DeviceUnapproved
-    operation: OperationOut
-
-
-OperationOrDetailResponse = Union[ChangeStatusOperation, DetailMessage]
+DeviceOrDetailResponse = Union[DeviceUnapproved, DetailMessage]
 
 
 class LoginActivity(BaseModel):

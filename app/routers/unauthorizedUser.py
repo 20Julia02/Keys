@@ -26,7 +26,7 @@ def get_all_unathorized_users(current_concierge=Depends(oauth2.get_current_conci
     Raises:
         HTTPException: If no unauthorized users are found in the database.
     """
-    user = db.query(models.unauthorized_users).all()
+    user = db.query(models.UnauthorizedUser).all()
     if (user is None):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="There is no unauthorized user in database")
@@ -51,8 +51,8 @@ def get_unathorized_user(id: int,
     Raises:
         HTTPException: If the unauthorized user with the specified ID doesn't exist.
     """
-    user = db.query(models.unauthorized_users).filter(
-        models.unauthorized_users.id == id).first()
+    user = db.query(models.UnauthorizedUser).filter(
+        models.UnauthorizedUser.id == id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Unauthorized user with id: {id} doesn't exist")
@@ -75,7 +75,7 @@ def create_unauthorized_user(user: UnauthorizedUserCreate,
         UnauthorizedUserOut: The newly created unauthorized user.
     """
     user.id_concierge_who_accepted = current_concierge.id
-    new_user = models.unauthorized_users(**user.model_dump())
+    new_user = models.UnauthorizedUser(**user.model_dump())
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -100,8 +100,8 @@ def delete_unauthorized_user(id: int,
     Raises:
         HTTPException: If the unauthorized user with the specified ID doesn't exist.
     """
-    user = db.query(models.unauthorized_users).filter(
-        models.unauthorized_users.id == id).first()
+    user = db.query(models.UnauthorizedUser).filter(
+        models.UnauthorizedUser.id == id).first()
 
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,

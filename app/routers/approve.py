@@ -91,8 +91,7 @@ def approve_activity_login(activity_id: int,
     concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password, "concierge")
     activity_service.end_activity(activity_id)
 
-    dev_activity = unapproved_dev_service.get_unapproved_dev_activity(activity_id)
-    unapproved_dev_service.transfer_devices(dev_activity)
+    unapproved_dev_service.transfer_devices(activity_id)
 
     return JSONResponse({"detail": "Operations approved and devices updated successfully."})
 
@@ -128,9 +127,8 @@ def approve_activity_card(activity_id: int,
     auth_service.authenticate_user_card(card_data, "concierge")
 
     activity_service.end_activity(activity_id)
-    dev_activity = unapproved_dev_service.get_unapproved_dev_activity(activity_id)
-
-    unapproved_dev_service.transfer_devices(dev_activity)
+    unapproved_dev_service.transfer_devices(activity_id)
+  
     return JSONResponse({"detail": "Operations approved and devices updated successfully."})
 
 
@@ -167,6 +165,10 @@ def approve_all_login(concierge_credentials: OAuth2PasswordRequestForm = Depends
 
     for dev in dev_all:
         activity_service.end_activity(dev.activity_id)
-    unapproved_dev_service.transfer_devices(dev_all)
+
+    unapproved_dev_service.transfer_devices()
 
     return JSONResponse({"detail": "All operations approved and devices updated successfully."})
+
+
+# todo reject

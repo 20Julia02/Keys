@@ -23,7 +23,7 @@ class ActivityService:
         """
 
         start_time = datetime.datetime.now(datetime.timezone.utc)
-        new_activity = models.Activities(
+        new_activity = models.Activity(
             user_id=user_id,
             concierge_id=concierge_id,
             start_time=start_time,
@@ -49,7 +49,7 @@ class ActivityService:
         Raises:
             HTTPException: If the activity with given ID doesn't exist
         """
-        activity = self.db.query(models.Activities).filter_by(id=activity_id).first()
+        activity = self.db.query(models.Activity).filter_by(id=activity_id).first()
         if not activity:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
         activity.status = models.Status.rejected if reject else models.Status.completed
@@ -58,8 +58,8 @@ class ActivityService:
         return activity
 
     def get_activity_id(self, activity_id: int) -> Activity:
-        activity = self.db.query(models.Activities).filter(
-                    models.Activities.id == activity_id
+        activity = self.db.query(models.Activity).filter(
+                    models.Activity.id == activity_id
                 ).first()
 
         if not activity:

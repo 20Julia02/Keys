@@ -1,7 +1,8 @@
 import datetime
 from fastapi import status, HTTPException
-from app import models
+from app import models, schemas
 from sqlalchemy.orm import Session
+from typing import Optional
 
 
 class NoteService:
@@ -36,34 +37,25 @@ class NoteService:
         self.db.refresh(note_data)
         return note_data
 
-    def get_all_operation_notes(self):
+    def get_dev_notes(self, dev_code=Optional[str], activity_id=Optional[int]):
         """Retrieve all operation notes."""
-        notes = self.db.query(models.OperationNote).all()
+        query = self.db.query(models.DeviceNote)
+        if dev_code:
+            query = query.filter(models.DeviceNote.device_code.ilike(f"%{dev_code}%"))
+        if activity_id:
+            query = query.filter(models.DeviceNote.activity_id.ilike(f"%{activity_id}%"))
+
+        notes = query.all()
+
         if not notes:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No operation notes found.")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
+                                detail="There are no notes that match the given criteria")
+        
         return notes
 
-    def get_operation_note_by_id(self, operation_id: int):
-        """Retrieve a specific operation note by operation_id."""
-        notes = self.db.query(models.OperationNote).filter(models.OperationNote.operation_id == operation_id).all()
-        if not notes:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No note found for operation id: {operation_id}")
-        return notes
-    
-    def get_dev_notes_by_code(self, dev_code: str):
-        operation_ids_subquery = self.db.query(models.Operation.id).filter(models.Operation.device_code == dev_code)
-        notes = self.db.query(models.OperationNote).filter(models.OperationNote.operation_id.in_(operation_ids_subquery)).all()
-        if not notes:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No note found for device id: {dev_code}")
-        return notes
-
-    def create_operation_note(self, operation_id: int, note_text: str):
+    def create_dev_note(self, note_data: schemas.DeviceNote):
         """Create a new operation note."""
-        note_data = models.OperationNote(
-            operation_id=operation_id,
-            note=note_text,
-            time=datetime.datetime.now(datetime.timezone.utc)
-        )
+        note_data = models.DeviceNote(**note_data)
         self.db.add(note_data)
         self.db.commit()
         self.db.refresh(note_data)

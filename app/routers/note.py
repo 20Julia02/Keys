@@ -1,6 +1,6 @@
 import datetime
 from fastapi import status, Depends, APIRouter, HTTPException
-from typing import List
+from typing import List, Optional
 from app import database, oauth2, schemas, models
 from app.services import noteService
 from sqlalchemy.orm import Session
@@ -81,78 +81,19 @@ def add_user_note(user_id: int,
     return note_service.create_user_note(user_id, note)
 
 
-@router.get("/operations", response_model=List[schemas.OperationNote])
-def get_all_operation_note(
+@router.get("/devices", response_model=List[schemas.DeviceNoteOut])
+def get_dev_note(
+        dev_code: Optional[str],
+        activity_id: Optional[int],
         current_concierge=Depends(oauth2.get_current_concierge),
-        db: Session = Depends(database.get_db)) -> List[schemas.OperationNote]:
-    """
-    It allows to retrieve all operation-related notes from the system.
-
-    Args:
-        current_concierge: The currently authenticated concierge making the request.
-        db(Session): The database session to perform the query.
-
-    Returns:
-        List[schemas.OperationNote]: A list of all operation notes stored in the system.
-    
-    Raises:
-        HTTPException: If the retrieval of operation notes fails.
-    """
+        db: Session = Depends(database.get_db)) -> List[schemas.DeviceNoteOut]:
     note_service = noteService.NoteService(db)
-    return note_service.get_all_operation_notes()
+    return note_service.get_dev_notes(dev_code, activity_id)
 
-
-@router.get("/operations/{operation_id}", response_model=List[schemas.OperationNote])
-def get_operation_note(operation_id: int,
-                       current_concierge=Depends(oauth2.get_current_concierge),
-                       db: Session = Depends(database.get_db)) -> List[schemas.OperationNote]:
-    """
-    It allows to retrieve all notes related to a specific operation
-    identified by its unique operation ID.
-
-    Args:
-        operation_id(int): The unique ID of the operation.
-        current_concierge: The currently authenticated concierge.
-        db(Session): The database session to perform the query.
-
-    Returns:
-        List[schemas.OperationNote]: A list of notes associated with the specified operation.
-    
-    Raises:
-        HTTPException: If no notes are found for the given operation ID.
-    """
-    note_service = noteService.NoteService(db)
-    return note_service.get_operation_note_by_id(operation_id)
-
-
-@router.get("/devices/{dev_code}", response_model=List[schemas.OperationNote])
-def get_dev_notes(dev_code: str,
-                 current_concierge=Depends(oauth2.get_current_concierge),
-                 db: Session = Depends(database.get_db)) -> List[schemas.OperationNote]:
-    """
-    It fetches all notes associated with operations involving a specific device, identified
-    by its unique code.
-
-    Args:
-        dev_code: The unique code of the device whose notes are being requested.
-        current_concierge: The currently authenticated concierge making the request.
-        db: The database session to perform the query.
-
-    Returns:
-        List[schemas.OperationNote]: A list of notes associated with the specified device.
-    
-    Raises:
-        HTTPException: If no notes are found for the given device code.
-    """
-    note_service = noteService.NoteService(db)
-    return note_service.get_dev_notes_by_code(dev_code)
-
-
-@router.post("/operations/{operation_id}", response_model=schemas.OperationNote)
-def add_operation_note(operation_id: int,
-                       note: str,
-                       current_concierge=Depends(oauth2.get_current_concierge),
-                       db: Session = Depends(database.get_db)) -> schemas.OperationNote:
+@router.post("/device", response_model=schemas.DeviceNoteOut)
+def add_device_note(note_data: schemas.DeviceNote,
+                    current_concierge=Depends(oauth2.get_current_concierge),
+                    db: Session = Depends(database.get_db)) -> schemas.DeviceNoteOut:
     
     """
     It allows to add a note to a specific operation. The operation is identified
@@ -172,15 +113,15 @@ def add_operation_note(operation_id: int,
     """
 
     note_service = noteService.NoteService(db)
-    return note_service.create_operation_note(operation_id, note)
+    return note_service.create_dev_note(note_data)
 
 
 @router.delete("/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_operation_notes(note_id: int,
-                             db: Session = Depends(database.get_db),
-                             current_concierge=Depends(oauth2.get_current_concierge)):
-    note = db.query(models.OperationNote).filter(
-            models.OperationNote.id == note_id).first()
+def delete_device_notes(note_id: int,
+                        db: Session = Depends(database.get_db),
+                        current_concierge=Depends(oauth2.get_current_concierge)):
+    note = db.query(models.DeviceNote).filter(
+            models.DeviceNote.id == note_id).first()
 
     if not note:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
