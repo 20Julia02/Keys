@@ -58,17 +58,17 @@ class DeviceUnapproved(Base):
     device = relationship("Device")
 
 
-class TransactionType(enum.Enum):
+class OperationType(enum.Enum):
     issue_dev = "issue_device"
     return_dev = "return_device"
 
 
-class DeviceTransaction(Base):
-    __tablename__ = "device_transaction"
+class DeviceOperation(Base):
+    __tablename__ = "device_operation"
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     device_code = Column(String, ForeignKey("device.code"), nullable=False)
     issue_return_session_id = Column(Integer, ForeignKey("issue_return_session.id"), nullable=False)
-    transaction_type = Column(Enum(TransactionType), nullable=False)
+    operation_type = Column(Enum(OperationType), nullable=False)
     entitled = Column(Boolean, nullable=True)
 
     device = relationship("Device")
@@ -157,10 +157,10 @@ class Permission(Base):
 class DeviceNote(Base):
     __tablename__ = "device_note"
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    device_transaction_id = Column(Integer, ForeignKey("device_transaction.id"), nullable=True)
+    device_operation_id = Column(Integer, ForeignKey("device_operation.id"), nullable=True)
     note = Column(String, nullable=False)
 
-    device_transaction = relationship("DeviceTransaction")
+    device_operation = relationship("DeviceOperation")
 
 
 class UserNote(Base):

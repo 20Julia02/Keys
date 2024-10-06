@@ -129,14 +129,14 @@ class UnapprovedDeviceService:
                 device.last_returned = unapproved.last_returned
                 device.last_owner_id = unapproved.last_owner_id
 
-                transaction_type = (
-                    models.TransactionType.issue_dev if device.is_taken else models.TransactionType.return_dev
+                operation_type = (
+                    models.OperationType.issue_dev if device.is_taken else models.OperationType.return_dev
                 )
 
-                device_session = models.DeviceTransaction(
+                device_session = models.DeviceOperation(
                     device_code=unapproved.device_code,
                     issue_return_session_id=unapproved.issue_return_session_id,
-                    transaction_type=transaction_type
+                    operation_type=operation_type
                 )
                 
                 self.db.add(device_session)

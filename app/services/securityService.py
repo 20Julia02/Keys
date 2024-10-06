@@ -2,7 +2,8 @@ from sqlalchemy import Column, Integer
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from passlib.context import CryptContext
-from datetime import datetime, timedelta, timezone
+import datetime
+from zoneinfo import ZoneInfo
 from jose import JWTError, jwt
 from app.config import settings
 from app.schemas import TokenData, CardLogin, LoginConcierge
@@ -67,7 +68,7 @@ class TokenService:
             time_delta = self.ACCESS_TOKEN_EXPIRE_MINUTES
         to_encode = data.copy()
 
-        expire = datetime.now(timezone.utc) + timedelta(minutes=time_delta)
+        expire = datetime.datetime.now(ZoneInfo("Europe/Warsaw")) + datetime.timedelta(minutes=time_delta)
         to_encode.update({"exp": expire})
 
         encoded_jwt = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
@@ -161,7 +162,7 @@ class AuthorizationService:
         if not (user.role.value == role or user.role.value == "admin"):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"You cannot perform this transaction without the {role} role")
+                detail=f"You cannot perform this operation without the {role} role")
 
     def get_current_concierge(self, token: str) -> User:
         """

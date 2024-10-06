@@ -79,7 +79,7 @@ def approve_session_login(session_id: int,
         current_concierge: The currently authenticated concierge (extracted from the OAuth2 token).
 
     Returns:
-        JSONResponse: A success message indicating the transaction was completed and devices were approved.
+        JSONResponse: A success message indicating the operation was completed and devices were approved.
     
     Raises:
         HTTPException: If authentication fails or if there are issues with approving the session or devices.
@@ -92,7 +92,7 @@ def approve_session_login(session_id: int,
     
     unapproved_dev_service.transfer_devices(session_id)
 
-    return JSONResponse({"detail": "DeviceTransactions approved and devices updated successfully."})
+    return JSONResponse({"detail": "DeviceOperations approved and devices updated successfully."})
 
 
 @router.post("/approve/card/session/{session_id}")
@@ -115,7 +115,7 @@ def approve_session_card(session_id,
         current_concierge: The currently authenticated concierge (extracted from the OAuth2 token).
 
     Returns:
-        JSONResponse: A success message indicating the transaction was completed and devices were approved.
+        JSONResponse: A success message indicating the operation was completed and devices were approved.
     
     Raises:
         HTTPException: If card-based authentication fails or if there are issues with approving the session or devices.
@@ -129,7 +129,7 @@ def approve_session_card(session_id,
     
     unapproved_dev_service.transfer_devices(session_id)
     
-    return JSONResponse({"detail": "DeviceTransactions approved and devices updated successfully."})
+    return JSONResponse({"detail": "DeviceOperations approved and devices updated successfully."})
 
 
 @router.post("/approve/login")
@@ -168,7 +168,7 @@ def approve_all_login(concierge_credentials: OAuth2PasswordRequestForm = Depends
 
     unapproved_dev_service.transfer_devices()
 
-    return JSONResponse({"detail": "All transactions approved and devices updated successfully."})
+    return JSONResponse({"detail": "All operations approved and devices updated successfully."})
 
 
 # todo reject

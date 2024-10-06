@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 import datetime
+from zoneinfo import ZoneInfo
 from app import models
 from app.services import securityService
 from app.schemas import Token, IssueReturnSession
@@ -22,7 +23,7 @@ class SessionService:
             int: The ID of the newly created session.
         """
 
-        start_time = datetime.datetime.now(datetime.timezone.utc)
+        start_time = datetime.datetime.now(ZoneInfo("Europe/Warsaw"))
         new_session = models.IssueReturnSession(
             user_id=user_id,
             concierge_id=concierge_id,
@@ -53,7 +54,7 @@ class SessionService:
         if not session:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="IssueReturnSession not found")
         session.status = models.SessionStatus.rejected if reject else models.SessionStatus.completed
-        session.end_time = datetime.datetime.now(datetime.timezone.utc)
+        session.end_time = datetime.datetime.now(ZoneInfo("Europe/Warsaw"))
         if commit:
             self.db.commit()
         return session

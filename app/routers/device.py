@@ -1,8 +1,9 @@
 import datetime
+from zoneinfo import ZoneInfo
 from fastapi import status, Depends, APIRouter, HTTPException
 from typing import List
 from app import database, oauth2, models, schemas
-from app.services import deviceService, securityService, sessionService, transactionService, permissionService
+from app.services import deviceService, securityService, sessionService, operationService, permissionService
 from sqlalchemy.orm import Session
 
 
@@ -91,22 +92,22 @@ def create_device(device: schemas.DeviceCreate,
 
 # todo zmiana statusu unauthorized
 
-@router.post("/change-status/{dev_code}", response_model=schemas.DeviceTransactionOrDetailResponse)
+@router.post("/change-status/{dev_code}", response_model=schemas.DeviceOperationOrDetailResponse)
 def change_status(
     dev_code: str,
     request: schemas.ChangeStatus,
     db: Session = Depends(database.get_db),
     current_concierge: int = Depends(oauth2.get_current_concierge),
-) -> schemas.DeviceTransactionOrDetailResponse:
+) -> schemas.DeviceOperationOrDetailResponse:
     """
-    changes the status of the device with given code based on the given session id and whether to force the transaction 
-    without permissions (if the parameter force == true the transaction will be performed even 
+    changes the status of the device with given code based on the given session id and whether to force the operation 
+    without permissions (if the parameter force == true the operation will be performed even 
     without the corresponding user rights)
 
     If the device has already been added to the unapproved data in the current session (with givenn session id),
     it removes the device from unapproved data. 
     
-    Otherwise, it checks user permissions and creates the transaction containing all information about the status change 
+    Otherwise, it checks user permissions and creates the operation containing all information about the status change 
     performed. Then, it updates the device information and saves it as unconfirmed data.
     The new device data depends on whether the device has been issued or returned.
 
@@ -117,7 +118,7 @@ def change_status(
         current_concierge: The current concierge ID, used for authorization.
 
     Returns:
-        DeviceTransactionOrDetailResponse: The updated device object and the transaction Object or a message confirming the 
+        DeviceOperationOrDetailResponse: The updated device object and the operation Object or a message confirming the 
         device's removal from unapproved data.
     
     Raises:
@@ -126,7 +127,7 @@ def change_status(
     """
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
     dev_service = deviceService.DeviceService(db)
-    transaction_service = transactionService.DeviceTransactionService(db)
+    operation_service = operationService.DeviceOperationService(db)
     session_service = sessionService.SessionService(db)
     permission_service = permissionService.PermissionService(db)
 
@@ -146,30 +147,30 @@ def change_status(
     if not device.is_taken:  
         new_dev_data = {
             "is_taken": True,
-            "last_taken": datetime.datetime.now(datetime.timezone.utc),
+            "last_taken": datetime.datetime.now(ZoneInfo("Europe/Warsaw")),
             "last_owner_id": session.user_id,
         }
 
     else:
         new_dev_data = {
             "is_taken": False,
-            "last_returned": datetime.datetime.now(datetime.timezone.utc)
+            "last_returned": datetime.datetime.now(ZoneInfo("Europe/Warsaw"))
         }
     
     new_dev_data["device_code"] = dev_code
     new_dev_data["issue_return_session_id"] = session.id
 
-    transaction_type = (models.TransactionType.return_dev if device.is_taken else models.TransactionType.issue_dev)
-    transaction_data = {
+    operation_type = (models.OperationType.return_dev if device.is_taken else models.OperationType.issue_dev)
+    operation_data = {
         "device_code": dev_code,
         "issue_return_session_id": session.id,
-        "transaction_type": transaction_type,
+        "operation_type": operation_type,
         "entitled": entitled
     }
     try:
         
         unapproved_dev_service.create_unapproved(new_dev_data, False)
-        transaction = transaction_service.create_transaction(transaction_data, False)
+        operation = operation_service.create_operation(operation_data, False)
         db.commit()
     except Exception as e:
         db.rollback()
@@ -177,4 +178,4 @@ def change_status(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error occurred while processing device status change: {str(e)}"
         )
-    return transaction
+    return operation

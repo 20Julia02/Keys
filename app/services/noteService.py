@@ -1,4 +1,3 @@
-import datetime
 from fastapi import status, HTTPException
 from app import models, schemas
 from sqlalchemy.orm import Session
@@ -6,7 +5,7 @@ from typing import Optional
 
 
 class NoteService:
-    """Service for handling user and transaction notes in the database."""
+    """Service for handling user and operation notes in the database."""
 
     def __init__(self, db: Session):
         self.db = db
@@ -34,7 +33,7 @@ class NoteService:
         return note_data
 
     def get_dev_notes(self, dev_code=Optional[str], issue_return_session_id=Optional[int]):
-        """Retrieve all transaction notes."""
+        """Retrieve all operation notes."""
         query = self.db.query(models.DeviceNote)
         if dev_code:
             query = query.filter(models.DeviceNote.device_code.ilike(f"%{dev_code}%"))
@@ -50,7 +49,7 @@ class NoteService:
         return notes
 
     def create_dev_note(self, note_data: schemas.DeviceNote, commit:bool=True):
-        """Create a new transaction note."""
+        """Create a new operation note."""
         note_data = models.DeviceNote(**note_data)
         self.db.add(note_data)
         if commit:

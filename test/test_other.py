@@ -1,5 +1,6 @@
 import pytest
 import datetime
+from zoneinfo import ZoneInfo
 from sqlalchemy import text
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -8,7 +9,6 @@ from app import models, database
 from app.services import securityService, deviceService, sessionService
 from app.schemas import UserCreate
 from app.database import Base
-
 
 client = TestClient(app)
 
@@ -83,8 +83,8 @@ def test_room(db: Session):
 @pytest.fixture(scope="module")
 def test_permission(db: Session, test_user, test_room):
     permission = models.Permission(user_id=test_user.id, room_id=test_room.id,
-                                   start_reservation=datetime.datetime(2024, 12, 6, 12, 45).isoformat(),
-                                   end_reservation=datetime.datetime(2024, 12, 6, 14, 45).isoformat())
+                                   start_reservation=datetime.datetime(2024, 12, 6, 12, 45, tzinfo=ZoneInfo("Europe/Warsaw")).isoformat(),
+                                   end_reservation=datetime.datetime(2024, 12, 6, 14, 45, tzinfo=ZoneInfo("Europe/Warsaw")).isoformat())
     db.add(permission)
     db.commit()
     db.refresh(permission)
@@ -96,7 +96,7 @@ def test_session(db: Session, test_user: models.User, test_concierge: models.Use
     session = models.IssueReturnSession(
         user_id=test_user.id,
         concierge_id=test_concierge.id,
-        start_time=datetime.datetime(2024, 12, 6, 12, 45).isoformat(),
+        start_time=datetime.datetime(2024, 12, 6, 12, 45, tzinfo=ZoneInfo("Europe/Warsaw")).isoformat(),
         status=models.SessionStatus.in_progress
     )
     db.add(session)
@@ -333,7 +333,7 @@ def test_changeStatus_with_valid_id_taking(test_concierge: models.User,
     assert response.status_code == 200
     assert response.json()["device"]["code"] == test_device.code
     assert response.json()["issue_return_session"]["status"] == "in_progress"
-    assert response.json()["transaction_type"] == "issue_device"
+    assert response.json()["operation_type"] == "issue_device"
 
 
 def test_changeStatus_again(test_concierge: models.User,
@@ -367,8 +367,8 @@ def test_create_permission(test_concierge: models.User,
     permission_data = {
         "user_id": test_user.id,
         "room_id": test_room.id,
-        "start_reservation": datetime.datetime(2024, 12, 6, 12, 45).isoformat(),
-        "end_reservation": datetime.datetime(2024, 12, 6, 14, 45).isoformat()
+        "start_reservation": datetime.datetime(2024, 12, 6, 12, 45, tzinfo=ZoneInfo("Europe/Warsaw")).isoformat(),
+        "end_reservation": datetime.datetime(2024, 12, 6, 14, 45, tzinfo=ZoneInfo("Europe/Warsaw")).isoformat()
     }
     response = client.post(
         "/permissions",
@@ -539,7 +539,7 @@ def test_approve_session_login_success(test_concierge: models.User,
         data=login_data
     )
     assert response.status_code == 200
-    assert response.json() == {"detail": "DeviceTransactions approved and devices updated successfully."}
+    assert response.json() == {"detail": "DeviceOperations approved and devices updated successfully."}
 
 
 def test_approve_session_login_invalid_credentials(test_concierge: models.User,
@@ -571,7 +571,7 @@ def test_approve_session_login_no_permission(test_user: models.User,
         data=login_data
     )
     assert response.status_code == 403
-    assert response.json() == {"detail": "You cannot perform this transaction without the concierge role"}
+    assert response.json() == {"detail": "You cannot perform this operation without the concierge role"}
 
 
 def test_approve_session_card_no_devices(test_session: models.IssueReturnSession,
@@ -618,7 +618,7 @@ def test_approve_session_card_success(db: Session,
         json={"card_id": "123456"}
     )
     assert response.status_code == 200
-    assert response.json()["detail"] == 'DeviceTransactions approved and devices updated successfully.'
+    assert response.json()["detail"] == 'DeviceOperations approved and devices updated successfully.'
 
 
 def test_logout_with_valid_token(test_concierge: models.User, concierge_token: str):

@@ -1,4 +1,3 @@
-import datetime
 from fastapi import status, Depends, APIRouter, HTTPException
 from typing import List, Optional
 from app import database, oauth2, schemas, models
@@ -68,7 +67,7 @@ def add_user_note(note_data: schemas.UserNote,
         user_id: The ID of the user for whom the note is being created.
         note: The content of the note being added (text).
         current_concierge: The currently authenticated concierge creating the note.
-        db: The database session to perform the transaction.
+        db: The database session to perform the operation.
 
     Returns:
         schemas.UserNote: The newly created note associated with the specified user.
@@ -95,17 +94,17 @@ def add_device_note(note_data: schemas.DeviceNote,
                     db: Session = Depends(database.get_db)) -> schemas.DeviceNoteOut:
     
     """
-    It allows to add a note to a specific transaction. The transaction is identified
+    It allows to add a note to a specific operation. The operation is identified
     by its unique ID, and the note is saved in the database.
 
     Args:
-        transaction_id: The ID of the transaction for which the note is being created.
+        operation_id: The ID of the operation for which the note is being created.
         note: The text content of the note.
         current_concierge: The currently authenticated concierge creating the note.
-        db: The database session to perform the transaction.
+        db: The database session to perform the operation.
 
     Returns:
-        schemas.DeviceTransactionNote: The newly created transaction note.
+        schemas.DeviceOperationNote: The newly created operation note.
     
     Raises:
         HTTPException: If the note creation process encounters an error.

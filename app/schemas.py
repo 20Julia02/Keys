@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from typing import Optional, Union
 from pydantic import BaseModel, EmailStr, ConfigDict
 
@@ -51,8 +51,8 @@ class RoomOut(BaseModel):
 
 class DeviceOut(DeviceBase):
     room: RoomOut
-    last_taken: Optional[datetime] = None
-    last_returned: Optional[datetime] = None
+    last_taken: Optional[datetime.datetime] = None
+    last_returned: Optional[datetime.datetime] = None
     last_owner_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -61,8 +61,8 @@ class DeviceOut(DeviceBase):
 class DeviceUnapproved(BaseModel):
     device_code: str
     is_taken: bool
-    last_taken: Optional[datetime] = None
-    last_returned: Optional[datetime] = None
+    last_taken: Optional[datetime.datetime] = None
+    last_returned: Optional[datetime.datetime] = None
     last_owner_id: Optional[int] = None
     issue_return_session_id: int
 
@@ -72,15 +72,15 @@ class DeviceUnapproved(BaseModel):
 class PermissionCreate(BaseModel):
     user_id: int
     room_id: int
-    start_reservation: datetime
-    end_reservation: datetime
+    start_reservation: datetime.datetime
+    end_reservation: datetime.datetime
 
 
 class PermissionOut(BaseModel):
     user: UserOut
     room: RoomOut
-    start_reservation: datetime
-    end_reservation: datetime
+    start_reservation: datetime.datetime
+    end_reservation: datetime.datetime
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -113,7 +113,7 @@ class UnauthorizedUserBase(BaseModel):
 
 
 class UnauthorizedUserCreate(UnauthorizedUserBase):
-    addition_time: datetime
+    addition_time: datetime.datetime
     id_concierge_who_accepted: Optional[int] = None
 
 
@@ -127,27 +127,27 @@ class IssueReturnSession(BaseModel):
     id: int
     user_id: Optional[int] = None
     concierge_id: int
-    start_time: datetime
+    start_time: datetime.datetime
     status: Optional[str] = "in_progress"
 
     model_config = ConfigDict(from_attributes=True)
 
 
-class DeviceTransaction(BaseModel):
+class DeviceOperation(BaseModel):
     device_code: str
     issue_return_session_id: int
-    transaction_type: str
+    operation_type: str
     entitled: bool
 
 
 class DeviceNote(BaseModel):
-    device_transaction: DeviceTransaction
+    device_operation: DeviceOperation
     note: str
 
     model_config = ConfigDict(from_attributes=True)
 
 class DeviceNoteOut(BaseModel):
-    device_transaction: DeviceTransaction
+    device_operation: DeviceOperation
     note: str
 
     model_config = ConfigDict(from_attributes=True)
@@ -169,15 +169,15 @@ class DetailMessage(BaseModel):
     detail: str
 
 
-class DeviceTransactionOut(BaseModel):
+class DeviceOperationOut(BaseModel):
     id: int
     device: DeviceOut
     issue_return_session: IssueReturnSession
-    transaction_type: str
+    operation_type: str
     entitled: bool
 
     model_config = ConfigDict(from_attributes=True)
 
 
-DeviceTransactionOrDetailResponse = Union[DeviceTransactionOut, DetailMessage]
+DeviceOperationOrDetailResponse = Union[DeviceOperationOut, DetailMessage]
 
