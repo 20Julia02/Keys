@@ -6,7 +6,6 @@ from app import models
 from fastapi import HTTPException
 
 
-# Mockowanie sesji bazy danych
 @pytest.fixture
 def mock_db():
     mock_session = MagicMock()
