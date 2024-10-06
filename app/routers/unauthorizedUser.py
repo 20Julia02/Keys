@@ -109,4 +109,4 @@ def delete_unauthorized_user(id: int,
     db.delete(user)
     db.commit()
 
-    return {"detail": "Unauthorized user deleted successfully"}
+    return True

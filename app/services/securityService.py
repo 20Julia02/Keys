@@ -37,6 +37,7 @@ class PasswordService:
         Returns:
             bool: True if the passwords match, False otherwise.
         """
+
         return self.pwd_context.verify(plain_text, hashed_text)
 
 
@@ -225,7 +226,6 @@ class AuthorizationService:
         users = self.db.query(User).filter(User.card_code.isnot(None)).all()
         if not users:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No users found in the database")
-
         for user in users:
             if password_service.verify_hashed(card_id.card_id, user.card_code):
                 self.check_if_entitled(role, user)

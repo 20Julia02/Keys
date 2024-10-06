@@ -61,12 +61,16 @@ class DeviceService:
             HTTPException: If no devices are found in the database.
         """
         query = self.db.query(models.Device)
-    
         if dev_type:
-            query = query.filter(models.Device.type.ilike(f"%{dev_type}%"))
+            if dev_type not in [type_.value for type_ in models.DeviceType]:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail=f"Invalid device type: {dev_type}")
+            query = query.filter(models.Device.type==models.DeviceType[dev_type])
         if dev_version:
-            query = query.filter(models.Device.version.ilike(f"%{dev_version}%"))
-
+            if dev_version not in [version.value for version in models.DeviceVersion]:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail=f"Invalid device version: {dev_version}")
+            query = query.filter(models.Device.version==models.DeviceVersion[dev_version])
         dev = query.all()
 
         if not dev:
@@ -97,7 +101,6 @@ class UnapprovedDeviceService:
     def get_unapproved_dev_session(self, issue_return_session_id: int) -> List[DeviceUnapproved]:
         unapproved_devs = self.db.query(models.DeviceUnapproved).filter_by(issue_return_session_id=issue_return_session_id).all()
         if not unapproved_devs:
-            print(issue_return_session_id)
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="No unapproved devices found for this session")
         return unapproved_devs
@@ -108,7 +111,7 @@ class UnapprovedDeviceService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No unapproved devices found")
         return unapproved_devs
 
-    def transfer_devices(self, issue_return_session_id: Optional[int], commit: bool=True) -> bool:
+    def transfer_devices(self, issue_return_session_id: int = None, commit: bool=True) -> bool:
         unapproved_devs = (
         self.get_unapproved_dev_session(issue_return_session_id) if issue_return_session_id
         else self.get_unapproved_dev_all()

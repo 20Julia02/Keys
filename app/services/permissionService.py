@@ -96,7 +96,7 @@ class PermissionService:
         
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"User with id {user_id} does not have permission to access room {room_id}")
+            detail=f"User with id {user_id} does not have permission to access room with id {room_id}")
       
 
     def create_permission(self, permission: schemas.PermissionCreate, commit: bool=True):

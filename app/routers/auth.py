@@ -39,7 +39,7 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
     return token_service.generate_tokens(concierge.id, concierge.role.value)
 
 
-@router.post("/card-login", response_model=schemas.LoginConcierge)
+@router.post("/login/card", response_model=schemas.LoginConcierge)
 def card_login(card_id: schemas.CardLogin,
                db: Session = Depends(database.get_db)) -> schemas.LoginConcierge:
     """
@@ -107,21 +107,9 @@ def start_card_session(card_id: schemas.CardLogin,
     This endpoint allows a concierge to initiate an session for a user 
     by verifying their card ID. Once authenticated, the system creates an session 
     for the user and assigns it to the current concierge.
-
-    Args:
-        card_id (CardLogin): Object containing the card ID of the user.
-        current_concierge: The currently authenticated concierge (extracted from the OAuth2 token).
-        db (Session): The active database session.
-
-    Returns:
-        LoginIssueReturnSession: An object containing the ID of the newly created session and the user's details.
-    
-    Raises:
-        HTTPException: If card authentication fails or if the session cannot be created.
     """
     auth_service = securityService.AuthorizationService(db)
     session_service = sessionService.SessionService(db)
-
     user = auth_service.authenticate_user_card(card_id, "employee")
     
     session = session_service.create_session(user.id, current_concierge.id)
@@ -136,16 +124,6 @@ def refresh_token(refresh_token: schemas.RefreshToken, db: Session = Depends(dat
 
     This endpoint allows users to renew their access token by providing 
     a valid refresh token. The system verifies the refresh token and generates a new access token.
-
-    Args:
-        refresh_token (RefreshToken): Object containing the refresh token provided during login.
-        db (Session): The active database session.
-
-    Returns:
-        Token: An object containing the newly generated access token.
-    
-    Raises:
-        HTTPException: If the refresh token is invalid or expired.
     """
     token_service = securityService.TokenService(db)
     token_data = token_service.verify_concierge_token(refresh_token.refresh_token)
@@ -166,16 +144,6 @@ def logout(token: str = Depends(oauth2.get_current_concierge_token),
 
     This endpoint allows a concierge to log out by adding their access token to a blacklist,
     effectively invalidating it for future requests.
-
-    Args:
-        token (str): The current access token used by the concierge.
-        db (Session): The active database session.
-
-    Returns:
-        JSONResponse: A message indicating that the user was logged out successfully.
-    
-    Raises:
-        HTTPException: If the token is invalid or if there is an error during the logout process.
     """
     token_service = securityService.TokenService(db)
     token_data = token_service.verify_concierge_token(token)

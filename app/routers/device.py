@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/devices",
-    tags=['Devices']
+    tags=['Devices']    
 )
 
 
@@ -48,17 +48,6 @@ def get_dev_code(dev_code: str,
     Retrieve a device by its unique device code.
 
     This endpoint retrieves a device from the database using the device's unique code.
-
-    Args:
-        dev_code (str): The unique code of the device.
-        current_concierge: The currently authenticated concierge (used for authorization).
-        db (Session): The active database session.
-
-    Returns:
-        schemas.DeviceOut: The device that matches the provided code.
-
-    Raises:
-        HTTPException: If the device with the given code is not found.
     """
     dev_service = deviceService.DeviceService(db)
     return dev_service.get_dev_code(dev_code)
@@ -73,17 +62,6 @@ def create_device(device: schemas.DeviceCreate,
 
     This endpoint allows concierge to create a new device by providing the necessary 
     data. Only users with the 'admin' role are permitted to create devices.
-
-    Args:
-        device (schemas.DeviceCreate): The data required to create the new device.
-        db (Session): The active database session.
-        current_concierge: The currently authenticated concierge (used for authorization).
-
-    Returns:
-        schemas.DeviceOut: The newly created device.
-
-    Raises:
-        HTTPException: If the user is not authorized to create a device.
     """
     auth_service = securityService.AuthorizationService(db)
     auth_service.check_if_entitled("admin", current_concierge)
@@ -110,20 +88,6 @@ def change_status(
     Otherwise, it checks user permissions and creates the operation containing all information about the status change 
     performed. Then, it updates the device information and saves it as unconfirmed data.
     The new device data depends on whether the device has been issued or returned.
-
-    Args:
-        dev_code (str): The code of the device whose status is being changed.
-        request (schemas.ChangeStatus): The request object containing session ID and the force parameter.
-        db (Session): The active database session.
-        current_concierge: The current concierge ID, used for authorization.
-
-    Returns:
-        DeviceOperationOrDetailResponse: The updated device object and the operation Object or a message confirming the 
-        device's removal from unapproved data.
-    
-    Raises:
-        HTTPException: If the associated session does not exist or there is an error 
-        updating the device status.
     """
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
     dev_service = deviceService.DeviceService(db)
