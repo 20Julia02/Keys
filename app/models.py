@@ -35,10 +35,10 @@ class Device(Base):
     is_taken = Column(Boolean, nullable=False, server_default="false")
     last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
     last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
-    last_owner_id = Column(Integer, ForeignKey("user.id"), nullable=True)
+    last_owner_id = Column(Integer, ForeignKey("base_user.id"), nullable=True)
 
     room = relationship("Room")
-    user = relationship("User")
+    user = relationship("BaseUser")
 
     __table_args__ = (UniqueConstraint(
         "type", "room_id", "version", name="uix_device"),)
@@ -50,11 +50,11 @@ class DeviceUnapproved(Base):
     is_taken = Column(Boolean, nullable=False, server_default="false")
     last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
     last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
-    last_owner_id = Column(Integer, ForeignKey("user.id"), nullable=True)
+    last_owner_id = Column(Integer, ForeignKey("base_user.id"), nullable=True)
     issue_return_session_id = Column(Integer, ForeignKey("issue_return_session.id"), nullable=False)
 
     issue_return_session = relationship("IssueReturnSession")
-    user = relationship("User")
+    user = relationship("BaseUser")
     device = relationship("Device")
 
 
@@ -77,6 +77,16 @@ class DeviceOperation(Base):
     __table_args__ = (UniqueConstraint(
         "device_code", "issue_return_session_id", name="uix_device_session"),)
 
+class BaseUser(Base):
+    __tablename__ = "base_user"
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    type = Column(String(50))
+    
+    __mapper_args__ = {
+        'polymorphic_on': type,
+        'polymorphic_identity': 'base_user'
+    }
+
 
 class UserRole(enum.Enum):
     admin = "admin"
@@ -86,10 +96,9 @@ class UserRole(enum.Enum):
     guest = "guest"
 
 
-class User(Base):
+class User(BaseUser):
     __tablename__ = "user"
-
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    id = Column(Integer, ForeignKey('base_user.id'), primary_key=True)
     name = Column(String, nullable=False)
     surname = Column(String, nullable=False)
     role = Column(Enum(UserRole), nullable=False)
@@ -99,8 +108,28 @@ class User(Base):
     password = Column(String, nullable=False)
     card_code = Column(String, unique=True, nullable=False)
 
-    __table_args__ = (UniqueConstraint(
-        "email", "password", name="uix_user"),)
+    __mapper_args__ = {
+        'polymorphic_identity': 'user'
+    }
+
+
+class UnauthorizedUser(BaseUser):
+    __tablename__ = "unauthorized_user"
+    id = Column(Integer, ForeignKey('base_user.id'), primary_key=True)
+    name = Column(String, nullable=False)
+    surname = Column(String, nullable=False)
+    id_concierge_who_accepted = Column(Integer, ForeignKey("user.id"), nullable=True)
+    addition_time = Column(TIMESTAMP(timezone=True), nullable=False)
+    additional_info = Column(String, nullable=True)
+
+    concierge = relationship(
+        "User",
+        foreign_keys=[id_concierge_who_accepted]
+    )
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'unauthorized_user'
+    }
 
 
 class SessionStatus(enum.Enum):
@@ -108,31 +137,17 @@ class SessionStatus(enum.Enum):
     completed = "completed"
     rejected = "rejected"
 
-# todo concierge who started and who accepted
+# todo dodac relacje
 
 class IssueReturnSession (Base):
     __tablename__ = "issue_return_session"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("base_user.id"), nullable=True)
     concierge_id = Column(Integer, ForeignKey("user.id"), nullable=False)
     start_time = Column(TIMESTAMP(timezone=True), nullable=False)
     end_time = Column(TIMESTAMP(timezone=True), nullable=True)
     status = Column(Enum(SessionStatus), nullable=False)
-
-
-class UnauthorizedUser(Base):
-    __tablename__ = "unauthorized_user"
-
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    name = Column(String, nullable=False)
-    surname = Column(String, nullable=False)
-    id_concierge_who_accepted = Column(
-        Integer, ForeignKey("user.id"), nullable=True)
-    addition_time = Column(TIMESTAMP(timezone=True), nullable=False)
-    additional_info = Column(String, nullable=True)
-
-    concierge = relationship("User")
 
 
 class Room(Base):
