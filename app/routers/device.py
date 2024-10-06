@@ -132,7 +132,6 @@ def change_status(
         "entitled": entitled
     }
     try:
-        
         unapproved_dev_service.create_unapproved(new_dev_data, False)
         operation = operation_service.create_operation(operation_data, False)
         db.commit()
