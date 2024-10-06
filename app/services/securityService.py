@@ -115,7 +115,7 @@ class TokenService:
         """
         return self.db.query(TokenBlacklist).filter_by(token=token).first() is not None
 
-    def add_token_to_blacklist(self, token: str) -> bool:
+    def add_token_to_blacklist(self, token: str, commit: bool=True) -> bool:
         """
         Adds a token to the blacklist in the database.
 
@@ -129,7 +129,8 @@ class TokenService:
         if not self.is_token_blacklisted(token):
             db_token = TokenBlacklist(token=token)
             self.db.add(db_token)
-            self.db.commit()
+            if commit:
+                self.db.commit()
         return True
 
     def generate_tokens(self, user_id: Column[Integer], role: str) -> LoginConcierge:
@@ -160,7 +161,7 @@ class AuthorizationService:
         if not (user.role.value == role or user.role.value == "admin"):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"You cannot perform this operation without the {role} role")
+                detail=f"You cannot perform this transaction without the {role} role")
 
     def get_current_concierge(self, token: str) -> User:
         """

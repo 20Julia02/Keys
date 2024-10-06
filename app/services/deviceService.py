@@ -9,7 +9,7 @@ class DeviceService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_dev(self, device: DeviceCreate) -> DeviceOut:
+    def create_dev(self, device: DeviceCreate, commit: bool=True) -> DeviceOut:
         """
         Creates a new device in the database.
 
@@ -21,8 +21,8 @@ class DeviceService:
         """
         new_device = models.Device(**device.model_dump())
         self.db.add(new_device)
-        self.db.commit()
-        self.db.refresh(new_device)
+        if commit:
+            self.db.commit()
         return new_device
 
     def get_dev_code(self, dev_code: str) -> DeviceOut:
@@ -87,18 +87,19 @@ class UnapprovedDeviceService:
                                 detail=f"Device with id: {dev_code} doesn't exist")
         return device
     
-    def create_unapproved(self, new_data: dict)-> DeviceUnapproved:
+    def create_unapproved(self, new_data: dict, commit: bool = True)-> DeviceUnapproved:
         new_device = models.DeviceUnapproved(**new_data)
         self.db.add(new_device)
-        self.db.commit()
-        self.db.refresh(new_device)
+        if commit:
+            self.db.commit()
         return new_device
 
-    def get_unapproved_dev_activity(self, activity_id: int) -> List[DeviceUnapproved]:
-        unapproved_devs = self.db.query(models.DeviceUnapproved).filter_by(activity_id=activity_id).all()
+    def get_unapproved_dev_session(self, issue_return_session_id: int) -> List[DeviceUnapproved]:
+        unapproved_devs = self.db.query(models.DeviceUnapproved).filter_by(issue_return_session_id=issue_return_session_id).all()
         if not unapproved_devs:
+            print(issue_return_session_id)
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="No unapproved devices found for this activity")
+                                detail="No unapproved devices found for this session")
         return unapproved_devs
 
     def get_unapproved_dev_all(self) -> List[DeviceUnapproved]:
@@ -107,11 +108,12 @@ class UnapprovedDeviceService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No unapproved devices found")
         return unapproved_devs
 
-    def transfer_devices(self, activity_id: Optional[int]) -> bool:
+    def transfer_devices(self, issue_return_session_id: Optional[int], commit: bool=True) -> bool:
         unapproved_devs = (
-        self.get_unapproved_dev_activity(activity_id) if activity_id
+        self.get_unapproved_dev_session(issue_return_session_id) if issue_return_session_id
         else self.get_unapproved_dev_all()
     )
+        
         if not unapproved_devs:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There is no unapproved device in database")
@@ -127,20 +129,21 @@ class UnapprovedDeviceService:
                 device.last_returned = unapproved.last_returned
                 device.last_owner_id = unapproved.last_owner_id
 
-                operation_type = (
-                    models.OperationType.issue_dev if device.is_taken else models.OperationType.return_dev
+                transaction_type = (
+                    models.TransactionType.issue_dev if device.is_taken else models.TransactionType.return_dev
                 )
 
-                device_activity = models.Operation(
+                device_session = models.DeviceTransaction(
                     device_code=unapproved.device_code,
-                    activity_id=unapproved.activity_id,
-                    operation_type=operation_type
+                    issue_return_session_id=unapproved.issue_return_session_id,
+                    transaction_type=transaction_type
                 )
-
-                self.db.add(device_activity)
+                
+                self.db.add(device_session)
                 self.db.delete(unapproved)
-
-            self.db.commit()
+                
+            if commit:
+                self.db.commit()
 
         except Exception as e:
             self.db.rollback()

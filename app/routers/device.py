@@ -1,9 +1,8 @@
 import datetime
-from fastapi import status, Depends, APIRouter
+from fastapi import status, Depends, APIRouter, HTTPException
 from typing import List
-from app.schemas import ChangeStatus, DeviceCreate, DeviceOut, DetailMessage, DeviceOrDetailResponse
-from app import database, oauth2, models
-from app.services import deviceService, securityService, activityService, permissionService
+from app import database, oauth2, models, schemas
+from app.services import deviceService, securityService, sessionService, transactionService, permissionService
 from sqlalchemy.orm import Session
 
 
@@ -13,11 +12,11 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=List[DeviceOut])
+@router.get("/", response_model=List[schemas.DeviceOut])
 def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
                     dev_type: str = "",
                     dev_version: str = "",
-                    db: Session = Depends(database.get_db)) -> List[DeviceOut]:
+                    db: Session = Depends(database.get_db)) -> List[schemas.DeviceOut]:
     """
     Retrieve all devices from the database, optionally filtered by type or version.
 
@@ -31,7 +30,7 @@ def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
         db (Session): The active database session.
 
     Returns:
-        List[DeviceOut]: A list of devices that match the optional filters, if any.
+        List[schemas.DeviceOut]: A list of devices that match the optional filters, if any.
     
     Raises:
         HTTPException: If no devices are found or there is a database error.
@@ -40,10 +39,10 @@ def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
     return dev_service.get_all_devs(dev_type, dev_version)
 
 
-@router.get("/{dev_code}", response_model=DeviceOut)
+@router.get("/{dev_code}", response_model=schemas.DeviceOut)
 def get_dev_code(dev_code: str,
                  current_concierge=Depends(oauth2.get_current_concierge),
-                 db: Session = Depends(database.get_db)) -> DeviceOut:
+                 db: Session = Depends(database.get_db)) -> schemas.DeviceOut:
     """
     Retrieve a device by its unique device code.
 
@@ -55,7 +54,7 @@ def get_dev_code(dev_code: str,
         db (Session): The active database session.
 
     Returns:
-        DeviceOut: The device that matches the provided code.
+        schemas.DeviceOut: The device that matches the provided code.
 
     Raises:
         HTTPException: If the device with the given code is not found.
@@ -64,10 +63,10 @@ def get_dev_code(dev_code: str,
     return dev_service.get_dev_code(dev_code)
 
 
-@router.post("/", response_model=DeviceOut, status_code=status.HTTP_201_CREATED)
-def create_device(device: DeviceCreate,
+@router.post("/", response_model=schemas.DeviceOut, status_code=status.HTTP_201_CREATED)
+def create_device(device: schemas.DeviceCreate,
                   db: Session = Depends(database.get_db),
-                  current_concierge=Depends(oauth2.get_current_concierge)) -> DeviceOut:
+                  current_concierge=Depends(oauth2.get_current_concierge)) -> schemas.DeviceOut:
     """
     Create a new device in the database.
 
@@ -75,12 +74,12 @@ def create_device(device: DeviceCreate,
     data. Only users with the 'admin' role are permitted to create devices.
 
     Args:
-        device (DeviceCreate): The data required to create the new device.
+        device (schemas.DeviceCreate): The data required to create the new device.
         db (Session): The active database session.
         current_concierge: The currently authenticated concierge (used for authorization).
 
     Returns:
-        DeviceOut: The newly created device.
+        schemas.DeviceOut: The newly created device.
 
     Raises:
         HTTPException: If the user is not authorized to create a device.
@@ -92,62 +91,63 @@ def create_device(device: DeviceCreate,
 
 # todo zmiana statusu unauthorized
 
-@router.post("/change-status/{dev_code}", response_model=DeviceOrDetailResponse)
+@router.post("/change-status/{dev_code}", response_model=schemas.DeviceTransactionOrDetailResponse)
 def change_status(
     dev_code: str,
-    request: ChangeStatus,
+    request: schemas.ChangeStatus,
     db: Session = Depends(database.get_db),
     current_concierge: int = Depends(oauth2.get_current_concierge),
-) -> DeviceOrDetailResponse:
+) -> schemas.DeviceTransactionOrDetailResponse:
     """
-    changes the status of the device with given code based on the given activity id and whether to force the operation 
-    without permissions (if the parameter force == true the operation will be performed even 
+    changes the status of the device with given code based on the given session id and whether to force the transaction 
+    without permissions (if the parameter force == true the transaction will be performed even 
     without the corresponding user rights)
 
-    If the device has already been added to the unapproved data in the current activity (with givenn activity id),
+    If the device has already been added to the unapproved data in the current session (with givenn session id),
     it removes the device from unapproved data. 
     
-    Otherwise, it checks user permissions and creates the operation containing all information about the status change 
+    Otherwise, it checks user permissions and creates the transaction containing all information about the status change 
     performed. Then, it updates the device information and saves it as unconfirmed data.
     The new device data depends on whether the device has been issued or returned.
 
     Args:
         dev_code (str): The code of the device whose status is being changed.
-        request (ChangeStatus): The request object containing activity ID and the force parameter.
+        request (schemas.ChangeStatus): The request object containing session ID and the force parameter.
         db (Session): The active database session.
         current_concierge: The current concierge ID, used for authorization.
 
     Returns:
-        OperationOrDetailResponse: The updated device object and the operation Object or a message confirming the 
+        DeviceTransactionOrDetailResponse: The updated device object and the transaction Object or a message confirming the 
         device's removal from unapproved data.
     
     Raises:
-        HTTPException: If the associated activity does not exist or there is an error 
+        HTTPException: If the associated session does not exist or there is an error 
         updating the device status.
     """
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
     dev_service = deviceService.DeviceService(db)
-    activity_service = activityService.ActivityService(db)
+    transaction_service = transactionService.DeviceTransactionService(db)
+    session_service = sessionService.SessionService(db)
     permission_service = permissionService.PermissionService(db)
 
     dev_unapproved = db.query(models.DeviceUnapproved).filter(models.DeviceUnapproved.device_code == dev_code, 
-                                                               models.DeviceUnapproved.activity_id == request.activity_id).first()
+                                                               models.DeviceUnapproved.issue_return_session_id == request.issue_return_session_id).first()
     if dev_unapproved:
         db.delete(dev_unapproved)
         db.commit()
-        return DetailMessage(detail="Device removed from unapproved data.")
+        return schemas.DetailMessage(detail="Device removed from unapproved data.")
     
-    activity = activity_service.get_activity_id(request.activity_id)
+    session = session_service.get_session_id(request.issue_return_session_id)
     
     device = dev_service.get_dev_code(dev_code)
-    entitled = permission_service.check_if_permitted(activity.user_id, device.room.id, request.force)
+    entitled = permission_service.check_if_permitted(session.user_id, device.room.id, request.force)
+
 
     if not device.is_taken:  
         new_dev_data = {
             "is_taken": True,
             "last_taken": datetime.datetime.now(datetime.timezone.utc),
-            "last_owner_id": activity.user_id,
-            "entitled": entitled
+            "last_owner_id": session.user_id,
         }
 
     else:
@@ -157,7 +157,24 @@ def change_status(
         }
     
     new_dev_data["device_code"] = dev_code
-    new_dev_data["activity_id"] = activity.id
-    new_dev_data["entitled"] = entitled
+    new_dev_data["issue_return_session_id"] = session.id
 
-    return unapproved_dev_service.create_unapproved(new_dev_data)
+    transaction_type = (models.TransactionType.return_dev if device.is_taken else models.TransactionType.issue_dev)
+    transaction_data = {
+        "device_code": dev_code,
+        "issue_return_session_id": session.id,
+        "transaction_type": transaction_type,
+        "entitled": entitled
+    }
+    try:
+        
+        unapproved_dev_service.create_unapproved(new_dev_data, False)
+        transaction = transaction_service.create_transaction(transaction_data, False)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error occurred while processing device status change: {str(e)}"
+        )
+    return transaction

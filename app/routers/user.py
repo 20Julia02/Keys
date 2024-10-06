@@ -91,5 +91,4 @@ def create_user(user_data: UserCreate,
     new_user = models.User(**user_data.model_dump())
     db.add(new_user)
     db.commit()
-    db.refresh(new_user)
     return new_user

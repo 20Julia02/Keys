@@ -66,19 +66,19 @@ class PermissionService:
         """
         Checks if a user has permission to access a specific room.
         
-        If the user doesn't have permission and the operation is not forced, it raises
-        an HTTPException with a 403 status code. If the operation is forced, it returns False.
+        If the user doesn't have permission and the transaction is not forced, it raises
+        an HTTPException with a 403 status code. If the transaction is forced, it returns False.
 
         Args:
             user_id (int): ID of the user whose permissions are being checked.
             room_id (int): ID of the room to check access for.
-            force (bool, optional): Whether to force the operation despite lack of permissions.
+            force (bool, optional): Whether to force the transaction despite lack of permissions.
 
         Returns:
-            bool: True if the user has permission, False if permission is absent but the operation is forced.
+            bool: True if the user has permission, False if permission is absent but the transaction is forced.
 
         Raises:
-            HTTPException: If the user doesn't have permission and the operation is not forced.
+            HTTPException: If the user doesn't have permission and the transaction is not forced.
         """
         self.get_user_or_404(user_id)
         self.get_room_or_404(room_id)
@@ -99,12 +99,12 @@ class PermissionService:
             detail=f"User with id {user_id} does not have permission to access room {room_id}")
       
 
-    def create_permission(self, permission: schemas.PermissionCreate):
+    def create_permission(self, permission: schemas.PermissionCreate, commit: bool=True):
         """
         Creates a new permission in the database.
         """
         new_permission = models.Permission(**permission.model_dump())
         self.db.add(new_permission)
-        self.db.commit()
-        self.db.refresh(new_permission)
+        if commit:
+            self.db.commit()
         return new_permission

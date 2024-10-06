@@ -78,7 +78,6 @@ def create_unauthorized_user(user: UnauthorizedUserCreate,
     new_user = models.UnauthorizedUser(**user.model_dump())
     db.add(new_user)
     db.commit()
-    db.refresh(new_user)
     return new_user
 
 

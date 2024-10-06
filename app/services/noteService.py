@@ -6,7 +6,7 @@ from typing import Optional
 
 
 class NoteService:
-    """Service for handling user and operation notes in the database."""
+    """Service for handling user and transaction notes in the database."""
 
     def __init__(self, db: Session):
         self.db = db
@@ -25,21 +25,21 @@ class NoteService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No note found for user id: {user_id}")
         return notes
 
-    def create_user_note(self, note_data: schemas.UserNote):
+    def create_user_note(self, note_data: schemas.UserNote, commit: bool=True):
         """Create a new user note."""
         note_data = models.UserNote(**note_data)
         self.db.add(note_data)
-        self.db.commit()
-        self.db.refresh(note_data)
+        if commit:
+            self.db.commit()
         return note_data
 
-    def get_dev_notes(self, dev_code=Optional[str], activity_id=Optional[int]):
-        """Retrieve all operation notes."""
+    def get_dev_notes(self, dev_code=Optional[str], issue_return_session_id=Optional[int]):
+        """Retrieve all transaction notes."""
         query = self.db.query(models.DeviceNote)
         if dev_code:
             query = query.filter(models.DeviceNote.device_code.ilike(f"%{dev_code}%"))
-        if activity_id:
-            query = query.filter(models.DeviceNote.activity_id.ilike(f"%{activity_id}%"))
+        if issue_return_session_id:
+            query = query.filter(models.DeviceNote.issue_return_session_id.ilike(f"%{issue_return_session_id}%"))
 
         notes = query.all()
 
@@ -49,10 +49,10 @@ class NoteService:
         
         return notes
 
-    def create_dev_note(self, note_data: schemas.DeviceNote):
-        """Create a new operation note."""
+    def create_dev_note(self, note_data: schemas.DeviceNote, commit:bool=True):
+        """Create a new transaction note."""
         note_data = models.DeviceNote(**note_data)
         self.db.add(note_data)
-        self.db.commit()
-        self.db.refresh(note_data)
+        if commit:
+            self.db.commit()
         return note_data

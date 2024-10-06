@@ -68,7 +68,7 @@ def add_user_note(note_data: schemas.UserNote,
         user_id: The ID of the user for whom the note is being created.
         note: The content of the note being added (text).
         current_concierge: The currently authenticated concierge creating the note.
-        db: The database session to perform the operation.
+        db: The database session to perform the transaction.
 
     Returns:
         schemas.UserNote: The newly created note associated with the specified user.
@@ -83,11 +83,11 @@ def add_user_note(note_data: schemas.UserNote,
 @router.get("/devices", response_model=List[schemas.DeviceNoteOut])
 def get_dev_note(
         dev_code: Optional[str],
-        activity_id: Optional[int],
+        issue_return_session_id: Optional[int],
         current_concierge=Depends(oauth2.get_current_concierge),
         db: Session = Depends(database.get_db)) -> List[schemas.DeviceNoteOut]:
     note_service = noteService.NoteService(db)
-    return note_service.get_dev_notes(dev_code, activity_id)
+    return note_service.get_dev_notes(dev_code, issue_return_session_id)
 
 @router.post("/device", response_model=schemas.DeviceNoteOut)
 def add_device_note(note_data: schemas.DeviceNote,
@@ -95,17 +95,17 @@ def add_device_note(note_data: schemas.DeviceNote,
                     db: Session = Depends(database.get_db)) -> schemas.DeviceNoteOut:
     
     """
-    It allows to add a note to a specific operation. The operation is identified
+    It allows to add a note to a specific transaction. The transaction is identified
     by its unique ID, and the note is saved in the database.
 
     Args:
-        operation_id: The ID of the operation for which the note is being created.
+        transaction_id: The ID of the transaction for which the note is being created.
         note: The text content of the note.
         current_concierge: The currently authenticated concierge creating the note.
-        db: The database session to perform the operation.
+        db: The database session to perform the transaction.
 
     Returns:
-        schemas.OperationNote: The newly created operation note.
+        schemas.DeviceTransactionNote: The newly created transaction note.
     
     Raises:
         HTTPException: If the note creation process encounters an error.

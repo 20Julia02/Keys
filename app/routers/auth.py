@@ -2,9 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
-from app.schemas import RefreshToken, Token, LoginConcierge, CardLogin, LoginActivity
-from app import database, models, oauth2
-from app.services import securityService, activityService
+from app import database, models, oauth2, schemas
+from app.services import securityService, sessionService
 
 router = APIRouter(
     tags=['Authentication']
@@ -13,9 +12,9 @@ router = APIRouter(
 # todo uwierzytelniane zewnetrzne, wysylanie requesta z kartą
 
 
-@router.post("/login", response_model=LoginConcierge)
+@router.post("/login", response_model=schemas.LoginConcierge)
 def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
-          db: Session = Depends(database.get_db)) -> LoginConcierge:
+          db: Session = Depends(database.get_db)) -> schemas.LoginConcierge:
     """
     Authenticate a concierge using their login credentials (username and password).
     
@@ -40,9 +39,9 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
     return token_service.generate_tokens(concierge.id, concierge.role.value)
 
 
-@router.post("/card-login", response_model=LoginConcierge)
-def card_login(card_id: CardLogin,
-               db: Session = Depends(database.get_db)) -> LoginConcierge:
+@router.post("/card-login", response_model=schemas.LoginConcierge)
+def card_login(card_id: schemas.CardLogin,
+               db: Session = Depends(database.get_db)) -> schemas.LoginConcierge:
     """
     Authenticate a concierge using their card ID.
 
@@ -67,15 +66,15 @@ def card_login(card_id: CardLogin,
     return token_service.generate_tokens(concierge.id, concierge.role.value)
 
 
-@router.post("/start-activity", response_model=LoginActivity)
-def start_login_activity(user_credentials: OAuth2PasswordRequestForm = Depends(),
+@router.post("/start-session", response_model=schemas.IssueReturnSession)
+def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
                          current_concierge=Depends(oauth2.get_current_concierge),
-                         db: Session = Depends(database.get_db)) -> LoginActivity:
+                         db: Session = Depends(database.get_db)) -> schemas.IssueReturnSession:
     """
-    Start an activity by authenticating a user with credentials (username and password).
+    Start an session by authenticating a user with credentials (username and password).
 
-    This endpoint allows a concierge to initiate an activity for a user by verifying 
-    their login credentials. Once authenticated, the system creates an activity for 
+    This endpoint allows a concierge to initiate an session for a user by verifying 
+    their login credentials. Once authenticated, the system creates an session for 
     the user and assigns it to the current concierge.
 
     Args:
@@ -84,30 +83,29 @@ def start_login_activity(user_credentials: OAuth2PasswordRequestForm = Depends()
         db (Session): The active database session.
 
     Returns:
-        LoginActivity: An object containing the ID of the newly created activity and the user's details.
+        LoginIssueReturnSession: An object containing the ID of the newly created session and the user's details.
     
     Raises:
-        HTTPException: If user authentication fails or if the activity cannot be created.
+        HTTPException: If user authentication fails or if the session cannot be created.
     """
     auth_service = securityService.AuthorizationService(db)
-    activity_service = activityService.ActivityService(db)
+    session_service = sessionService.SessionService(db)
 
     user = auth_service.authenticate_user_login(user_credentials.username, user_credentials.password, "employee")
-    activity = activity_service.create_activity(user.id, current_concierge.id)
+    session = session_service.create_session(user.id, current_concierge.id)
 
-    login_activity = LoginActivity(activity_id=activity.id, user=user)
-    return login_activity
+    return session
 
 
-@router.post("/start-activity/card", response_model=LoginActivity)
-def start_card_activity(card_id: CardLogin,
+@router.post("/start-session/card", response_model=schemas.IssueReturnSession)
+def start_card_session(card_id: schemas.CardLogin,
                         current_concierge=Depends(oauth2.get_current_concierge),
-                        db: Session = Depends(database.get_db)) -> LoginActivity:
+                        db: Session = Depends(database.get_db)) -> schemas.IssueReturnSession:
     """
-    Start an activity by authenticating a user with a card ID.
+    Start an session by authenticating a user with a card ID.
 
-    This endpoint allows a concierge to initiate an activity for a user 
-    by verifying their card ID. Once authenticated, the system creates an activity 
+    This endpoint allows a concierge to initiate an session for a user 
+    by verifying their card ID. Once authenticated, the system creates an session 
     for the user and assigns it to the current concierge.
 
     Args:
@@ -116,24 +114,23 @@ def start_card_activity(card_id: CardLogin,
         db (Session): The active database session.
 
     Returns:
-        LoginActivity: An object containing the ID of the newly created activity and the user's details.
+        LoginIssueReturnSession: An object containing the ID of the newly created session and the user's details.
     
     Raises:
-        HTTPException: If card authentication fails or if the activity cannot be created.
+        HTTPException: If card authentication fails or if the session cannot be created.
     """
     auth_service = securityService.AuthorizationService(db)
-    activity_service = activityService.ActivityService(db)
+    session_service = sessionService.SessionService(db)
 
     user = auth_service.authenticate_user_card(card_id, "employee")
     
-    activity = activity_service.create_activity(user.id, current_concierge.id)
+    session = session_service.create_session(user.id, current_concierge.id)
 
-    login_activity = LoginActivity(activity_id=activity.id, user=user)
-    return login_activity
+    return session
 
 
-@router.post("/refresh", response_model=Token)
-def refresh_token(refresh_token: RefreshToken, db: Session = Depends(database.get_db)) -> Token:
+@router.post("/refresh", response_model=schemas.Token)
+def refresh_token(refresh_token: schemas.RefreshToken, db: Session = Depends(database.get_db)) -> schemas.Token:
     """
     Refresh the access token using a valid refresh token.
 
@@ -158,7 +155,7 @@ def refresh_token(refresh_token: RefreshToken, db: Session = Depends(database.ge
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
     access_token = token_service.create_token(token_data.model_dump(), "access")
-    return Token(access_token=access_token, type="bearer")
+    return schemas.Token(access_token=access_token, type="bearer")
 
 
 @router.post("/logout")

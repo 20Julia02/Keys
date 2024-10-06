@@ -36,13 +36,10 @@ class DeviceBase(BaseModel):
     version: str
     is_taken: bool
     type: str
-    entitled: Optional[bool] = True
 
 
 class DeviceCreate(DeviceBase):
     room_id: int
-
-    model_config = ConfigDict(from_attributes=True)
 
 
 class RoomOut(BaseModel):
@@ -63,12 +60,11 @@ class DeviceOut(DeviceBase):
 
 class DeviceUnapproved(BaseModel):
     device_code: str
-    activity_id: int
     is_taken: bool
-    entitled: bool
     last_taken: Optional[datetime] = None
     last_returned: Optional[datetime] = None
     last_owner_id: Optional[int] = None
+    issue_return_session_id: int
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -111,11 +107,6 @@ class TokenData(BaseModel):
     role: Optional[str] = None
 
 
-class TokenDataUser(BaseModel):
-    user_id: Optional[int] = None
-    activity: Optional[int] = None
-
-
 class UnauthorizedUserBase(BaseModel):
     name: str
     surname: str
@@ -132,22 +123,31 @@ class UnauthorizedUserOut(UnauthorizedUserBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-class Activity(BaseModel):
+class IssueReturnSession(BaseModel):
     id: int
     user_id: Optional[int] = None
     concierge_id: int
     start_time: datetime
+    status: Optional[str] = "in_progress"
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DeviceTransaction(BaseModel):
+    device_code: str
+    issue_return_session_id: int
+    transaction_type: str
+    entitled: bool
+
 
 class DeviceNote(BaseModel):
-    activity_id: int
-    device_code: str
+    device_transaction: DeviceTransaction
     note: str
 
     model_config = ConfigDict(from_attributes=True)
 
 class DeviceNoteOut(BaseModel):
-    activity: Activity
-    device: DeviceOut
+    device_transaction: DeviceTransaction
     note: str
 
     model_config = ConfigDict(from_attributes=True)
@@ -161,7 +161,7 @@ class UserNote(BaseModel):
 
 
 class ChangeStatus(BaseModel):
-    activity_id: int
+    issue_return_session_id: int
     force: Optional[bool] = False
 
 
@@ -169,9 +169,15 @@ class DetailMessage(BaseModel):
     detail: str
 
 
-DeviceOrDetailResponse = Union[DeviceUnapproved, DetailMessage]
+class DeviceTransactionOut(BaseModel):
+    id: int
+    device: DeviceOut
+    issue_return_session: IssueReturnSession
+    transaction_type: str
+    entitled: bool
+
+    model_config = ConfigDict(from_attributes=True)
 
 
-class LoginActivity(BaseModel):
-    activity_id: int
-    user: UserOut
+DeviceTransactionOrDetailResponse = Union[DeviceTransactionOut, DetailMessage]
+

@@ -32,7 +32,6 @@ class Device(Base):
     type = Column(Enum(DeviceType), nullable=False)
     room_id = Column(Integer, ForeignKey("room.id"), nullable=False)
     version = Column(Enum(DeviceVersion), nullable=False)
-    entitled = Column(Boolean, nullable=True)
     is_taken = Column(Boolean, nullable=False, server_default="false")
     last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
     last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
@@ -48,32 +47,35 @@ class DeviceUnapproved(Base):
     __tablename__ = "device_unapproved"
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     device_code = Column(String, ForeignKey("device.code"), nullable=False)
-    activity_id = Column(Integer, ForeignKey("activity.id"), nullable=False)
-    entitled = Column(Boolean, nullable=False)
     is_taken = Column(Boolean, nullable=False, server_default="false")
     last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
     last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
     last_owner_id = Column(Integer, ForeignKey("user.id"), nullable=True)
+    issue_return_session_id = Column(Integer, ForeignKey("issue_return_session.id"), nullable=False)
 
+    issue_return_session = relationship("IssueReturnSession")
     user = relationship("User")
-    activity = relationship("Activity")
     device = relationship("Device")
 
 
-class OperationType(enum.Enum):
-    issue_dev = "issue_dev"
-    return_dev = "return_dev"
+class TransactionType(enum.Enum):
+    issue_dev = "issue_device"
+    return_dev = "return_device"
 
 
-class Operation(Base):
-    __tablename__ = "device_activity"
+class DeviceTransaction(Base):
+    __tablename__ = "device_transaction"
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     device_code = Column(String, ForeignKey("device.code"), nullable=False)
-    activity_id = Column(Integer, ForeignKey("activity.id"), nullable=False)
-    operation_type = Column(Enum(OperationType), nullable=False)
+    issue_return_session_id = Column(Integer, ForeignKey("issue_return_session.id"), nullable=False)
+    transaction_type = Column(Enum(TransactionType), nullable=False)
+    entitled = Column(Boolean, nullable=True)
+
+    device = relationship("Device")
+    issue_return_session = relationship("IssueReturnSession")
 
     __table_args__ = (UniqueConstraint(
-        "device_code", "activity_id", name="uix_device_activity"),)
+        "device_code", "issue_return_session_id", name="uix_device_session"),)
 
 
 class UserRole(enum.Enum):
@@ -101,22 +103,22 @@ class User(Base):
         "email", "password", name="uix_user"),)
 
 
-class ActivityStatus(enum.Enum):
-    in_progress = "in progress"
+class SessionStatus(enum.Enum):
+    in_progress = "in_progress"
     completed = "completed"
     rejected = "rejected"
 
 # todo concierge who started and who accepted
 
-class Activity (Base):
-    __tablename__ = "activity"
+class IssueReturnSession (Base):
+    __tablename__ = "issue_return_session"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     user_id = Column(Integer, ForeignKey("user.id"), nullable=True)
     concierge_id = Column(Integer, ForeignKey("user.id"), nullable=False)
     start_time = Column(TIMESTAMP(timezone=True), nullable=False)
     end_time = Column(TIMESTAMP(timezone=True), nullable=True)
-    status = Column(Enum(ActivityStatus), nullable=False)
+    status = Column(Enum(SessionStatus), nullable=False)
 
 
 class UnauthorizedUser(Base):
@@ -142,7 +144,6 @@ class Room(Base):
 
 class Permission(Base):
     __tablename__ = "permission"
-
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
     room_id = Column(Integer, ForeignKey("room.id"), nullable=False)
@@ -155,17 +156,11 @@ class Permission(Base):
 
 class DeviceNote(Base):
     __tablename__ = "device_note"
-
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    activity_id = Column(Integer, ForeignKey("activity.id"), nullable=False)
-    device_code = Column(String, ForeignKey("device.code"), nullable=False)
+    device_transaction_id = Column(Integer, ForeignKey("device_transaction.id"), nullable=True)
     note = Column(String, nullable=False)
 
-    device = relationship("Device")
-    activity = relationship("Activity")
-
-    __table_args__ = (UniqueConstraint(
-        "device_code", "activity_id", name="uix_device_activity_note"),)
+    device_transaction = relationship("DeviceTransaction")
 
 
 class UserNote(Base):
