@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
-from app.schemas import DeviceUnapproved, CardLogin
+from app.schemas import CardLogin
 from app import database, oauth2
 from app.services import securityService, sessionService, deviceService
 from typing import List
@@ -10,40 +10,6 @@ from typing import List
 router = APIRouter(
     tags=['Approve']
 )
-
-
-@router.get("/unapproved/{session_id}",
-            response_model=List[DeviceUnapproved],
-            responses={
-                200: {"description": "List with details of all unapproved devices based on a specific session ID.", },
-                401: {"description": "Invalid token or the credentials can not be validated"},
-                403: {"description": "You are logged out or you cannot perform the operation with your role"},
-                404: {"description": "No unapproved devices found for this session"}
-                })
-def get_unapproved_device_session(session_id: int,
-                                  current_concierge=Depends(oauth2.get_current_concierge),
-                                  db: Session = Depends(database.get_db)) -> List[DeviceUnapproved]:
-    """
-    Retrieve List with details of all unapproved devices based on a specific session ID.
-
-    This endpoint allows the logged-in concierge to access information about a devices
-    that were modified during a given session and have not been approved yet.
-    """
-    unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
-    return unapproved_dev_service.get_unapproved_dev_session(session_id)
-
-
-@router.get("/unapproved", response_model=List[DeviceUnapproved])
-def get_all_unapproved(current_concierge=Depends(oauth2.get_current_concierge),
-                       db: Session = Depends(database.get_db)) -> List[DeviceUnapproved]:
-    """
-    Retrieve all unapproved devices stored in the system.
-
-    This endpoint returns a list of all unapproved devices.s
-    """
-    unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
-    return unapproved_dev_service.get_unapproved_dev_all()
-
 
 @router.post("/approve/login/session/{session_id}")
 def approve_session_login(session_id: int,

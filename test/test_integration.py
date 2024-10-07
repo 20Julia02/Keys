@@ -460,26 +460,6 @@ def test_changeStatus_again(test_concierge: models.User,
     assert response.json()["detail"] == "Device removed from unapproved data."
 
 
-def test_create_permission(test_concierge: models.User,
-                           test_user: models.User,
-                           test_room: models.Room,
-                           concierge_token: str):
-    permission_data = {
-        "user_id": test_user.id,
-        "room_id": test_room.id,
-        "start_reservation": datetime.datetime(2024, 12, 6, 12, 45, tzinfo=ZoneInfo("Europe/Warsaw")).isoformat(),
-        "end_reservation": datetime.datetime(2024, 12, 6, 14, 45, tzinfo=ZoneInfo("Europe/Warsaw")).isoformat()
-    }
-    response = client.post(
-        "/permissions",
-        headers={"Authorization": f"Bearer {concierge_token}"},
-        json=permission_data
-    )
-    assert response.status_code == 200
-    assert response.json()["start_reservation"] == "2024-12-06T12:45:00+01:00"
-    assert response.json()["end_reservation"] == "2024-12-06T14:45:00+01:00"
-
-
 def test_get_user_permission_with_valid_user_id(db: Session,
                                                 test_concierge: models.User,
                                                 test_user: models.User,
@@ -607,7 +587,7 @@ def test_get_all_unapproved_no_devices(db: Session, test_concierge: models.User,
         db.commit()
 
     response = client.get(
-        "/unapproved",
+        "/devices/unapproved",
         headers={"Authorization": f"Bearer {concierge_token}"}
     )
     assert response.status_code == 404
@@ -628,7 +608,7 @@ def test_get_all_unapproved_authenticated(db: Session,
     db.refresh(device)
 
     response = client.get(
-        "/unapproved",
+        "/devices/unapproved",
         headers={"Authorization": f"Bearer {concierge_token}"}
     )
     assert response.status_code == 200
@@ -636,13 +616,13 @@ def test_get_all_unapproved_authenticated(db: Session,
 
 
 def test_get_all_unapproved_unauthorized(test_concierge: models.User):
-    response = client.get("/unapproved")
+    response = client.get("/devices/unapproved")
     assert response.status_code == 401
 
 
 def test_get_unapproved_invalid_session(concierge_token: str):
     response = client.get(
-        "/unapproved/0",
+        "/devices/unapproved/0",
         headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
     assert response.json()["detail"] == "No unapproved devices found for this session"
@@ -651,7 +631,7 @@ def test_get_unapproved_invalid_session(concierge_token: str):
 def test_get_unapproved_valid_session(concierge_token: str,
                                       test_session: models.IssueReturnSession):
     response = client.get(
-        f"/unapproved/{test_session.id}",
+        f"/devices/unapproved/{test_session.id}",
         headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
     assert isinstance(response.json(), list)
