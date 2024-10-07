@@ -190,51 +190,6 @@ def test_get_user_by_invalid_id(concierge_token: str):
     assert response.json()["detail"] == "User with id: -1 doesn't exist"
 
 
-def test_create_user(concierge_token: str):
-    user_data = {
-        "name": "Witold",
-        "surname": "Zimny",
-        "email": "newuser@example.com",
-        "password": "password123",
-        "card_code": "123456",
-        "role": "concierge"
-    }
-    response = client.post("/users/", headers={"Authorization": f"Bearer {concierge_token}"}, json=user_data)
-    assert response.status_code == 201
-    assert response.json()["surname"] == user_data["surname"]
-
-
-def test_create_user_duplicate_email(concierge_token: str):
-    user_data = {
-        "email": "testconcierge@example.com",
-        "password": "password123",
-        "card_code": "123456",
-        "photo_url": "6545321dhc",
-        "role": "admin",
-        "name": "Test",
-        "surname": "User",
-    }
-    response = client.post("/users/",
-                           headers={"Authorization": f"Bearer {concierge_token}"},
-                           json=user_data)
-    assert response.status_code == 422
-    assert response.json()["detail"] == "Email is already registered"
-
-
-def test_create_user_invalid_data(concierge_token: str):
-    user_data = {
-        "email": "testconcierge2@example.com",
-        "photo_url": "6545321dh",
-        "role": "employee",
-        "name": "Test",
-        "surname": "User",
-    }
-    response = client.post("/users/",
-                           headers={"Authorization": f"Bearer {concierge_token}"},
-                           json=user_data)
-    assert response.status_code == 422
-
-
 def test_login_with_correct_credentials(test_concierge: models.User):
     login_data = {
         "username": test_concierge.email,
@@ -531,7 +486,7 @@ def test_get_user_permission_with_valid_user_id(db: Session,
                                                 test_room: models.Room,
                                                 concierge_token: str):
     response = client.get(
-        f"/permissions/users/{test_user.id}",
+        f"/permissions/?user_id={test_user.id}",
         headers={"Authorization": f"Bearer {concierge_token}"}
     )
     assert response.status_code == 200
@@ -539,9 +494,10 @@ def test_get_user_permission_with_valid_user_id(db: Session,
 
 
 def test_get_user_permission_with_invalid_user_id(test_concierge: models.User, concierge_token: str):
-    response = client.get("/permissions/users/-1", headers={"Authorization": f"Bearer {concierge_token}"})
+    response = client.get("/permissions?user_id=-1",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
-    assert response.json()["detail"] == "User with id: -1 doesn't exist"
+    assert response.json()["detail"] == "No permissions found that meet the stated criteria"
 
 
 def test_get_key_permission_with_valid_room_id(db: Session,
@@ -550,7 +506,7 @@ def test_get_key_permission_with_valid_room_id(db: Session,
                                                test_room: models.Room,
                                                concierge_token: str):
     response = client.get(
-        f"/permissions/rooms/{test_room.id}",
+        f"/permissions?room_id={test_room.id}",
         headers={"Authorization": f"Bearer {concierge_token}"}
     )
     assert response.status_code == 200
@@ -558,9 +514,10 @@ def test_get_key_permission_with_valid_room_id(db: Session,
 
 
 def test_get_key_permission_with_invalid_room_id(test_concierge: models.User, concierge_token: str):
-    response = client.get("/permissions/rooms/-1", headers={"Authorization": f"Bearer {concierge_token}"})
+    response = client.get("/permissions?user_id=-1",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
-    assert response.json()["detail"] == "Room with id: -1 doesn't exist"
+    assert response.json()["detail"] == "No permissions found that meet the stated criteria"
 
 
 def test_get_all_rooms(test_concierge: models.User, concierge_token: str):
@@ -576,13 +533,11 @@ def test_get_room_by_id(test_room: models.Room, test_concierge: models.User, con
 
 
 def test_create_unauthorized_user(test_concierge: models.User, concierge_token: str):
-    token_service = securityService.TokenService(db)
-    concierge = token_service.verify_concierge_token(concierge_token)
     user_data = {
         "name": "Unauthorized",
         "surname": "User",
-        "addition_time": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "id_concierge_who_accepted": concierge.id
+        "email": "user@gmail.com",
+        "addition_time": datetime.datetime.now(datetime.timezone.utc).isoformat()
     }
     response = client.post("/unauthorized-users", json=user_data,
                            headers={"Authorization": f"Bearer {concierge_token}"})
@@ -609,6 +564,7 @@ def test_get_all_unauthorized_users(test_concierge: models.User, concierge_token
 def test_get_unauthorized_user_by_id(db: Session, test_concierge: models.User, concierge_token: str):
     user = models.UnauthorizedUser(name="Unauthorized",
                                    surname="User 2",
+                                   email="user123@gmail.com",
                                    addition_time=datetime.datetime.now(datetime.timezone.utc).isoformat())
     db.add(user)
     db.commit()
@@ -635,6 +591,7 @@ def test_delete_unauthorized_user_valid(db: Session, concierge_token: str):
 
     user = models.UnauthorizedUser(name="Unauthorized",
                                    surname="User 2",
+                                   email="2user2@kskk.cck",
                                    addition_time=datetime.datetime.now(datetime.timezone.utc).isoformat())
     db.add(user)
     db.commit()

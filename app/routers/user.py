@@ -2,7 +2,7 @@ from fastapi import status, Depends, APIRouter, HTTPException
 from typing import List
 from app.schemas import UserOut, UserCreate
 from app import database, models, oauth2
-from app.services import securityService
+from app.services import securityService, userService
 from sqlalchemy.orm import Session
 
 router = APIRouter(
@@ -27,15 +27,12 @@ def get_all_users(current_concierge=Depends(oauth2.get_current_concierge),
     Raises:
         HTTPException: If no users are found in the database.
     """
-    user = db.query(models.User).all()
-    if (user is None):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="There is no user in database")
-    return user
+    user_service = userService.UserService(db)
+    return user_service.get_all_users()
 
 
-@router.get("/{id}", response_model=UserOut)
-def get_user(id: int,
+@router.get("/{user_id}", response_model=UserOut)
+def get_user(user_id: int,
              current_concierge=Depends(oauth2.get_current_concierge),
              db: Session = Depends(database.get_db)) -> UserOut:
     """
@@ -52,43 +49,5 @@ def get_user(id: int,
     Raises:
         HTTPException: If the user with the specified ID doesn't exist.
     """
-    user = db.query(models.User).filter(models.User.id == id).first()
-    if (not user):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"User with id: {id} doesn't exist")
-    return user
-
-
-@router.post("/", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def create_user(user_data: UserCreate,
-                current_concierge=Depends(oauth2.get_current_concierge),
-                db: Session = Depends(database.get_db)) -> UserOut:
-    """
-    Creates a new user in the database.
-
-    Args:
-        user_data (UserCreate): The data required to create a new user.
-        db (Session): The database session.
-
-    Returns:
-        UserOut: The newly created user.
-
-    Raises:
-        HTTPException: If the email is already registered or the user is not entitled.
-    """
-    auth_service = securityService.AuthorizationService(db)
-    auth_service.check_if_entitled("admin", current_concierge)
-
-    user = db.query(models.User).filter(models.User.email == user_data.email).first()
-    if user:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Email is already registered")
-
-    password_service = securityService.PasswordService()
-    hashed_password = password_service.hash_password(user_data.password)
-    hashed_card_code = password_service.hash_password(user_data.card_code)
-    user_data.password = hashed_password
-    user_data.card_code = hashed_card_code
-    new_user = models.User(**user_data.model_dump())
-    db.add(new_user)
-    db.commit()
-    return new_user
+    user_service = userService.UserService(db)
+    return user_service.get_user_id(user_id)

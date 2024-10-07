@@ -74,7 +74,7 @@ def create_unauthorized_user(user: UnauthorizedUserCreate,
     Returns:
         UnauthorizedUserOut: The newly created unauthorized user.
     """
-    user.id_concierge_who_accepted = current_concierge.id
+
     new_user = models.UnauthorizedUser(**user.model_dump())
     db.add(new_user)
     db.commit()

@@ -14,59 +14,13 @@ router = APIRouter(
 # todo sprawdzac date i godzine
 
 
-@router.get("/}", response_model=List[PermissionOut])
-def get_all_permissions(current_concierge=Depends(oauth2.get_current_concierge),
-                        db: Session = Depends(database.get_db)) -> List[PermissionOut]:
+@router.get("/", response_model=List[PermissionOut])
+def get_permissions(user_id: int = None,
+                    room_id: int = None,
+                    current_concierge=Depends(oauth2.get_current_concierge),
+                    db: Session = Depends(database.get_db)) -> List[PermissionOut]:
     permission_service = permissionService.PermissionService(db)
-    perm = permission_service.get_all_permissions()
-    return perm
-
-
-@router.get("/users/{id}", response_model=List[PermissionOut])
-def get_user_permission(id: int,
-                        current_concierge=Depends(oauth2.get_current_concierge),
-                        db: Session = Depends(database.get_db)) -> List[PermissionOut]:
-    """
-    Retrieves all permissions associated with a specific user.
-
-    Args:
-        id (int): The ID of the user.
-        current_concierge: The current user object (used for authorization).
-        db (Session): The database session.
-
-    Returns:
-        List[PermissionOut]: A list of permissions associated with the user.
-
-    Raises:
-        HTTPException: If the user doesn't exist or has no permissions.
-    """
-    permission_service = permissionService.PermissionService(db)
-    perm = permission_service.get_user_permission(id)
-    return perm
-
-
-@router.get("/rooms/{id}", response_model=List[PermissionOut])
-def get_room_permission(id: int,
-                        current_concierge=Depends(oauth2.get_current_concierge),
-                        db: Session = Depends(database.get_db)) -> List[PermissionOut]:
-    """
-    Retrieves all permissions associated with a specific room.
-
-    Args:
-        id (int): The ID of the room.
-        current_concierge: The current user object (used for authorization).
-        db (Session): The database session.
-
-    Returns:
-        List[PermissionOut]: A list of permissions associated with the room.
-
-    Raises:
-        HTTPException: If the room doesn't exist or has no permissions.
-    """
-    permission_service = permissionService.PermissionService(db)
-    perm = permission_service.get_room_permission(id)
-
-    return perm
+    return permission_service.get_permissions(room_id, user_id)
 
 
 @router.post("/", response_model=PermissionOut)

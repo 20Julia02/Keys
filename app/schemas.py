@@ -110,11 +110,11 @@ class TokenData(BaseModel):
 class UnauthorizedUserBase(BaseModel):
     name: str
     surname: str
+    email: str
 
 
 class UnauthorizedUserCreate(UnauthorizedUserBase):
     addition_time: datetime.datetime
-    id_concierge_who_accepted: Optional[int] = None
 
 
 class UnauthorizedUserOut(UnauthorizedUserBase):

@@ -1,8 +1,8 @@
 from fastapi import Depends, APIRouter, status, HTTPException
-from typing import List
+from typing import List, Optional
 from app.schemas import RoomOut
 from app import database, models, oauth2
-from app.services import securityService
+from app.services import securityService, roomService
 from sqlalchemy.orm import Session
 
 router = APIRouter(
@@ -12,9 +12,9 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[RoomOut])
-def get_all_rooms(current_concierge=Depends(oauth2.get_current_concierge),
-                  number: str = "",
-                  db: Session = Depends(database.get_db)) -> List[RoomOut]:
+def get_rooms(current_concierge=Depends(oauth2.get_current_concierge),
+              number: Optional[str] = None,
+              db: Session = Depends(database.get_db)) -> List[RoomOut]:
     """
     Retrieves all rooms from the database that match the specified number.
 
@@ -29,18 +29,14 @@ def get_all_rooms(current_concierge=Depends(oauth2.get_current_concierge),
     Raises:
         HTTPException: If no rooms are found in the database.
     """
-    securityService.AuthorizationService(db)
-    room = db.query(models.Room).filter(models.Room.number == number).all()
-    if room is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="There is no room in database")
-    return room
+    room_service = roomService.RoomService(db)
+    return room_service.get_rooms(number)
 
 
-@router.get("/{id}", response_model=RoomOut)
-def get_room(id: int,
-             current_concierge=Depends(oauth2.get_current_concierge),
-             db: Session = Depends(database.get_db)) -> RoomOut:
+@router.get("/{room_id}", response_model=RoomOut)
+def get_room_id(room_id: int,
+                current_concierge=Depends(oauth2.get_current_concierge),
+                db: Session = Depends(database.get_db)) -> RoomOut:
     """
     Retrieves a room by its ID from the database.
 
@@ -55,9 +51,5 @@ def get_room(id: int,
     Raises:
         HTTPException: If the room with the specified ID doesn't exist.
     """
-    securityService.AuthorizationService(db)
-    room = db.query(models.Room).filter(models.Room.id == id).first()
-    if not room:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Room with id: {id} doesn't exist")
-    return room
+    room_service = roomService.RoomService(db)
+    return room_service.get_room_id(room_id)

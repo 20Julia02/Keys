@@ -120,14 +120,8 @@ class UnauthorizedUser(BaseUser):
     id = Column(Integer, ForeignKey('base_user.id'), primary_key=True)
     name = Column(String, nullable=False)
     surname = Column(String, nullable=False)
-    id_concierge_who_accepted = Column(Integer, ForeignKey("user.id"), nullable=True)
+    email = Column(String, nullable=False, unique=True)
     addition_time = Column(TIMESTAMP(timezone=True), nullable=False)
-    additional_info = Column(String, nullable=True)
-
-    concierge = relationship(
-        "User",
-        foreign_keys=[id_concierge_who_accepted]
-    )
 
     __mapper_args__ = {
         'polymorphic_identity': 'unauthorized_user'
@@ -185,7 +179,7 @@ class UserNote(Base):
     __tablename__ = "user_note"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("base_user.id"), nullable=False)
     note = Column(String, nullable=False)
 
-    user = relationship("User")
+    user = relationship("BaseUser")
