@@ -17,9 +17,9 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
           db: Session = Depends(database.get_db)) -> schemas.LoginConcierge:
     """
     Authenticate a concierge using their login credentials (username and password).
-    
+
     This endpoint allows a concierge to log in by providing valid credentials.
-    Upon successful authentication, the system generates and returns an access token 
+    Upon successful authentication, the system generates and returns an access token
     and a refresh token that can be used for subsequent API requests and token refreshing.
 
     Args:
@@ -28,12 +28,13 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
 
     Returns:
         LoginConcierge: An object containing both the access token and refresh token.
-    
+
     Raises:
         HTTPException: If authentication fails or if the user does not have the appropriate permissions.
     """
     auth_service = securityService.AuthorizationService(db)
-    concierge = auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password, "concierge")
+    concierge = auth_service.authenticate_user_login(concierge_credentials.username,
+                                                     concierge_credentials.password, "concierge")
 
     token_service = securityService.TokenService(db)
     return token_service.generate_tokens(concierge.id, concierge.role.value)
@@ -46,7 +47,7 @@ def card_login(card_id: schemas.CardLogin,
     Authenticate a concierge using their card ID.
 
     This endpoint allows a concierge to authenticate by providing their card ID.
-    Upon successful authentication, the system generates and returns both an access token 
+    Upon successful authentication, the system generates and returns both an access token
     and a refresh token for future API requests and token refreshing.
 
     Args:
@@ -55,7 +56,7 @@ def card_login(card_id: schemas.CardLogin,
 
     Returns:
         LoginConcierge: An object containing both the access token and refresh token.
-    
+
     Raises:
         HTTPException: If authentication fails or if the user does not have the appropriate permissions.
     """
@@ -68,13 +69,13 @@ def card_login(card_id: schemas.CardLogin,
 
 @router.post("/start-session", response_model=schemas.IssueReturnSession)
 def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
-                         current_concierge=Depends(oauth2.get_current_concierge),
-                         db: Session = Depends(database.get_db)) -> schemas.IssueReturnSession:
+                        current_concierge=Depends(oauth2.get_current_concierge),
+                        db: Session = Depends(database.get_db)) -> schemas.IssueReturnSession:
     """
     Start an session by authenticating a user with credentials (username and password).
 
-    This endpoint allows a concierge to initiate an session for a user by verifying 
-    their login credentials. Once authenticated, the system creates an session for 
+    This endpoint allows a concierge to initiate an session for a user by verifying
+    their login credentials. Once authenticated, the system creates an session for
     the user and assigns it to the current concierge.
 
     Args:
@@ -84,7 +85,7 @@ def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
 
     Returns:
         LoginIssueReturnSession: An object containing the ID of the newly created session and the user's details.
-    
+
     Raises:
         HTTPException: If user authentication fails or if the session cannot be created.
     """
@@ -99,19 +100,19 @@ def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
 
 @router.post("/start-session/card", response_model=schemas.IssueReturnSession)
 def start_card_session(card_id: schemas.CardLogin,
-                        current_concierge=Depends(oauth2.get_current_concierge),
-                        db: Session = Depends(database.get_db)) -> schemas.IssueReturnSession:
+                       current_concierge=Depends(oauth2.get_current_concierge),
+                       db: Session = Depends(database.get_db)) -> schemas.IssueReturnSession:
     """
     Start an session by authenticating a user with a card ID.
 
-    This endpoint allows a concierge to initiate an session for a user 
-    by verifying their card ID. Once authenticated, the system creates an session 
+    This endpoint allows a concierge to initiate an session for a user
+    by verifying their card ID. Once authenticated, the system creates an session
     for the user and assigns it to the current concierge.
     """
     auth_service = securityService.AuthorizationService(db)
     session_service = sessionService.SessionService(db)
     user = auth_service.authenticate_user_card(card_id, "employee")
-    
+
     session = session_service.create_session(user.id, current_concierge.id)
 
     return session
@@ -122,7 +123,7 @@ def refresh_token(refresh_token: schemas.RefreshToken, db: Session = Depends(dat
     """
     Refresh the access token using a valid refresh token.
 
-    This endpoint allows users to renew their access token by providing 
+    This endpoint allows users to renew their access token by providing
     a valid refresh token. The system verifies the refresh token and generates a new access token.
     """
     token_service = securityService.TokenService(db)
@@ -133,7 +134,7 @@ def refresh_token(refresh_token: schemas.RefreshToken, db: Session = Depends(dat
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
     access_token = token_service.create_token(token_data.model_dump(), "access")
-    return schemas.Token(access_token=access_token, type="bearer")
+    return schemas.Token(access_token=access_token, token_type="bearer")
 
 
 @router.post("/logout")

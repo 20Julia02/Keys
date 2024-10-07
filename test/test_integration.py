@@ -117,7 +117,7 @@ def test_session(db: Session, test_user: models.User, test_concierge: models.Use
 @pytest.fixture(scope="module")
 def test_device(db: Session, test_room: models.Room):
     device = models.Device(
-        type="key",
+        dev_type="key",
         room_id=test_room.id,
         is_taken=False,
         version="primary",
@@ -132,7 +132,7 @@ def test_device(db: Session, test_room: models.Room):
 @pytest.fixture(scope="module")
 def test_device_microphone(db: Session, test_room_2: models.Room):
     device = models.Device(
-        type="microphone",
+        dev_type="microphone",
         room_id=test_room_2.id,
         is_taken=False,
         version="backup",
@@ -165,7 +165,7 @@ def token_service(db: Session):
 @pytest.fixture(scope="module")
 def concierge_token(test_concierge, token_service):
     token_data = {'user_id': test_concierge.id, 'user_role': test_concierge.role.value}
-    token = token_service.create_token(token_data, type="access")
+    token = token_service.create_token(token_data, token_type="access")
     return token
 
 
@@ -220,6 +220,7 @@ def test_create_user_duplicate_email(concierge_token: str):
     assert response.status_code == 422
     assert response.json()["detail"] == "Email is already registered"
 
+
 def test_create_user_invalid_data(concierge_token: str):
     user_data = {
         "email": "testconcierge2@example.com",
@@ -232,6 +233,7 @@ def test_create_user_invalid_data(concierge_token: str):
                            headers={"Authorization": f"Bearer {concierge_token}"},
                            json=user_data)
     assert response.status_code == 422
+
 
 def test_login_with_correct_credentials(test_concierge: models.User):
     login_data = {
@@ -302,20 +304,20 @@ def test_get_all_devices(test_device: models.Device,
 
 
 def test_get_all_devices_type_version(test_device: models.Device,
-                         test_device_microphone: models.Device,
-                         concierge_token: str):
+                                      test_device_microphone: models.Device,
+                                      concierge_token: str):
     response = client.get("/devices/?dev_type=key&dev_version=primary",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
     assert isinstance(response.json(), list)
-    assert response.json()[0]["type"]=="key"
-    assert response.json()[0]["version"]=="primary"
+    assert response.json()[0]["dev_type"] == "key"
+    assert response.json()[0]["version"] == "primary"
     assert len(response.json()) == 1
 
 
 def test_get_all_devices_invalid_type(test_device: models.Device,
-                         test_device_microphone: models.Device,
-                         concierge_token: str):
+                                      test_device_microphone: models.Device,
+                                      concierge_token: str):
     response = client.get("/devices/?dev_type=computer",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 400
@@ -323,8 +325,8 @@ def test_get_all_devices_invalid_type(test_device: models.Device,
 
 
 def test_get_all_devices_invalid_version(test_device: models.Device,
-                         test_device_microphone: models.Device,
-                         concierge_token: str):
+                                         test_device_microphone: models.Device,
+                                         concierge_token: str):
     response = client.get("/devices/?dev_version=first",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 400
@@ -335,7 +337,7 @@ def test_get_dev_by_code(test_device: models.Device, concierge_token: str):
     response = client.get(f"/devices/{test_device.code}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
-    assert response.json()["type"] == test_device.type.value
+    assert response.json()["dev_type"] == test_device.dev_type.value
 
 
 def test_get_dev_by_invalid_code(concierge_token: str):
@@ -350,7 +352,7 @@ def test_create_device(test_room: models.Room, test_concierge: models.User, conc
         "room_id": test_room.id,
         "version": "primary",
         "is_taken": False,
-        "type": "microphone",
+        "dev_type": "microphone",
         "code": "123467"
     }
 
@@ -358,7 +360,7 @@ def test_create_device(test_room: models.Room, test_concierge: models.User, conc
                            headers={"Authorization": f"Bearer {concierge_token}"})
 
     assert response.status_code == 201
-    assert response.json()["type"] == device_data["type"]
+    assert response.json()["dev_type"] == device_data["dev_type"]
 
 
 def test_create_device_with_invalid_data(concierge_token: str):
@@ -370,13 +372,14 @@ def test_create_device_with_invalid_data(concierge_token: str):
                            headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 422
 
+
 def test_start_session_login(test_user: models.User, concierge_token: str):
     login_data = {
         "username": test_user.email,
         "password": "password456"
     }
     response = client.post("/start-session",
-                            headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
+                           headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
     assert response.status_code == 200
 
 
@@ -385,21 +388,21 @@ def test_start_session_invalid_credentials(test_user: models.User, concierge_tok
         "password": "password456"
     }
     response = client.post("/start-session",
-                            headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
+                           headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
     assert response.status_code == 422
 
 
 def test_start_session_card(test_user: models.User, concierge_token: str):
     card_data = {"card_id": "7890"}
     response = client.post("/start-session/card",
-                            headers={"Authorization": f"Bearer {concierge_token}"}, json=card_data)
+                           headers={"Authorization": f"Bearer {concierge_token}"}, json=card_data)
     assert response.status_code == 200
 
 
 def test_start_session_invalid_card(test_user: models.User, concierge_token: str):
     card_data = {"card_id": "7891"}
     response = client.post("/start-session/card",
-                            headers={"Authorization": f"Bearer {concierge_token}"}, json=card_data)
+                           headers={"Authorization": f"Bearer {concierge_token}"}, json=card_data)
     assert response.status_code == 403
     assert response.json()["detail"] == "Invalid credentials"
 
@@ -434,15 +437,15 @@ def test_changeStatus_with_valid_id_taking(test_concierge: models.User,
     assert response.json()["device"]["code"] == test_device.code
     assert response.json()["issue_return_session"]["status"] == "in_progress"
     assert response.json()["operation_type"] == "issue_device"
-    assert response.json()["entitled"] == True
+    assert response.json()["entitled"] is True
 
 
 def test_changeStatus_without_permission(test_concierge: models.User,
-                                           test_user: models.User,
-                                           test_device_microphone: models.Device,
-                                           test_permission: models.Permission,
-                                           test_room_2: models.Room,
-                                           concierge_token: str):
+                                         test_user: models.User,
+                                         test_device_microphone: models.Device,
+                                         test_permission: models.Permission,
+                                         test_room_2: models.Room,
+                                         concierge_token: str):
 
     login_data = {
         "username": test_user.email,
@@ -459,9 +462,9 @@ def test_changeStatus_without_permission(test_concierge: models.User,
 
 
 def test_changeStatus_without_permission_force(test_concierge: models.User,
-                                           test_user: models.User,
-                                           test_device_microphone: models.Device,
-                                           concierge_token: str):
+                                               test_user: models.User,
+                                               test_device_microphone: models.Device,
+                                               concierge_token: str):
 
     login_data = {
         "username": test_user.email,
@@ -474,7 +477,7 @@ def test_changeStatus_without_permission_force(test_concierge: models.User,
                            headers={"Authorization": f"Bearer {concierge_token}"},
                            json={"issue_return_session_id": response1.json()["id"], "force": True})
     assert response.status_code == 200
-    assert response.json()["entitled"] == False
+    assert response.json()["entitled"] is False
     assert response.json()["operation_type"] == "issue_device"
 
 
@@ -605,8 +608,8 @@ def test_get_all_unauthorized_users(test_concierge: models.User, concierge_token
 
 def test_get_unauthorized_user_by_id(db: Session, test_concierge: models.User, concierge_token: str):
     user = models.UnauthorizedUser(name="Unauthorized",
-                                    surname="User 2",
-                                    addition_time=datetime.datetime.now(datetime.timezone.utc).isoformat())
+                                   surname="User 2",
+                                   addition_time=datetime.datetime.now(datetime.timezone.utc).isoformat())
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -631,8 +634,8 @@ def test_delete_unauthorized_user_invalid_id(concierge_token: str):
 def test_delete_unauthorized_user_valid(db: Session, concierge_token: str):
 
     user = models.UnauthorizedUser(name="Unauthorized",
-                                    surname="User 2",
-                                    addition_time=datetime.datetime.now(datetime.timezone.utc).isoformat())
+                                   surname="User 2",
+                                   addition_time=datetime.datetime.now(datetime.timezone.utc).isoformat())
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -689,7 +692,7 @@ def test_get_unapproved_invalid_session(concierge_token: str):
 
 
 def test_get_unapproved_valid_session(concierge_token: str,
-                                        test_session: models.IssueReturnSession):
+                                      test_session: models.IssueReturnSession):
     response = client.get(
         f"/unapproved/{test_session.id}",
         headers={"Authorization": f"Bearer {concierge_token}"})
@@ -699,8 +702,8 @@ def test_get_unapproved_valid_session(concierge_token: str,
 
 
 def test_approve_session_login_success(test_concierge: models.User,
-                                        test_session: models.IssueReturnSession,
-                                        concierge_token: str):
+                                       test_session: models.IssueReturnSession,
+                                       concierge_token: str):
     login_data = {
         "username": test_concierge.email,
         "password": "password123"
@@ -715,8 +718,8 @@ def test_approve_session_login_success(test_concierge: models.User,
 
 
 def test_approve_session_login_invalid_credentials(test_concierge: models.User,
-                                                    test_session: models.IssueReturnSession,
-                                                    concierge_token: str):
+                                                   test_session: models.IssueReturnSession,
+                                                   concierge_token: str):
     login_data = {
         "username": test_concierge.email,
         "password": "invalidpassword123"
@@ -731,8 +734,8 @@ def test_approve_session_login_invalid_credentials(test_concierge: models.User,
 
 
 def test_approve_session_login_no_permission(test_user: models.User,
-                                              test_session: models.IssueReturnSession,
-                                              concierge_token: str):
+                                             test_session: models.IssueReturnSession,
+                                             concierge_token: str):
     login_data = {
         "username": test_user.email,
         "password": "password456"
@@ -747,7 +750,7 @@ def test_approve_session_login_no_permission(test_user: models.User,
 
 
 def test_approve_session_card_no_devices(test_session: models.IssueReturnSession,
-                                          concierge_token: str):
+                                         concierge_token: str):
     response = client.post(
         f"/approve/card/session/{test_session.id}",
         headers={"Authorization": f"Bearer {concierge_token}"},
@@ -758,7 +761,7 @@ def test_approve_session_card_no_devices(test_session: models.IssueReturnSession
 
 
 def test_approve_session_card_invalid_card(test_session: models.IssueReturnSession,
-                                            concierge_token: str):
+                                           concierge_token: str):
     response = client.post(
         f"/approve/card/session/{test_session.id}",
         headers={"Authorization": f"Bearer {concierge_token}"},
@@ -769,10 +772,10 @@ def test_approve_session_card_invalid_card(test_session: models.IssueReturnSessi
 
 
 def test_approve_session_card_success(db: Session,
-                                       test_device: models.Device,
-                                       test_user: models.User,
-                                       test_concierge: models.User,
-                                       concierge_token: str):
+                                      test_device: models.Device,
+                                      test_user: models.User,
+                                      test_concierge: models.User,
+                                      concierge_token: str):
 
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
     session_service = sessionService.SessionService(db)
@@ -794,10 +797,10 @@ def test_approve_session_card_success(db: Session,
 
 
 def test_approve_login_success(db: Session,
-                                       test_device: models.Device,
-                                       test_user: models.User,
-                                       test_concierge: models.User,
-                                       concierge_token: str):
+                               test_device: models.Device,
+                               test_user: models.User,
+                               test_concierge: models.User,
+                               concierge_token: str):
 
     unapproved_dev_service = deviceService.UnapprovedDeviceService(db)
     session_service = sessionService.SessionService(db)
@@ -815,7 +818,7 @@ def test_approve_login_success(db: Session,
     }
     unapproved_dev_service.create_unapproved(new_data)
     response = client.post(
-        f"/approve/login/",
+        "/approve/login/",
         headers={"Authorization": f"Bearer {concierge_token}"},
         data=login_data
     )

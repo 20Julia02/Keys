@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/devices",
-    tags=['Devices']    
+    tags=['Devices']
 )
 
 
@@ -21,9 +21,9 @@ def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
     """
     Retrieve all devices from the database, optionally filtered by type or version.
 
-    This endpoint retrieves a list of devices from the database. Optionally, 
+    This endpoint retrieves a list of devices from the database. Optionally,
     the list can be filtered by device type and version if these parameters are provided.
-    
+
     Args:
         current_concierge: The currently authenticated concierge (used for authorization).
         dev_type (str): Optional filter for device type.
@@ -32,7 +32,7 @@ def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
 
     Returns:
         List[schemas.DeviceOut]: A list of devices that match the optional filters, if any.
-    
+
     Raises:
         HTTPException: If no devices are found or there is a database error.
     """
@@ -60,7 +60,7 @@ def create_device(device: schemas.DeviceCreate,
     """
     Create a new device in the database.
 
-    This endpoint allows concierge to create a new device by providing the necessary 
+    This endpoint allows concierge to create a new device by providing the necessary
     data. Only users with the 'admin' role are permitted to create devices.
     """
     auth_service = securityService.AuthorizationService(db)
@@ -70,6 +70,7 @@ def create_device(device: schemas.DeviceCreate,
 
 # todo zmiana statusu unauthorized
 
+
 @router.post("/change-status/{dev_code}", response_model=schemas.DeviceOperationOrDetailResponse)
 def change_status(
     dev_code: str,
@@ -78,14 +79,14 @@ def change_status(
     current_concierge: int = Depends(oauth2.get_current_concierge),
 ) -> schemas.DeviceOperationOrDetailResponse:
     """
-    changes the status of the device with given code based on the given session id and whether to force the operation 
-    without permissions (if the parameter force == true the operation will be performed even 
+    changes the status of the device with given code based on the given session id and whether to force the operation
+    without permissions (if the parameter force == true the operation will be performed even
     without the corresponding user rights)
 
     If the device has already been added to the unapproved data in the current session (with givenn session id),
-    it removes the device from unapproved data. 
-    
-    Otherwise, it checks user permissions and creates the operation containing all information about the status change 
+    it removes the device from unapproved data.
+
+    Otherwise, it checks user permissions and creates the operation containing all information about the status change
     performed. Then, it updates the device information and saves it as unconfirmed data.
     The new device data depends on whether the device has been issued or returned.
     """
@@ -95,20 +96,19 @@ def change_status(
     session_service = sessionService.SessionService(db)
     permission_service = permissionService.PermissionService(db)
 
-    dev_unapproved = db.query(models.DeviceUnapproved).filter(models.DeviceUnapproved.device_code == dev_code, 
-                                                               models.DeviceUnapproved.issue_return_session_id == request.issue_return_session_id).first()
+    dev_unapproved = db.query(models.DeviceUnapproved).filter(models.DeviceUnapproved.device_code == dev_code,
+                                                              models.DeviceUnapproved.issue_return_session_id == request.issue_return_session_id).first()
     if dev_unapproved:
         db.delete(dev_unapproved)
         db.commit()
         return schemas.DetailMessage(detail="Device removed from unapproved data.")
-    
+
     session = session_service.get_session_id(request.issue_return_session_id)
-    
+
     device = dev_service.get_dev_code(dev_code)
     entitled = permission_service.check_if_permitted(session.user_id, device.room.id, request.force)
 
-
-    if not device.is_taken:  
+    if not device.is_taken:
         new_dev_data = {
             "is_taken": True,
             "last_taken": datetime.datetime.now(ZoneInfo("Europe/Warsaw")),
@@ -120,7 +120,7 @@ def change_status(
             "is_taken": False,
             "last_returned": datetime.datetime.now(ZoneInfo("Europe/Warsaw"))
         }
-    
+
     new_dev_data["device_code"] = dev_code
     new_dev_data["issue_return_session_id"] = session.id
 

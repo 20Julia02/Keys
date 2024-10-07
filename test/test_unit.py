@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from app.services import deviceService
 from app.schemas import DeviceCreate
 from app import models
@@ -13,7 +13,7 @@ def mock_db():
 
 
 def test_create_device(mock_db):
-    device_data = DeviceCreate(version="primary", is_taken=False, type="key", code="A123", room_id=1)
+    device_data = DeviceCreate(version="primary", is_taken=False, dev_type="key", code="A123", room_id=1)
     device_service = deviceService.DeviceService(mock_db)
 
     created_device = device_service.create_dev(device_data)
@@ -21,14 +21,14 @@ def test_create_device(mock_db):
     mock_db.add.assert_called_once()
     assert created_device.version == "primary"
     assert created_device.is_taken is False
-    assert created_device.type == "key"
+    assert created_device.dev_type == "key"
     assert created_device.code == "A123"
     assert created_device.room_id == 1
 
 
 def test_get_dev_code(mock_db):
     device_service = deviceService.DeviceService(mock_db)
-    mock_device = models.Device(code="A123", type="key", version="primary", room_id=1)
+    mock_device = models.Device(code="A123", dev_type="key", version="primary", room_id=1)
     mock_db.query().filter().first.return_value = mock_device
 
     device = device_service.get_dev_code("A123")
@@ -49,7 +49,7 @@ def test_get_dev_code_not_found(mock_db):
 
 def test_get_all_devs(mock_db):
     device_service = deviceService.DeviceService(mock_db)
-    mock_device = models.Device(code="A123", type="key", version="primary", room_id=1)
+    mock_device = models.Device(code="A123", dev_type="key", version="primary", room_id=1)
     mock_db.query().filter().filter().all.return_value = [mock_device]
     devices = device_service.get_all_devs(dev_type="key", dev_version="primary")
     assert len(devices) == 1
@@ -136,4 +136,3 @@ def test_transfer_devices(mock_db):
 
 
 # def test_transfer_devices_device_not_found(mock_db):
-    

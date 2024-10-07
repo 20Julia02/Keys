@@ -11,7 +11,7 @@ class TokenBlacklist(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     token = Column(String, unique=True, nullable=False)
     when_blacklisted = Column(TIMESTAMP(timezone=True),
-                            nullable=False, server_default=text('now()'))
+                              nullable=False, server_default=text('now()'))
 
 
 class DeviceVersion(enum.Enum):
@@ -29,7 +29,7 @@ class DeviceType(enum.Enum):
 class Device(Base):
     __tablename__ = "device"
     code = Column(String, primary_key=True, unique=True, nullable=False)
-    type = Column(Enum(DeviceType), nullable=False)
+    dev_type = Column(Enum(DeviceType), nullable=False)
     room_id = Column(Integer, ForeignKey("room.id"), nullable=False)
     version = Column(Enum(DeviceVersion), nullable=False)
     is_taken = Column(Boolean, nullable=False, server_default="false")
@@ -41,7 +41,8 @@ class Device(Base):
     user = relationship("BaseUser")
 
     __table_args__ = (UniqueConstraint(
-        "type", "room_id", "version", name="uix_device"),)
+        "dev_type", "room_id", "version", name="uix_device"),)
+
 
 class DeviceUnapproved(Base):
     __tablename__ = "device_unapproved"
@@ -77,13 +78,14 @@ class DeviceOperation(Base):
     __table_args__ = (UniqueConstraint(
         "device_code", "issue_return_session_id", name="uix_device_session"),)
 
+
 class BaseUser(Base):
     __tablename__ = "base_user"
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    type = Column(String(50))
-    
+    user_type = Column(String(50))
+
     __mapper_args__ = {
-        'polymorphic_on': type,
+        'polymorphic_on': user_type,
         'polymorphic_identity': 'base_user'
     }
 
@@ -138,6 +140,7 @@ class SessionStatus(enum.Enum):
     rejected = "rejected"
 
 # todo dodac relacje
+
 
 class IssueReturnSession (Base):
     __tablename__ = "issue_return_session"

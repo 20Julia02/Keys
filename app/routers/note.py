@@ -47,7 +47,7 @@ def get_user_note(user_id: int,
 
     Returns:
         List[schemas.UserNote]: A list of notes corresponding to the given user ID.
-    
+
     Raises:
         HTTPException: If no notes are found for the specified user ID.
     """
@@ -71,7 +71,7 @@ def add_user_note(note_data: schemas.UserNote,
 
     Returns:
         schemas.UserNote: The newly created note associated with the specified user.
-    
+
     Raises:
         HTTPException: If the note creation fails for any reason.
     """
@@ -88,11 +88,12 @@ def get_dev_note(
     note_service = noteService.NoteService(db)
     return note_service.get_dev_notes(dev_code, issue_return_session_id)
 
+
 @router.post("/device", response_model=schemas.DeviceNoteOut)
 def add_device_note(note_data: schemas.DeviceNote,
                     current_concierge=Depends(oauth2.get_current_concierge),
                     db: Session = Depends(database.get_db)) -> schemas.DeviceNoteOut:
-    
+
     """
     It allows to add a note to a specific operation. The operation is identified
     by its unique ID, and the note is saved in the database.
@@ -105,7 +106,7 @@ def add_device_note(note_data: schemas.DeviceNote,
 
     Returns:
         schemas.DeviceOperationNote: The newly created operation note.
-    
+
     Raises:
         HTTPException: If the note creation process encounters an error.
     """

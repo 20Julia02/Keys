@@ -35,7 +35,7 @@ class DeviceBase(BaseModel):
     code: str
     version: str
     is_taken: bool
-    type: str
+    dev_type: str
 
 
 class DeviceCreate(DeviceBase):
@@ -87,7 +87,7 @@ class PermissionOut(BaseModel):
 
 class Token(BaseModel):
     access_token: str
-    type: str
+    token_type: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -146,6 +146,7 @@ class DeviceNote(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class DeviceNoteOut(BaseModel):
     device_operation: DeviceOperation
     note: str
@@ -180,4 +181,3 @@ class DeviceOperationOut(BaseModel):
 
 
 DeviceOperationOrDetailResponse = Union[DeviceOperationOut, DetailMessage]
-

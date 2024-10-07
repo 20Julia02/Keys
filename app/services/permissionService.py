@@ -35,7 +35,7 @@ class PermissionService:
         perm = self.db.query(models.Permission).all()
         if not perm:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"No permissions found")
+                                detail="No permissions found")
         return perm
 
     def get_permissions_by_field(self, field_name: str, field_value: int) -> List[schemas.PermissionOut]:
@@ -65,7 +65,7 @@ class PermissionService:
     def check_if_permitted(self, user_id: int, room_id: int, force: bool = False) -> bool:
         """
         Checks if a user has permission to access a specific room.
-        
+
         If the user doesn't have permission and the operation is not forced, it raises
         an HTTPException with a 403 status code. If the operation is forced, it returns False.
 
@@ -93,13 +93,12 @@ class PermissionService:
 
         if not perm and force:
             return False
-        
+
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"User with id {user_id} does not have permission to access room with id {room_id}")
-      
 
-    def create_permission(self, permission: schemas.PermissionCreate, commit: bool=True):
+    def create_permission(self, permission: schemas.PermissionCreate, commit: bool = True):
         """
         Creates a new permission in the database.
         """

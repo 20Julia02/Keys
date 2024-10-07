@@ -2,8 +2,7 @@ from sqlalchemy.orm import Session
 import datetime
 from zoneinfo import ZoneInfo
 from app import models
-from app.services import securityService
-from app.schemas import Token, IssueReturnSession
+from app.schemas import IssueReturnSession
 from fastapi import status, HTTPException
 
 
@@ -11,7 +10,7 @@ class SessionService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_session(self, user_id: int, concierge_id: int, commit: bool=True) -> IssueReturnSession:
+    def create_session(self, user_id: int, concierge_id: int, commit: bool = True) -> IssueReturnSession:
         """
         Creates a new session in the database for a given user and concierge.
 
@@ -35,7 +34,7 @@ class SessionService:
             self.db.commit()
         return new_session
 
-    def end_session(self, issue_return_session_id: int, reject: str = False, commit: bool=True) -> IssueReturnSession:
+    def end_session(self, issue_return_session_id: int, reject: str = False, commit: bool = True) -> IssueReturnSession:
         """
         Changes the status of the session to rejected or completed
         depending on the given value of the reject argument. The default

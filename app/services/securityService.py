@@ -52,7 +52,7 @@ class TokenService:
         self.ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
         self.REFRESH_TOKEN_EXPIRE_MINUTES = settings.refresh_token_expire_minutes
 
-    def create_token(self, data: dict, type: str) -> str:
+    def create_token(self, data: dict, token_type: str) -> str:
         """
         Creates a JWT token with the given data and token type (refresh or access).
 
@@ -63,7 +63,7 @@ class TokenService:
         Returns:
             str: The encoded JWT token.
         """
-        if type == "refresh":
+        if token_type == "refresh":
             time_delta = self.REFRESH_TOKEN_EXPIRE_MINUTES
         else:
             time_delta = self.ACCESS_TOKEN_EXPIRE_MINUTES
@@ -92,13 +92,13 @@ class TokenService:
         """
         try:
             payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
-            id = payload.get("user_id")
+            user_id = payload.get("user_id")
             role = payload.get("user_role")
 
-            if id is None or role is None:
+            if user_id is None or role is None:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                     detail="Invalid token")
-            token_data = TokenData(id=id, role=role)
+            token_data = TokenData(id=user_id, role=role)
         except JWTError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail="Invalid token")
@@ -117,7 +117,7 @@ class TokenService:
         """
         return self.db.query(TokenBlacklist).filter_by(token=token).first() is not None
 
-    def add_token_to_blacklist(self, token: str, commit: bool=True) -> bool:
+    def add_token_to_blacklist(self, token: str, commit: bool = True) -> bool:
         """
         Adds a token to the blacklist in the database.
 
@@ -138,7 +138,7 @@ class TokenService:
     def generate_tokens(self, user_id: Column[Integer], role: str) -> LoginConcierge:
         access_token = self.create_token({"user_id": user_id, "user_role": role}, "access")
         refresh_token = self.create_token({"user_id": user_id, "user_role": role}, "refresh")
-        return LoginConcierge(access_token=access_token, refresh_token=refresh_token, type="bearer")
+        return LoginConcierge(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
 
 
 class AuthorizationService:
@@ -193,8 +193,8 @@ class AuthorizationService:
 
         if user is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                              detail="Could not validate credentials",
-                                              headers={"Authenticate": "Bearer"})
+                                detail="Could not validate credentials",
+                                headers={"Authenticate": "Bearer"})
         self.check_if_entitled("concierge", user)
         return user
 
@@ -230,5 +230,5 @@ class AuthorizationService:
             if password_service.verify_hashed(card_id.card_id, user.card_code):
                 self.check_if_entitled(role, user)
                 return user
-        
+
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials")

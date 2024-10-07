@@ -24,7 +24,7 @@ class NoteService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No note found for user id: {user_id}")
         return notes
 
-    def create_user_note(self, note_data: schemas.UserNote, commit: bool=True):
+    def create_user_note(self, note_data: schemas.UserNote, commit: bool = True):
         """Create a new user note."""
         note_data = models.UserNote(**note_data)
         self.db.add(note_data)
@@ -43,12 +43,12 @@ class NoteService:
         notes = query.all()
 
         if not notes:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There are no notes that match the given criteria")
-        
+
         return notes
 
-    def create_dev_note(self, note_data: schemas.DeviceNote, commit:bool=True):
+    def create_dev_note(self, note_data: schemas.DeviceNote, commit: bool = True):
         """Create a new operation note."""
         note_data = models.DeviceNote(**note_data)
         self.db.add(note_data)

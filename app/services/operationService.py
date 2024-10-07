@@ -7,7 +7,9 @@ class DeviceOperationService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_operation(self, operation_data: schemas.DeviceOperation, commit: bool = True) -> schemas.DeviceOperationOut:
+    def create_operation(self,
+                         operation_data: schemas.DeviceOperation,
+                         commit: bool = True) -> schemas.DeviceOperationOut:
         """
         Creates a new operation in the database.
 
@@ -18,7 +20,7 @@ class DeviceOperationService:
             DeviceOperation: The newly created operation.
         """
         new_operation = models.DeviceOperation(**operation_data)
-        
+
         self.db.add(new_operation)
         if commit:
             self.db.commit()
