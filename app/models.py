@@ -85,7 +85,8 @@ class DeviceOperation(Base):
     entitled = Column(Boolean, nullable=True)
 
     device = relationship("Device")
-    issue_return_session = relationship("IssueReturnSession")
+    issue_return_session = relationship("IssueReturnSession", back_populates="device_operations")
+    device_notes = relationship("DeviceNote", back_populates="device_operation")
 
 
 class BaseUser(Base):
@@ -159,6 +160,8 @@ class IssueReturnSession (Base):
     end_time = Column(TIMESTAMP(timezone=True), nullable=True)
     status = Column(Enum(SessionStatus), nullable=False)
 
+    device_operations = relationship("DeviceOperation", back_populates="issue_return_session")
+
 
 class Room(Base):
     __tablename__ = "room"
@@ -185,7 +188,19 @@ class DeviceNote(Base):
     device_operation_id = Column(Integer, ForeignKey("device_operation.id"), nullable=True)
     note = Column(String, nullable=False)
 
-    device_operation = relationship("DeviceOperation")
+    device_operation = relationship("DeviceOperation", back_populates="device_notes")
+
+    @property
+    def operation_user_id(self):
+        if self.device_operation and self.device_operation.issue_return_session:
+            return self.device_operation.issue_return_session.user_id
+        return None
+    
+    @property
+    def note_device(self):
+        if self.device_operation:
+            return self.device_operation.device
+        return None
 
 
 class UserNote(Base):

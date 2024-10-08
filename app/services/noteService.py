@@ -41,20 +41,26 @@ class NoteService:
 
         return notes
 
-    def get_dev_notes_id(self, dev_id: Optional[int] = None, issue_return_session_id: Optional[int] = None):
+    def get_dev_notes_id(self, dev_id: int, issue_return_session_id: Optional[int] = None):
         """Retrieve all device notes filtered by device ID or issue/return session ID."""
         query_note = self.db.query(models.DeviceNote).join(models.DeviceOperation)
         if dev_id is not None:
             query_note = query_note.filter(models.DeviceOperation.device_id == dev_id)
-        if issue_return_session_id is not None:
-            query_note = query_note.filter(models.DeviceOperation.issue_return_session_id == issue_return_session_id)
-
         notes = query_note.all()
-        if not notes:
+        results = []
+        for note in notes:
+            note_data = {
+                "note": note.note,
+                "device_operation_id": note.device_operation_id,
+                "operation_user_id": note.operation_user_id,
+                "note_device": note.note_device
+            }
+            results.append(note_data)
+
+        if not results:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There are no notes that match the given criteria")
-
-        return notes
+        return results
 
     def create_dev_note(self, note_data: schemas.DeviceNote, commit: bool = True):
         """Create a new operation note."""

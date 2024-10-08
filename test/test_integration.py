@@ -872,13 +872,16 @@ def test_get_all_device_notes(create_device_note, concierge_token: str):
     assert response.json()[0]["note"] == "Device note content"
 
 
-def test_get_device_notes_by_id(test_device, concierge_token: str):
+def test_get_device_notes_by_id(test_device: models.Device, 
+                                test_room: models.Room, 
+                                concierge_token: str):
     response = client.get(f"/notes/devices/{test_device.id}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     
     assert response.status_code == 200
     assert len(response.json()) == 1
     assert response.json()[0]["note"] == "Device note content"
+    assert response.json()[0]["note_device"]["room"]["number"] == test_room.number
 
 
 def test_get_device_notes_not_found(concierge_token: str):

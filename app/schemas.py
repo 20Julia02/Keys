@@ -143,8 +143,10 @@ class DeviceNote(BaseModel):
 
 
 class DeviceNoteOut(BaseModel):
-    device_operation: DeviceOperation
+    device_operation_id: int
     note: str
+    operation_user_id: Optional[int] = None
+    note_device: Optional[DeviceOut] = None
 
     model_config = ConfigDict(from_attributes=True)
 
