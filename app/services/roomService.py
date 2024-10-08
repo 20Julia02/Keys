@@ -24,3 +24,10 @@ class RoomService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Room with id: {room_id} doesn't exist")
         return room
+    
+    def get_room_number(self, room_number: str) -> schemas.RoomOut:
+        room = self.db.query(models.Room).filter(models.Room.number == room_number).first()
+        if not room:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Room number: {room_number} doesn't exist")
+        return room

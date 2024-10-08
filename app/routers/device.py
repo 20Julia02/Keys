@@ -48,10 +48,11 @@ def get_all_unapproved(current_concierge=Depends(oauth2.get_current_concierge),
 
 
 @router.get("/", response_model=List[schemas.DeviceOut])
-def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
-                    dev_type: str = "",
-                    dev_version: str = "",
-                    db: Session = Depends(database.get_db)) -> List[schemas.DeviceOut]:
+def get_devices_filtered(current_concierge=Depends(oauth2.get_current_concierge),
+                         dev_type: str = "",
+                         dev_version: str = "",
+                         room_number: str ="",
+                         db: Session = Depends(database.get_db)) -> List[schemas.DeviceOut]:
     """
     Retrieve all devices from the database, optionally filtered by type or version.
 
@@ -71,7 +72,7 @@ def get_all_devices(current_concierge=Depends(oauth2.get_current_concierge),
         HTTPException: If no devices are found or there is a database error.
     """
     dev_service = deviceService.DeviceService(db)
-    return dev_service.get_all_devs(dev_type, dev_version)
+    return dev_service.get_all_devs(dev_type, dev_version, room_number)
 
 
 @router.get("/{dev_code}", response_model=schemas.DeviceOut)

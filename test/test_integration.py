@@ -31,7 +31,7 @@ def test_concierge(db: Session):
         role="admin",
         name="Test",
         surname="Concierge",
-        faculty="Engineering"
+        faculty="geodesy"
     )
 
     password_service = securityService.PasswordService()
@@ -56,7 +56,7 @@ def test_user(db: Session):
         role="employee",
         name="Test",
         surname="User",
-        faculty="GiK"
+        faculty="geodesy"
     )
     password_service = securityService.PasswordService()
     hashed_password = password_service.hash_password(user_data.password)
@@ -516,7 +516,7 @@ def test_create_unauthorized_user(test_concierge: models.User, concierge_token: 
     user_data = {
         "name": "Unauthorized",
         "surname": "User",
-        "email": "user@gmail.com",
+        "email": "user@gmail.com"
         }
     response = client.post("/unauthorized-users", json=user_data,
                            headers={"Authorization": f"Bearer {concierge_token}"})

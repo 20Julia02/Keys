@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from typing import List, Optional
 from app import models
+from app.services import roomService
 from app.schemas import DeviceUnapproved, DeviceOut, DeviceCreate
 
 
@@ -24,7 +25,7 @@ class DeviceService:
                                 detail=f"Device with code: {dev_code} doesn't exist")
         return device
 
-    def get_all_devs(self, dev_type: Optional[str] = None, dev_version: Optional[str] = None) -> List[DeviceOut]:
+    def get_all_devs(self, dev_type: Optional[str] = None, dev_version: Optional[str] = None, room_number: Optional[str] = None) -> List[DeviceOut]:
         query = self.db.query(models.Device)
         if dev_type:
             if dev_type not in [dev_type.value for dev_type in models.DeviceType]:
@@ -36,6 +37,9 @@ class DeviceService:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                     detail=f"Invalid device version: {dev_version}")
             query = query.filter(models.Device.version == models.DeviceVersion[dev_version])
+        if room_number:
+            room = roomService.RoomService(self.db).get_room_number(room_number)
+            query = query.filter(models.Device.room_id == room.id)
         dev = query.all()
 
         if not dev:
