@@ -820,10 +820,52 @@ def test_approve_login_success(db: Session,
     assert response.json()["detail"] == 'All operations approved and devices updated successfully.'
 
 
+def test_all_change_status(test_user: models.User, test_concierge: models.User, concierge_token: str, test_device: models.Device):
+    login_data = {
+        "username": test_user.email,
+        "password": "password456"
+    }
+    login_data_concierge = {
+        "username": test_concierge.email,
+        "password": "password123"
+    }
+    response1 = client.post("/start-session",
+                            headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
+    assert response1.status_code == 200
+    response = client.post(f"/devices/change-status/{test_device.id}",
+                           headers={"Authorization": f"Bearer {concierge_token}"},
+                           json={"issue_return_session_id": response1.json()["id"]})
+    assert response.status_code == 200
+    assert response.json()["device"]["code"] == test_device.code
+    assert response.json()["issue_return_session"]["status"] == "in_progress"
+    assert response.json()["operation_type"] == "issue_device"
+    assert response.json()["entitled"] is True
+
+    response2 = client.post(
+        f"/approve/login/session/{ response1.json()["id"]}",
+        headers={"Authorization": f"Bearer {concierge_token}"},
+        data=login_data_concierge
+    )
+    assert response2.status_code == 200
+    assert response2.json() == {"detail": "DeviceOperations approved and devices updated successfully."}
+
+    response3 = client.get(f"/devices/{test_device.id}",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response3.json()["is_taken"] is True
+    assert response3.json()["last_owner_id"] == test_user.id
+    
+
+def test_get_all_user_devices(test_user: models.User, concierge_token: str):
+    response1 = client.get(f"/devices/",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+    response = client.get(f"/devices/users/{test_user.id}",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 200
+    
+
 def test_get_all_user_notes(create_user_note, concierge_token: str):
     response = client.get("/notes/users",
                           headers={"Authorization": f"Bearer {concierge_token}"})
-    
     assert response.status_code == 200
     assert len(response.json()) == 1
     assert response.json()[0]["note"] == "Test Note"

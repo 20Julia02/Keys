@@ -54,7 +54,13 @@ class DeviceService:
                                 detail="There are no devices that match the given criteria in the database")
 
         return dev
-
+    
+    def get_dev_owned_by_user(self, user_id: int)  -> List[DeviceOut]:
+        devices = self.db.query(models.Device).filter(models.Device.last_owner_id==user_id, models.Device.is_taken == True).all()
+        if not devices:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"User with id {user_id} doesn't have any devices")
+        return devices
 
 class UnapprovedDeviceService:
     def __init__(self, db: Session):

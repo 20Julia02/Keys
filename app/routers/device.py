@@ -174,3 +174,15 @@ def change_status(
             detail=f"Error occurred while processing device status change: {str(e)}"
         )
     return operation
+
+@router.get("/users/{user_id}", response_model=List[schemas.DeviceOut])
+def get_devs_owned_by_user(user_id: int,
+               current_concierge=Depends(oauth2.get_current_concierge),
+               db: Session = Depends(database.get_db)) -> schemas.DeviceOut:
+    """
+    Retrieve a device by its unique device code.
+
+    This endpoint retrieves a device from the database using the device's unique code.
+    """
+    dev_service = deviceService.DeviceService(db)
+    return dev_service.get_dev_owned_by_user(user_id)
