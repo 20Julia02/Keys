@@ -11,7 +11,7 @@ router = APIRouter(
 
 
 @router.get("/users", response_model=List[schemas.UserNote])
-def get_all_user_note(
+def get_all_user_notes(
         current_concierge=Depends(oauth2.get_current_concierge),
         db: Session = Depends(database.get_db)) -> List[schemas.UserNote]:
     """

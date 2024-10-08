@@ -20,7 +20,7 @@ class DeviceVersion(enum.Enum):
     backup = "backup"
     emergency = "emergency"
 
-
+# todo zmienic nazwy na polskie
 class DeviceType(enum.Enum):
     key = "key"
     microphone = "microphone"
@@ -46,12 +46,11 @@ class Device(Base):
         "dev_type", "room_id", "version", name="uix_device"),)
     
     def get_note_ids(self, session):
-        # Zwraca listę ID notatek związanych z operacjami dla tego urządzenia
         query = (
             session.query(DeviceNote.id)
-            .join(DeviceOperation, DeviceOperation.device_id == self.id)  # Łączymy z DeviceOperation
-            .join(DeviceNote, DeviceNote.device_operation_id == DeviceOperation.id)  # Łączymy z DeviceNote
-            .filter(DeviceOperation.device_id == self.id)  # Filtrujemy po urządzeniu
+            .join(DeviceOperation, DeviceOperation.device_id == self.id)
+            .join(DeviceNote, DeviceNote.device_operation_id == DeviceOperation.id)
+            .filter(DeviceOperation.device_id == self.id)
         )
         return [note_id[0] for note_id in query.all()]
 
