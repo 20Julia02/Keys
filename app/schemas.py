@@ -50,6 +50,7 @@ class RoomOut(BaseModel):
 
 
 class DeviceOut(DeviceBase):
+    id: int
     room: RoomOut
     last_taken: Optional[datetime.datetime] = None
     last_returned: Optional[datetime.datetime] = None
@@ -59,7 +60,7 @@ class DeviceOut(DeviceBase):
 
 
 class DeviceUnapproved(BaseModel):
-    device_code: str
+    device_id: int
     is_taken: bool
     last_taken: Optional[datetime.datetime] = None
     last_returned: Optional[datetime.datetime] = None
@@ -128,7 +129,7 @@ class IssueReturnSession(BaseModel):
 
 
 class DeviceOperation(BaseModel):
-    device_code: str
+    device_ide: int
     issue_return_session_id: int
     operation_type: str
     entitled: bool

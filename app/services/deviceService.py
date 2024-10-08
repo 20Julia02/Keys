@@ -10,6 +10,13 @@ class DeviceService:
     def __init__(self, db: Session):
         self.db = db
 
+    def get_dev_id(self, dev_id: int) -> models.Device:
+        device = self.db.query(models.Device).filter(models.Device.id == dev_id).first()
+        if not device:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Device with id: {dev_id} doesn't exist")
+        return device
+
     def create_dev(self, device: DeviceCreate, commit: bool = True) -> DeviceOut:
         new_device = models.Device(**device.model_dump())
         self.db.add(new_device)
@@ -53,11 +60,11 @@ class UnapprovedDeviceService:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_dev_code(self, dev_code: str) -> models.DeviceUnapproved:
-        device = self.db.query(models.DeviceUnapproved).filter(models.DeviceUnapproved.device_code == dev_code).first()
+    def get_dev_id(self, dev_id: int) -> models.DeviceUnapproved:
+        device = self.db.query(models.DeviceUnapproved).filter(models.DeviceUnapproved.device_id == dev_id).first()
         if not device:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Device with id: {dev_code} doesn't exist")
+                                detail=f"Device with id: {dev_id} doesn't exist")
         return device
 
     def create_unapproved(self, new_data: dict, commit: bool = True) -> DeviceUnapproved:
@@ -66,6 +73,7 @@ class UnapprovedDeviceService:
         if commit:
             self.db.commit()
             self.db.refresh(new_device)
+        
         return new_device
 
     def get_unapproved_dev_session(self, issue_return_session_id: int) -> List[DeviceUnapproved]:
@@ -93,7 +101,7 @@ class UnapprovedDeviceService:
                                 detail="There is no unapproved device in database")
 
         for unapproved in unapproved_devs:
-            device = dev_service.get_dev_code(unapproved.device_code)
+            device = dev_service.get_dev_id(unapproved.device_id)
             device.is_taken = unapproved.is_taken
             device.last_taken = unapproved.last_taken
             device.last_returned = unapproved.last_returned
@@ -104,7 +112,7 @@ class UnapprovedDeviceService:
             )
 
             device_session = models.DeviceOperation(
-                device_code=unapproved.device_code,
+                device_id=unapproved.device_id,
                 issue_return_session_id=unapproved.issue_return_session_id,
                 operation_type=operation_type
             )

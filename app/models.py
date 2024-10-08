@@ -29,7 +29,8 @@ class DeviceType(enum.Enum):
 
 class Device(Base):
     __tablename__ = "device"
-    code = Column(String(50), primary_key=True, unique=True, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    code = Column(String(50), unique=True, nullable=False)
     dev_type = Column(Enum(DeviceType), nullable=False)
     room_id = Column(Integer, ForeignKey("room.id"), nullable=False)
     version = Column(Enum(DeviceVersion), nullable=False)
@@ -48,7 +49,7 @@ class Device(Base):
 class DeviceUnapproved(Base):
     __tablename__ = "device_unapproved"
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    device_code = Column(String(50), ForeignKey("device.code"), nullable=False)
+    device_id = Column(Integer, ForeignKey("device.id"), nullable=False)
     is_taken = Column(Boolean, nullable=False, server_default="false")
     last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
     last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
@@ -68,7 +69,7 @@ class OperationType(enum.Enum):
 class DeviceOperation(Base):
     __tablename__ = "device_operation"
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    device_code = Column(String(50), ForeignKey("device.code"), nullable=False)
+    device_id = Column(Integer, ForeignKey("device.id"), nullable=False)
     issue_return_session_id = Column(Integer, ForeignKey("issue_return_session.id"), nullable=False)
     operation_type = Column(Enum(OperationType), nullable=False)
     entitled = Column(Boolean, nullable=True)
@@ -77,7 +78,7 @@ class DeviceOperation(Base):
     issue_return_session = relationship("IssueReturnSession")
 
     __table_args__ = (UniqueConstraint(
-        "device_code", "issue_return_session_id", name="uix_device_session"),)
+        "device_id", "issue_return_session_id", name="uix_device_session"),)
 
 
 class BaseUser(Base):

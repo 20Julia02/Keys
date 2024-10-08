@@ -129,7 +129,8 @@ def change_status(
     session_service = sessionService.SessionService(db)
     permission_service = permissionService.PermissionService(db)
 
-    dev_unapproved = db.query(models.DeviceUnapproved).filter(models.DeviceUnapproved.device_code == dev_code,
+    device = dev_service.get_dev_code(dev_code)
+    dev_unapproved = db.query(models.DeviceUnapproved).filter(models.DeviceUnapproved.device_id == device.id,
                                                               models.DeviceUnapproved.issue_return_session_id == request.issue_return_session_id).first()
     if dev_unapproved:
         db.delete(dev_unapproved)
@@ -138,7 +139,6 @@ def change_status(
 
     session = session_service.get_session_id(request.issue_return_session_id)
 
-    device = dev_service.get_dev_code(dev_code)
     entitled = permission_service.check_if_permitted(session.user_id, device.room.id, request.force)
 
     if not device.is_taken:
@@ -154,12 +154,12 @@ def change_status(
             "last_returned": datetime.datetime.now(ZoneInfo("Europe/Warsaw"))
         }
 
-    new_dev_data["device_code"] = dev_code
+    new_dev_data["device_id"] = device.id
     new_dev_data["issue_return_session_id"] = session.id
 
     operation_type = (models.OperationType.return_dev if device.is_taken else models.OperationType.issue_dev)
     operation_data = {
-        "device_code": dev_code,
+        "device_id": device.id,
         "issue_return_session_id": session.id,
         "operation_type": operation_type,
         "entitled": entitled

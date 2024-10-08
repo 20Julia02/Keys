@@ -621,7 +621,7 @@ def test_get_all_unapproved_authenticated(db: Session,
                                           concierge_token: str):
     device = models.DeviceUnapproved(
         is_taken=False,
-        device_code=test_device.code,
+        device_id=test_device.id,
         issue_return_session_id=test_session.id,
     )
     db.add(device)
@@ -740,7 +740,7 @@ def test_approve_session_card_success(db: Session,
     session = session_service.create_session(test_user.id, test_concierge.id)
 
     new_data = {
-        "device_code": test_device.code,
+        "device_id": test_device.id,
         "issue_return_session_id": session.id,
         "is_taken": False
     }
@@ -770,7 +770,7 @@ def test_approve_login_success(db: Session,
     }
 
     new_data = {
-        "device_code": test_device.code,
+        "device_id": test_device.id,
         "issue_return_session_id": session.id,
         "is_taken": False
     }
