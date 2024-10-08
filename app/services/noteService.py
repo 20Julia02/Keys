@@ -26,23 +26,30 @@ class NoteService:
 
     def create_user_note(self, note_data: schemas.UserNote, commit: bool = True):
         """Create a new user note."""
-        note_data = models.UserNote(**note_data)
+        note_data = models.UserNote(**note_data.model_dump())
         self.db.add(note_data)
         if commit:
             self.db.commit()
             self.db.refresh(note_data)
         return note_data
+    
+    def get_dev_notes(self):
+        notes = self.db.query(models.DeviceNote).all()
+        if not notes:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="There are no device notes in database")
 
-    def get_dev_notes(self, dev_code=Optional[str], issue_return_session_id=Optional[int]):
-        """Retrieve all operation notes."""
-        query = self.db.query(models.DeviceNote)
-        if dev_code:
-            query = query.filter(models.DeviceNote.device_code.ilike(f"%{dev_code}%"))
-        if issue_return_session_id:
-            query = query.filter(models.DeviceNote.issue_return_session_id.ilike(f"%{issue_return_session_id}%"))
+        return notes
 
-        notes = query.all()
+    def get_dev_notes_id(self, dev_id: Optional[int] = None, issue_return_session_id: Optional[int] = None):
+        """Retrieve all device notes filtered by device ID or issue/return session ID."""
+        query_note = self.db.query(models.DeviceNote).join(models.DeviceOperation)
+        if dev_id is not None:
+            query_note = query_note.filter(models.DeviceOperation.device_id == dev_id)
+        if issue_return_session_id is not None:
+            query_note = query_note.filter(models.DeviceOperation.issue_return_session_id == issue_return_session_id)
 
+        notes = query_note.all()
         if not notes:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There are no notes that match the given criteria")
@@ -51,7 +58,7 @@ class NoteService:
 
     def create_dev_note(self, note_data: schemas.DeviceNote, commit: bool = True):
         """Create a new operation note."""
-        note_data = models.DeviceNote(**note_data)
+        note_data = models.DeviceNote(**note_data.model_dump())
         self.db.add(note_data)
         if commit:
             self.db.commit()

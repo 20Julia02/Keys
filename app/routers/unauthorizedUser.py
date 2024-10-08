@@ -25,7 +25,7 @@ def create_or_get_unauthorized_user(user: UnauthorizedUserBase,
     Returns:
         UnauthorizedUser: The newly created unauthorized user.
     """
-    print("tuu")
+
     existing_user = db.query(models.UnauthorizedUser).filter_by(
         email=user.email).first()
 

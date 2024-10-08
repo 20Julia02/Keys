@@ -44,6 +44,16 @@ class Device(Base):
 
     __table_args__ = (UniqueConstraint(
         "dev_type", "room_id", "version", name="uix_device"),)
+    
+    def get_note_ids(self, session):
+        # Zwraca listę ID notatek związanych z operacjami dla tego urządzenia
+        query = (
+            session.query(DeviceNote.id)
+            .join(DeviceOperation, DeviceOperation.device_id == self.id)  # Łączymy z DeviceOperation
+            .join(DeviceNote, DeviceNote.device_operation_id == DeviceOperation.id)  # Łączymy z DeviceNote
+            .filter(DeviceOperation.device_id == self.id)  # Filtrujemy po urządzeniu
+        )
+        return [note_id[0] for note_id in query.all()]
 
 
 class DeviceUnapproved(Base):
@@ -77,9 +87,6 @@ class DeviceOperation(Base):
     device = relationship("Device")
     issue_return_session = relationship("IssueReturnSession")
 
-    __table_args__ = (UniqueConstraint(
-        "device_id", "issue_return_session_id", name="uix_device_session"),)
-
 
 class BaseUser(Base):
     __tablename__ = "base_user"
@@ -104,7 +111,7 @@ class Faculty(enum.Enum):
 
 
 class User(BaseUser):
-    __tablename__ = "user"
+    __tablename__ = 'user'
     id = Column(Integer, ForeignKey('base_user.id'), primary_key=True)
     name = Column(String(50), nullable=False)
     surname = Column(String(50), nullable=False)

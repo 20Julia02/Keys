@@ -129,14 +129,14 @@ class IssueReturnSession(BaseModel):
 
 
 class DeviceOperation(BaseModel):
-    device_ide: int
+    device_id: int
     issue_return_session_id: int
     operation_type: str
     entitled: bool
 
 
 class DeviceNote(BaseModel):
-    device_operation: DeviceOperation
+    device_operation_id: int
     note: str
 
     model_config = ConfigDict(from_attributes=True)
@@ -151,6 +151,12 @@ class DeviceNoteOut(BaseModel):
 
 class UserNote(BaseModel):
     user: UserOut
+    note: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class UserNoteCreate(BaseModel):
+    user_id: int
     note: str
 
     model_config = ConfigDict(from_attributes=True)

@@ -1,12 +1,12 @@
 import pytest
 import datetime
 from zoneinfo import ZoneInfo
-from sqlalchemy import text
+from sqlalchemy import text, true
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from app.main import app
 from app import models, database
-from app.services import securityService, deviceService, sessionService
+from app.services import securityService, deviceService, sessionService, operationService
 from app.schemas import UserCreate
 from app.database import Base
 
@@ -142,6 +142,42 @@ def test_device_microphone(db: Session, test_room_2: models.Room):
     db.commit()
     db.refresh(device)
     return device
+
+
+@pytest.fixture
+def create_user_note(db: Session, test_user: models.User):
+    note = models.UserNote(user_id=test_user.id, note="Test Note")
+    db.add(note)
+    db.commit()
+    db.refresh(note)
+    return note
+
+
+@pytest.fixture
+def create_specific_user_note(db: Session, test_user: models.User):
+    note = models.UserNote(user_id=test_user.id, note="Test Specific Note")
+    db.add(note)
+    db.commit()
+    db.refresh(note)
+    return note
+
+
+@pytest.fixture
+def create_device_note(db: Session, test_device: models.Device, test_session: models.IssueReturnSession):
+    operation_service = operationService.DeviceOperationService(db)
+
+    operation_data = {
+        "device_id": test_device.id,
+        "issue_return_session_id": test_session.id,
+        "operation_type": "issue_dev",
+        "entitled": True
+    }
+    operation = operation_service.create_operation(operation_data)
+    note = models.DeviceNote(device_operation_id=operation.id, note="Device note content")
+    db.add(note)
+    db.commit()
+    db.refresh(note)
+    return note
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -288,18 +324,18 @@ def test_get_all_devices_invalid_version(test_device: models.Device,
     assert response.json()["detail"] == "Invalid device version: first"
 
 
-def test_get_dev_by_code(test_device: models.Device, concierge_token: str):
-    response = client.get(f"/devices/{test_device.code}",
+def test_get_dev_by_id(test_device: models.Device, concierge_token: str):
+    response = client.get(f"/devices/{test_device.id}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
     assert response.json()["dev_type"] == test_device.dev_type.value
 
 
-def test_get_dev_by_invalid_code(concierge_token: str):
-    response = client.get("/devices/-a5",
+def test_get_dev_by_invalid_id(concierge_token: str):
+    response = client.get("/devices/-5",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
-    assert response.json()["detail"] == "Device with code: -a5 doesn't exist"
+    assert response.json()["detail"] == "Device with id: -5 doesn't exist"
 
 
 def test_create_device(test_room: models.Room, test_concierge: models.User, concierge_token: str):
@@ -365,7 +401,7 @@ def test_start_session_invalid_card(test_user: models.User, concierge_token: str
 def test_changeStatus_invalid_session(test_device: models.Device,
                                       test_concierge: models.User,
                                       concierge_token: str):
-    response = client.post(f"/devices/change-status/{test_device.code}",
+    response = client.post(f"/devices/change-status/{test_device.id}",
                            headers={"Authorization": f"Bearer {concierge_token}"},
                            json={"issue_return_session_id": 0, "force": False})
     assert response.status_code == 404
@@ -385,7 +421,7 @@ def test_changeStatus_with_valid_id_taking(test_concierge: models.User,
     response1 = client.post("/start-session",
                             headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
     assert response1.status_code == 200
-    response = client.post(f"/devices/change-status/{test_device.code}",
+    response = client.post(f"/devices/change-status/{test_device.id}",
                            headers={"Authorization": f"Bearer {concierge_token}"},
                            json={"issue_return_session_id": response1.json()["id"]})
     assert response.status_code == 200
@@ -409,7 +445,7 @@ def test_changeStatus_without_permission(test_concierge: models.User,
     response1 = client.post("/start-session",
                             headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
     assert response1.status_code == 200
-    response = client.post(f"/devices/change-status/{test_device_microphone.code}",
+    response = client.post(f"/devices/change-status/{test_device_microphone.id}",
                            headers={"Authorization": f"Bearer {concierge_token}"},
                            json={"issue_return_session_id": response1.json()["id"]})
     assert response.status_code == 403
@@ -428,7 +464,7 @@ def test_changeStatus_without_permission_force(test_concierge: models.User,
     response1 = client.post("/start-session",
                             headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
     assert response1.status_code == 200
-    response = client.post(f"/devices/change-status/{test_device_microphone.code}",
+    response = client.post(f"/devices/change-status/{test_device_microphone.id}",
                            headers={"Authorization": f"Bearer {concierge_token}"},
                            json={"issue_return_session_id": response1.json()["id"], "force": True})
     assert response.status_code == 200
@@ -450,11 +486,11 @@ def test_changeStatus_again(test_concierge: models.User,
                             headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
     assert response1.status_code == 200
 
-    client.post(f"/devices/change-status/{test_device.code}",
+    client.post(f"/devices/change-status/{test_device.id}",
                 headers={"Authorization": f"Bearer {concierge_token}"},
                 json={"issue_return_session_id": response1.json()["id"]})
 
-    response = client.post(f"/devices/change-status/{test_device.code}",
+    response = client.post(f"/devices/change-status/{test_device.id}",
                            headers={"Authorization": f"Bearer {concierge_token}"},
                            json={"issue_return_session_id": response1.json()["id"]})
     assert response.json()["detail"] == "Device removed from unapproved data."
@@ -782,6 +818,103 @@ def test_approve_login_success(db: Session,
     )
     assert response.status_code == 200
     assert response.json()["detail"] == 'All operations approved and devices updated successfully.'
+
+
+def test_get_all_user_notes(create_user_note, concierge_token: str):
+    response = client.get("/notes/users",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+    
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+    assert response.json()[0]["note"] == "Test Note"
+
+
+def test_get_user_notes(test_user: models.User, create_specific_user_note, concierge_token: str):
+    response = client.get(f"/notes/users/{test_user.id}",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 200
+    assert response.json()[1]["note"] == "Test Specific Note"
+
+
+def test_get_user_notes_not_found(concierge_token: str):
+    response = client.get("/notes/users/9999",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+    
+    assert response.status_code == 404
+    assert response.json()["detail"] == "No note found for user id: 9999"
+
+
+def test_add_user_note(test_user: models.User, concierge_token: str):
+    note_data = {"user_id": test_user.id, "note": "New note for user"}
+    response = client.post(f"/notes/users", 
+                           headers={"Authorization": f"Bearer {concierge_token}"},
+                           json=note_data)
+    
+    assert response.status_code == 201
+    assert response.json()["note"] == "New note for user"
+
+
+def test_add_user_note_invalid_data(test_user: models.User, concierge_token: str):
+    note_data = {"note": "Invalid note data"}
+    response = client.post(f"/notes/users",
+                           headers={"Authorization": f"Bearer {concierge_token}"},
+                           json=note_data)
+    
+    assert response.status_code == 422
+
+
+def test_get_all_device_notes(create_device_note, concierge_token: str):
+    response = client.get("/notes/devices",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+    
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+    assert response.json()[0]["note"] == "Device note content"
+
+
+def test_get_device_notes_by_id(test_device, concierge_token: str):
+    response = client.get(f"/notes/devices/{test_device.id}",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+    
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+    assert response.json()[0]["note"] == "Device note content"
+
+
+def test_get_device_notes_not_found(concierge_token: str):
+    response = client.get("/notes/devices/-5",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+    
+    assert response.status_code == 404
+    assert response.json()["detail"] == "There are no notes that match the given criteria"
+
+
+def test_add_device_note(db: Session, 
+                         test_session: models.IssueReturnSession,
+                         test_device: models.Device, 
+                         concierge_token: str):
+    operation_data = {
+        "device_id": test_device.id,
+        "issue_return_session_id": test_session.id,
+        "operation_type": "issue_dev",
+        "entitled": True
+    }
+    operation_service = operationService.DeviceOperationService(db)
+    operation = operation_service.create_operation(operation_data)
+    note_data = {"device_operation_id": operation.id, "note": "New note for device"}
+    response = client.post("/notes/devices", json=note_data,
+                           headers={"Authorization": f"Bearer {concierge_token}"})
+    
+    assert response.status_code == 201
+    assert response.json()["note"] == "New note for device"
+
+
+def test_add_device_note_invalid_data(concierge_token: str):
+    note_data = {"note": "Invalid device note data"}
+    response = client.post("/notes/devices", json=note_data,
+                           headers={"Authorization": f"Bearer {concierge_token}"})
+    
+    assert response.status_code == 422
 
 
 def test_logout_with_valid_token(test_concierge: models.User, concierge_token: str):

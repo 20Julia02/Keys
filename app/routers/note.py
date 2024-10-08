@@ -33,7 +33,7 @@ def get_all_user_note(
 
 
 @router.get("/users/{user_id}", response_model=List[schemas.UserNote])
-def get_user_note(user_id: int,
+def get_user_note_id(user_id: int,
                   current_concierge=Depends(oauth2.get_current_concierge),
                   db: Session = Depends(database.get_db)) -> List[schemas.UserNote]:
     """
@@ -55,8 +55,8 @@ def get_user_note(user_id: int,
     return note_service.get_user_note_by_id(user_id)
 
 
-@router.post("/users/{user_id}", response_model=schemas.UserNote)
-def add_user_note(note_data: schemas.UserNote,
+@router.post("/users", response_model=schemas.UserNote, status_code=status.HTTP_201_CREATED)
+def add_user_note(note_data: schemas.UserNoteCreate,
                   current_concierge=Depends(oauth2.get_current_concierge),
                   db: Session = Depends(database.get_db)) -> schemas.UserNote:
     """
@@ -80,16 +80,23 @@ def add_user_note(note_data: schemas.UserNote,
 
 
 @router.get("/devices", response_model=List[schemas.DeviceNoteOut])
-def get_device_note(
-        dev_code: Optional[str],
-        issue_return_session_id: Optional[int],
+def get_all_devices_notes(
         current_concierge=Depends(oauth2.get_current_concierge),
         db: Session = Depends(database.get_db)) -> List[schemas.DeviceNoteOut]:
     note_service = noteService.NoteService(db)
-    return note_service.get_dev_notes(dev_code, issue_return_session_id)
+    return note_service.get_dev_notes()
 
 
-@router.post("/device", response_model=schemas.DeviceNoteOut)
+@router.get("/devices/{device_id}", response_model=List[schemas.DeviceNoteOut])
+def get_device_notes_id(
+        device_id: int,
+        current_concierge=Depends(oauth2.get_current_concierge),
+        db: Session = Depends(database.get_db)) -> List[schemas.DeviceNoteOut]:
+    note_service = noteService.NoteService(db)
+    return note_service.get_dev_notes_id(device_id)
+
+
+@router.post("/devices", response_model=schemas.DeviceNoteOut, status_code=status.HTTP_201_CREATED)
 def add_device_note(note_data: schemas.DeviceNote,
                     current_concierge=Depends(oauth2.get_current_concierge),
                     db: Session = Depends(database.get_db)) -> schemas.DeviceNoteOut:
@@ -115,7 +122,7 @@ def add_device_note(note_data: schemas.DeviceNote,
     return note_service.create_dev_note(note_data)
 
 
-@router.delete("/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/devices/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_device_note(note_id: int,
                        db: Session = Depends(database.get_db),
                        current_concierge=Depends(oauth2.get_current_concierge)):
