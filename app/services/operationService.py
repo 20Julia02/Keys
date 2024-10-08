@@ -24,6 +24,7 @@ class DeviceOperationService:
         self.db.add(new_operation)
         if commit:
             self.db.commit()
+            self.db.refresh(new_operation)
         return new_operation
 
     def get_operation_id(self, operation_id: int) -> schemas.DeviceOperationOut:

@@ -1,6 +1,6 @@
 from fastapi import status, HTTPException, Depends, APIRouter
 from typing import List
-from app.schemas import UnauthorizedUserCreate, UnauthorizedUserOut
+from app.schemas import UnauthorizedUser
 from app import database, models, oauth2
 from sqlalchemy.orm import Session
 
@@ -10,9 +10,9 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=List[UnauthorizedUserOut])
+@router.get("/", response_model=List[UnauthorizedUser])
 def get_all_unathorized_users(current_concierge=Depends(oauth2.get_current_concierge),
-                              db: Session = Depends(database.get_db)) -> List[UnauthorizedUserOut]:
+                              db: Session = Depends(database.get_db)) -> List[UnauthorizedUser]:
     """
     Retrieves all unathorized users from the database.
 
@@ -21,7 +21,7 @@ def get_all_unathorized_users(current_concierge=Depends(oauth2.get_current_conci
         db (Session): The database session.
 
     Returns:
-        List[UnauthorizedUserOut]: A list of all unauthorized users in the database.
+        List[UnauthorizedUser]: A list of all unauthorized users in the database.
 
     Raises:
         HTTPException: If no unauthorized users are found in the database.
@@ -33,10 +33,11 @@ def get_all_unathorized_users(current_concierge=Depends(oauth2.get_current_conci
     return user
 
 
-@router.get("/{id}", response_model=UnauthorizedUserOut)
+@router.get("/{id}", response_model=UnauthorizedUser)
 def get_unathorized_user(id: int,
-                         current_concierge=Depends(oauth2.get_current_concierge),
-                         db: Session = Depends(database.get_db)) -> UnauthorizedUserOut:
+                         current_concierge=Depends(
+                             oauth2.get_current_concierge),
+                         db: Session = Depends(database.get_db)) -> UnauthorizedUser:
     """
     Retrieves an unauthorized user by their ID from the database.
 
@@ -46,7 +47,7 @@ def get_unathorized_user(id: int,
         db (Session): The database session.
 
     Returns:
-        UnauthorizedUserOut: The unauthorized user with the specified ID.
+        UnauthorizedUser: The unauthorized user with the specified ID.
 
     Raises:
         HTTPException: If the unauthorized user with the specified ID doesn't exist.
@@ -59,30 +60,38 @@ def get_unathorized_user(id: int,
     return user
 
 
-@router.post("/", response_model=UnauthorizedUserOut, status_code=status.HTTP_201_CREATED)
-def create_unauthorized_user(user: UnauthorizedUserCreate,
-                             db: Session = Depends(database.get_db),
-                             current_concierge=Depends(oauth2.get_current_concierge)) -> UnauthorizedUserOut:
+@router.post("/", response_model=UnauthorizedUser, status_code=status.HTTP_201_CREATED)
+def create_or_get_unauthorized_user(user: UnauthorizedUser,
+                                    db: Session = Depends(database.get_db),
+                                    current_concierge=Depends(oauth2.get_current_concierge)) -> UnauthorizedUser:
     """
     Creates a new unauthorized user in the database.
 
     Args:
-        user (UnauthorizedUserCreate): The data required to create a new unauthorized user.
+        user (UnauthorizedUser): The data required to create a new unauthorized user.
         db (Session): The database session.
         current_concierge: The current user object (used for authorization).
 
     Returns:
-        UnauthorizedUserOut: The newly created unauthorized user.
+        UnauthorizedUser: The newly created unauthorized user.
     """
+    existing_user = db.query(models.UnauthorizedUser).filter_by(
+        email=user.email).first()
 
+    if existing_user:
+        if existing_user.name != user.name or existing_user.surname != user.surname:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                detail="User with this email already exists but with different name or surname.")
+        return existing_user
     new_user = models.UnauthorizedUser(**user.model_dump())
     db.add(new_user)
     db.commit()
+    db.refresh(new_user)
     return new_user
 
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_unauthorized_user(id: int,
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_unauthorized_user(user_id: int,
                              db: Session = Depends(database.get_db),
                              current_concierge=Depends(oauth2.get_current_concierge)):
     """
@@ -100,11 +109,11 @@ def delete_unauthorized_user(id: int,
         HTTPException: If the unauthorized user with the specified ID doesn't exist.
     """
     user = db.query(models.UnauthorizedUser).filter(
-        models.UnauthorizedUser.id == id).first()
+        models.UnauthorizedUser.id == user_id).first()
 
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Unauthorized user with id: {id} doesn't exist")
+                            detail=f"Unauthorized user with id: {user_id} doesn't exist")
 
     db.delete(user)
     db.commit()

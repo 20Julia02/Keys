@@ -107,18 +107,10 @@ class TokenData(BaseModel):
     role: Optional[str] = None
 
 
-class UnauthorizedUserBase(BaseModel):
+class UnauthorizedUser(BaseModel):
     name: str
     surname: str
     email: str
-
-
-class UnauthorizedUserCreate(UnauthorizedUserBase):
-    addition_time: datetime.datetime
-
-
-class UnauthorizedUserOut(UnauthorizedUserBase):
-    pass
 
     model_config = ConfigDict(from_attributes=True)
 

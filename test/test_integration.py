@@ -234,7 +234,7 @@ def test_card_login_with_invalid_card_id():
     assert response.json()["detail"] == "Invalid credentials"
 
 
-def test_refresh_token_with_valid_token(test_concierge: models.User):
+def test_refresh_token_with_valid_token(db: Session, test_concierge: models.User):
     token_service = securityService.TokenService(db)
     refresh_token = token_service.create_token({"user_id": test_concierge.id, "user_role": test_concierge.role.value},
                                                "refresh")
@@ -517,12 +517,35 @@ def test_create_unauthorized_user(test_concierge: models.User, concierge_token: 
         "name": "Unauthorized",
         "surname": "User",
         "email": "user@gmail.com",
-        "addition_time": datetime.datetime.now(datetime.timezone.utc).isoformat()
-    }
+        }
     response = client.post("/unauthorized-users", json=user_data,
                            headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 201
     assert response.json()["surname"] == user_data["surname"]
+
+
+def test_create_unauthorized_user_duplicated(test_concierge: models.User, concierge_token: str):
+    user_data = {
+        "name": "Unauthorized",
+        "surname": "User",
+        "email": "user@gmail.com",
+        }
+    response = client.post("/unauthorized-users", json=user_data,
+                           headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 201
+    assert response.json()["surname"] == user_data["surname"]
+
+
+def test_create_unauthorized_user_duplicated_invalid(test_concierge: models.User, concierge_token: str):
+    user_data = {
+        "name": "Unauthorized1",
+        "surname": "User1",
+        "email": "user@gmail.com",
+        }
+    response = client.post("/unauthorized-users", json=user_data,
+                           headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 403
+    assert response.json()["detail"] == "User with this email already exists but with different name or surname."
 
 
 def test_create_unauthorized_user_with_missing_data(test_concierge: models.User, concierge_token: str):
@@ -544,8 +567,7 @@ def test_get_all_unauthorized_users(test_concierge: models.User, concierge_token
 def test_get_unauthorized_user_by_id(db: Session, test_concierge: models.User, concierge_token: str):
     user = models.UnauthorizedUser(name="Unauthorized",
                                    surname="User 2",
-                                   email="user123@gmail.com",
-                                   addition_time=datetime.datetime.now(datetime.timezone.utc).isoformat())
+                                   email="user123@gmail.com")
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -571,8 +593,7 @@ def test_delete_unauthorized_user_valid(db: Session, concierge_token: str):
 
     user = models.UnauthorizedUser(name="Unauthorized",
                                    surname="User 2",
-                                   email="2user2@kskk.cck",
-                                   addition_time=datetime.datetime.now(datetime.timezone.utc).isoformat())
+                                   email="2user2@kskk.cck")
     db.add(user)
     db.commit()
     db.refresh(user)

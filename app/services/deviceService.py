@@ -14,6 +14,7 @@ class DeviceService:
         self.db.add(new_device)
         if commit:
             self.db.commit()
+            self.db.refresh(new_device)
         return new_device
 
     def get_dev_code(self, dev_code: str) -> DeviceOut:
@@ -60,6 +61,7 @@ class UnapprovedDeviceService:
         self.db.add(new_device)
         if commit:
             self.db.commit()
+            self.db.refresh(new_device)
         return new_device
 
     def get_unapproved_dev_session(self, issue_return_session_id: int) -> List[DeviceUnapproved]:
@@ -109,6 +111,7 @@ class UnapprovedDeviceService:
         try:
             if commit:
                 self.db.commit()
+                self.db.refresh(device_session)
         except Exception as e:
             self.db.rollback()
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

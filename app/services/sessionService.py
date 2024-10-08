@@ -32,6 +32,7 @@ class SessionService:
         self.db.add(new_session)
         if commit:
             self.db.commit()
+            self.db.refresh(new_session)
         return new_session
 
     def end_session(self, issue_return_session_id: int, reject: str = False, commit: bool = True) -> IssueReturnSession:
@@ -56,6 +57,7 @@ class SessionService:
         session.end_time = datetime.datetime.now(ZoneInfo("Europe/Warsaw"))
         if commit:
             self.db.commit()
+            self.db.refresh(session)
         return session
 
     def get_session_id(self, issue_return_session_id: int) -> IssueReturnSession:

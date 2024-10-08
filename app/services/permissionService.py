@@ -70,4 +70,5 @@ class PermissionService:
         self.db.add(new_permission)
         if commit:
             self.db.commit()
+            self.db.refresh(new_permission)
         return new_permission

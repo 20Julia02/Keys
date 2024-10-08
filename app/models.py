@@ -121,7 +121,8 @@ class UnauthorizedUser(BaseUser):
     name = Column(String, nullable=False)
     surname = Column(String, nullable=False)
     email = Column(String, nullable=False, unique=True)
-    addition_time = Column(TIMESTAMP(timezone=True), nullable=False)
+    addition_time = Column(TIMESTAMP(timezone=True),
+                           nullable=False, server_default=text('now()'))
 
     __mapper_args__ = {
         'polymorphic_identity': 'unauthorized_user'

@@ -30,6 +30,7 @@ class NoteService:
         self.db.add(note_data)
         if commit:
             self.db.commit()
+            self.db.refresh(note_data)
         return note_data
 
     def get_dev_notes(self, dev_code=Optional[str], issue_return_session_id=Optional[int]):
@@ -54,4 +55,5 @@ class NoteService:
         self.db.add(note_data)
         if commit:
             self.db.commit()
+            self.db.refresh(note_data)
         return note_data

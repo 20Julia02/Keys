@@ -133,6 +133,7 @@ class TokenService:
             self.db.add(db_token)
             if commit:
                 self.db.commit()
+                self.db.refresh(db_token)
         return True
 
     def generate_tokens(self, user_id: Column[Integer], role: str) -> LoginConcierge:
