@@ -29,7 +29,7 @@ class PermissionService:
                                 detail="No permissions found that meet the stated criteria")
         return perm
 
-    def check_if_permitted(self, user_id: int, room_id: int, force: bool = False) -> bool:
+    def check_if_permitted(self, user_id: int, room_id: int, return_dev: bool, force: bool = False) -> bool:
         """
         Checks if a user has permission to access a specific room.
 
@@ -54,7 +54,7 @@ class PermissionService:
 
         if has_permission:
             return True
-        elif force:
+        elif force or return_dev:
             return False
         else:
             raise HTTPException(

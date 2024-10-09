@@ -157,6 +157,7 @@ class UserNote(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class UserNoteCreate(BaseModel):
     user_id: int
     note: str
@@ -165,6 +166,7 @@ class UserNoteCreate(BaseModel):
 
 
 class ChangeStatus(BaseModel):
+    device_id: int
     issue_return_session_id: int
     force: Optional[bool] = False
 

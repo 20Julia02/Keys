@@ -103,9 +103,8 @@ def create_device(device: schemas.DeviceCreate,
     return dev_service.create_dev(device)
 
 
-@router.post("/change-status/{dev_id}", response_model=schemas.DeviceOperationOrDetailResponse)
+@router.post("/change-status", response_model=schemas.DeviceOperationOrDetailResponse)
 def change_status(
-    dev_id: int,
     request: schemas.ChangeStatus,
     db: Session = Depends(database.get_db),
     current_concierge: int = Depends(oauth2.get_current_concierge),
@@ -128,18 +127,13 @@ def change_status(
     session_service = sessionService.SessionService(db)
     permission_service = permissionService.PermissionService(db)
 
-    device = dev_service.get_dev_id(dev_id)
-    dev_unapproved = db.query(models.DeviceUnapproved).filter(models.DeviceUnapproved.device_id == dev_id,
-                                                              models.DeviceUnapproved.issue_return_session_id == request.issue_return_session_id).first()
-    if dev_unapproved:
-        db.delete(dev_unapproved)
-        db.commit()
+    device = dev_service.get_dev_id(request.device_id)
+    if unapproved_dev_service.delete_if_rescanned(request.device_id, request.issue_return_session_id):
         return schemas.DetailMessage(detail="Device removed from unapproved data.")
 
     session = session_service.get_session_id(request.issue_return_session_id)
 
-    entitled = permission_service.check_if_permitted(session.user_id, device.room.id, request.force)
-
+    entitled = permission_service.check_if_permitted(session.user_id, device.room.id, device.is_taken, force = request.force)
     if not device.is_taken:
         new_dev_data = {
             "is_taken": True,
@@ -153,12 +147,12 @@ def change_status(
             "last_returned": datetime.datetime.now(ZoneInfo("Europe/Warsaw"))
         }
 
-    new_dev_data["device_id"] = dev_id
+    new_dev_data["device_id"] = request.device_id
     new_dev_data["issue_return_session_id"] = session.id
 
     operation_type = (models.OperationType.return_dev if device.is_taken else models.OperationType.issue_dev)
     operation_data = {
-        "device_id": dev_id,
+        "device_id": request.device_id,
         "issue_return_session_id": session.id,
         "operation_type": operation_type,
         "entitled": entitled
@@ -175,10 +169,11 @@ def change_status(
         )
     return operation
 
+
 @router.get("/users/{user_id}", response_model=List[schemas.DeviceOut])
 def get_devs_owned_by_user(user_id: int,
-               current_concierge=Depends(oauth2.get_current_concierge),
-               db: Session = Depends(database.get_db)) -> schemas.DeviceOut:
+                           current_concierge=Depends(oauth2.get_current_concierge),
+                           db: Session = Depends(database.get_db)) -> List[schemas.DeviceOut]:
     """
     Retrieve a device by its unique device code.
 
