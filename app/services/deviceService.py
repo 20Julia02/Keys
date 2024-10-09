@@ -34,7 +34,7 @@ class DeviceService:
         return device
 
     def get_all_devs(self, dev_type: Optional[str] = None, dev_version: Optional[str] = None, room_number: Optional[str] = None) -> List[schemas.DeviceOut]:
-        query = self.db.query(models.Device)
+        query = self.db.query(models.Device).join(models.Room, models.Device.room_id == models.Room.id)
         if dev_type:
             if dev_type not in [dev_type.value for dev_type in models.DeviceType]:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
@@ -48,10 +48,8 @@ class DeviceService:
             query = query.filter(models.Device.version ==
                                  models.DeviceVersion[dev_version])
         if room_number:
-            room = roomService.RoomService(
-                self.db).get_room_number(room_number)
-            query = query.filter(models.Device.room_id == room.id)
-        dev = query.all()
+            query = query.filter(models.Room.number == room_number)
+        dev = query.order_by(models.Room.number).all()
 
         if not dev:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
