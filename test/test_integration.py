@@ -662,7 +662,7 @@ def test_approve_session_login_success(db: Session,
     new_data = {
         "device_id": test_device.id,
         "session_id": session.id,
-        "operation_type": "return_dev",
+        "operation_type": "return_device",
         "entitled": False
     }
     unapproved_operation_service.create_unapproved_operation(new_data)
@@ -748,7 +748,7 @@ def test_approve_session_card_success(db: Session,
     new_data = {
         "device_id": test_device.id,
         "session_id": session.id,
-        "operation_type": "return_dev",
+        "operation_type": "return_device",
         "entitled": False
     }
     unapproved_operation_service.create_unapproved_operation(new_data)
@@ -808,7 +808,7 @@ def test_get_all_user_devices(db: Session,
     new_data = {
         "device_id": test_device.id,
         "session_id": session.id,
-        "operation_type": "issue_dev",
+        "operation_type": "issue_device",
         "entitled": False
     }
     operation_service.create_operation(new_data)

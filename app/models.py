@@ -42,10 +42,9 @@ class Device(Base):
         "dev_type", "room_id", "dev_version", name="uix_device"),)
     
 
-
 class OperationType(enum.Enum):
-    issue_dev = "issue_device"
-    return_dev = "return_device"
+    issue_device = "issue_device"
+    return_device = "return_device"
 
 
 class UnapprovedOperation(Base):

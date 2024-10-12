@@ -100,7 +100,7 @@ def change_status(
         last_operation.operation_type if last_operation else None,
         request.force
     )
-    operation_type = "return_dev" if last_operation and last_operation.operation_type == "issue_dev" else "issue_dev"
+    operation_type = "return_device" if last_operation and last_operation.operation_type == "issue_device" else "issue_device"
     operation = unapproved_service.create_unapproved_operation({
         "device_id": request.device_id,
         "session_id": session.id,

@@ -50,7 +50,7 @@ class DeviceService:
             models.Device.dev_version,
             models.Room.number.label("room_number"),
             case(
-                (models.DeviceOperation.operation_type == 'issue_dev', True), 
+                (models.DeviceOperation.operation_type == 'issue_device', True), 
                 else_=False
             ).label('is_taken'),
             case(
@@ -135,7 +135,7 @@ class DeviceService:
                 (models.DeviceOperation.device_id == last_operation_subquery.c.device_id) & 
                 (models.DeviceOperation.timestamp == last_operation_subquery.c.last_operation_timestamp)
             )
-            .filter(models.DeviceOperation.operation_type == models.OperationType.issue_dev)
+            .filter(models.DeviceOperation.operation_type == models.OperationType.issue_device)
             .group_by(models.DeviceOperation.id)
         )
 
