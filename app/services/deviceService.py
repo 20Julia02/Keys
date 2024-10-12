@@ -91,12 +91,19 @@ class DeviceService:
         query = query.group_by(
             models.Device.id, models.Room.number, models.DeviceOperation.operation_type
         )
-        numeric_part = cast(func.regexp_replace(models.Room.number, '\D', '', 'g'), Integer)
-        text_part = func.regexp_replace(models.Room.number, '\d', '', 'g')
+        numeric_part = func.regexp_replace(models.Room.number, '\D+', '', 'g')
+        text_part = func.regexp_replace(models.Room.number, '\d+', '', 'g')
 
         query = query.order_by(
-        func.cast(numeric_part, Integer).asc(),
-        text_part.asc()
+            case(
+                (numeric_part != '', func.cast(numeric_part, Integer)),
+                else_=None
+            ).asc(),
+            case(
+                (numeric_part == '', text_part),
+                else_=None
+            ).asc(),
+            text_part.asc()
         )
 
         devices = query.all()
