@@ -295,7 +295,7 @@ def test_get_all_devices_type_version(test_device: models.Device,
     assert response.status_code == 200
     assert isinstance(response.json(), list)
     assert response.json()[0]["dev_type"] == "klucz"
-    assert response.json()[0]["dev_version"] == "primary"
+    assert response.json()[0]["dev_version"] == "podstawowa"
     assert len(response.json()) == 1
 
 
@@ -314,7 +314,7 @@ def test_get_all_devices_invalid_version(test_device: models.Device,
     response = client.get("/devices/?dev_version=first",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 400
-    assert response.json()["detail"] == "Invalid device dev_version: first"
+    assert response.json()["detail"] == "Invalid device version: first"
 
 
 def test_get_dev_by_id(test_device: models.Device, concierge_token: str):

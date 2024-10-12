@@ -16,11 +16,11 @@ class TokenBlacklist(Base):
     __table_args__ = (Index('idx_when_blacklisted', added_at),)
 
 class DeviceVersion(enum.Enum):
-    primary = "primary"
-    backup = "backup"
-    emergency = "emergency"
+    primary = "podstawowa"
+    backup = "zapasowa"
+    emergency = "awaryjna"
 
-# todo zmienic nazwy na polskie
+
 class DeviceType(enum.Enum):
     key = "klucz"
     microphone = "mikrofon"

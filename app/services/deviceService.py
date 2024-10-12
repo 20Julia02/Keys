@@ -81,10 +81,12 @@ class DeviceService:
             query = query.filter(models.Device.dev_type == dev_type_enum)
             
         if dev_version:
-            if dev_version not in [dev_version.value for dev_version in models.DeviceVersion]:
+            try:
+                dev_version_enum = models.DeviceVersion[dev_version]
+            except KeyError:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                    detail=f"Invalid device dev_version: {dev_version}")
-            query = query.filter(models.Device.dev_version == models.DeviceVersion[dev_version])
+                                    detail=f"Invalid device version: {dev_version}")
+            query = query.filter(models.Device.dev_version ==dev_version_enum)
 
         if room_number:
             query = query.filter(models.Room.number == room_number)
