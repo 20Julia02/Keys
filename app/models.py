@@ -22,9 +22,9 @@ class DeviceVersion(enum.Enum):
 
 # todo zmienic nazwy na polskie
 class DeviceType(enum.Enum):
-    key = "key"
-    microphone = "microphone"
-    remote_controler = "remote_controler"
+    key = "klucz"
+    microphone = "mikrofon"
+    remote_controler = "pilot"
 
 
 class Device(Base):

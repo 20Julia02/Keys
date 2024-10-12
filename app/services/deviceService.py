@@ -72,12 +72,13 @@ class DeviceService:
         ))
 
         query = query.outerjoin(models.DeviceNote, models.Device.id == models.DeviceNote.device_id)
-
         if dev_type:
-            if dev_type not in [dev_type.value for dev_type in models.DeviceType]:
+            try:
+                dev_type_enum = models.DeviceType[dev_type]
+            except KeyError:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                     detail=f"Invalid device type: {dev_type}")
-            query = query.filter(models.Device.dev_type == models.DeviceType[dev_type])
+            query = query.filter(models.Device.dev_type == dev_type_enum)
             
         if dev_version:
             if dev_version not in [dev_version.value for dev_version in models.DeviceVersion]:

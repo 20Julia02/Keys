@@ -294,7 +294,7 @@ def test_get_all_devices_type_version(test_device: models.Device,
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
     assert isinstance(response.json(), list)
-    assert response.json()[0]["dev_type"] == "key"
+    assert response.json()[0]["dev_type"] == "klucz"
     assert response.json()[0]["dev_version"] == "primary"
     assert len(response.json()) == 1
 
@@ -343,7 +343,7 @@ def test_create_device(test_room: models.Room, test_concierge: models.User, conc
                            headers={"Authorization": f"Bearer {concierge_token}"})
 
     assert response.status_code == 201
-    assert response.json()["dev_type"] == device_data["dev_type"]
+    assert response.json()["dev_type"] == "mikrofon"
 
 
 def test_create_device_with_invalid_data(concierge_token: str):
