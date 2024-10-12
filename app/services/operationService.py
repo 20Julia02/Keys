@@ -12,7 +12,7 @@ class DeviceOperationService:
 
     def create_operation(self,
                          operation_data: schemas.DeviceOperation,
-                         commit: bool = True) -> schemas.DeviceOperationOut:
+                         commit: bool = True) -> models.DeviceOperation:
         """
         Creates a new operation in the database.
 
@@ -65,7 +65,7 @@ class UnapprovedOperationService():
     def __init__(self, db: Session):
         self.db = db
 
-    def delete_if_rescanned(self, device_id: int, session_id: int):
+    def delete_if_rescanned(self, device_id: int, session_id: int) -> bool:
         operation_unapproved = self.db.query(models.UnapprovedOperation).filter(models.UnapprovedOperation.device_id == device_id,
                                                                        models.UnapprovedOperation.session_id == session_id).first()
         if operation_unapproved:
@@ -76,7 +76,7 @@ class UnapprovedOperationService():
     
     def create_unapproved_operation(self,
                          operation_data: schemas.DeviceOperation,
-                         commit: bool = True) -> schemas.DeviceOperationOut:
+                         commit: bool = True) -> models.DeviceOperation:
         """
         Creates a new operation in the database.
 
@@ -102,7 +102,7 @@ class UnapprovedOperationService():
         return unapproved
     
 
-    def create_operation_from_unappproved(self, session_id: int, commit: bool = True)-> schemas.DeviceOperationOut:
+    def create_operation_from_unappproved(self, session_id: int, commit: bool = True)-> models.DeviceOperation:
         unapproved_operations = self.get_unapproved_session(session_id)
         operation_list = []
         for unapproved_operation in unapproved_operations:

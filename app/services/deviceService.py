@@ -18,7 +18,7 @@ class DeviceService:
                                 detail=f"Device with id: {dev_id} doesn't exist")
         return device
 
-    def create_dev(self, device: schemas.DeviceCreate, commit: bool = True) -> schemas.DeviceOut:
+    def create_dev(self, device: schemas.DeviceCreate, commit: bool = True) -> models.Device:
         new_device = models.Device(**device.model_dump())
         self.db.add(new_device)
         if commit:

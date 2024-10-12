@@ -6,8 +6,7 @@ import datetime
 from zoneinfo import ZoneInfo
 from jose import JWTError, jwt
 from app.config import settings
-from app.schemas import TokenData, CardId, Token
-from app.models import TokenBlacklist, User
+from app import models, schemas
 
 
 class PasswordService:
@@ -76,7 +75,7 @@ class TokenService:
 
         return encoded_jwt
 
-    def verify_concierge_token(self, token: str) -> TokenData:
+    def verify_concierge_token(self, token: str) -> schemas.TokenData:
         """
         Verifies the given JWT token and extracts the token data.
 
@@ -98,7 +97,7 @@ class TokenService:
             if user_id is None or role is None:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                     detail="Invalid token")
-            token_data = TokenData(id=user_id, role=role)
+            token_data = schemas.TokenData(id=user_id, role=role)
         except JWTError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail="Invalid token")
@@ -115,7 +114,7 @@ class TokenService:
         Returns:
             bool: True if the token is blacklisted, False otherwise.
         """
-        return self.db.query(TokenBlacklist).filter_by(token=token).first() is not None
+        return self.db.query(models.TokenBlacklist).filter_by(token=token).first() is not None
 
     def add_token_to_blacklist(self, token: str, commit: bool = True) -> bool:
         """
@@ -129,17 +128,17 @@ class TokenService:
             bool: True after the token is successfully added to the blacklist.
         """
         if not self.is_token_blacklisted(token):
-            db_token = TokenBlacklist(token=token)
+            db_token = models.TokenBlacklist(token=token)
             self.db.add(db_token)
             if commit:
                 self.db.commit()
                 self.db.refresh(db_token)
         return True
 
-    def generate_tokens(self, user_id: Column[Integer], role: str) -> Token:
+    def generate_tokens(self, user_id: Column[Integer], role: str) -> schemas.Token:
         access_token = self.create_token({"user_id": user_id, "user_role": role}, "access")
         refresh_token = self.create_token({"user_id": user_id, "user_role": role}, "refresh")
-        return Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
+        return schemas.Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
 
 
 class AuthorizationService:
@@ -149,7 +148,7 @@ class AuthorizationService:
         """
         self.db = db
 
-    def check_if_entitled(self, role: str, user: User):
+    def check_if_entitled(self, role: str, user: models.User) -> None:
         """
         Checks if the current user has the required role or is an admin.
         Raises an HTTP 403 Forbidden exception if the user is not entitled.
@@ -166,7 +165,7 @@ class AuthorizationService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"You cannot perform this operation without the {role} role")
 
-    def get_current_concierge(self, token: str) -> User:
+    def get_current_concierge(self, token: str) -> models.User:
         """
         Retrieves the current concierge from the database using the provided JWT token.
 
@@ -187,9 +186,9 @@ class AuthorizationService:
 
         token_data = token_service.verify_concierge_token(token)
 
-        user = self.db.query(User).filter(
-            User.id == token_data.id,
-            User.role == token_data.role
+        user = self.db.query(models.User).filter(
+            models.User.id == token_data.id,
+            models.User.role == token_data.role
         ).first()
 
         if user is None:
@@ -213,20 +212,18 @@ class AuthorizationService:
         _ = self.get_current_concierge(token)
         return token
 
-    def authenticate_user_login(self, username: str, password: str, role: str) -> User:
+    def authenticate_user_login(self, username: str, password: str, role: str) -> models.User:
         """Authenticate user by email and password."""
         password_service = PasswordService()
-        user = self.db.query(User).filter_by(email=username).first()
+        user = self.db.query(models.User).filter_by(email=username).first()
         if not (user and password_service.verify_hashed(password, user.password)):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials")
         self.check_if_entitled(role, user)
         return user
 
-    def authenticate_user_card(self, card_id: CardId, role: str) -> User:
+    def authenticate_user_card(self, card_id: schemas.CardId, role: str) -> models.User:
         password_service = PasswordService()
-        users = self.db.query(User).filter(User.card_code.isnot(None)).all()
-        if not users:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No users found in the database")
+        users = self.db.query(models.User).filter(models.User.card_code.isnot(None)).all()
         for user in users:
             if password_service.verify_hashed(card_id.card_id, user.card_code):
                 self.check_if_entitled(role, user)

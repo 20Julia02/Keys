@@ -12,7 +12,7 @@ class PermissionService:
 
     def get_user_permission(self,
                             user_id: int,
-                            time: datetime = datetime.datetime.now()) -> schemas.PermissionOut:
+                            time: datetime = datetime.datetime.now()) -> models.Permission:
         perm = self.db.query(models.Permission).join(models.Room, models.Permission.room_id == models.Room.id).filter(models.Permission.user_id == user_id,
                                                     models.Permission.start_reservation < time,
                                                     models.Permission.end_reservation > time).order_by(models.Room.number).all()
@@ -26,7 +26,7 @@ class PermissionService:
     def get_filtered_permissions(self,
                         room_id: Optional[int] = None,
                         day: datetime = datetime.datetime.today()
-                        ) -> List[schemas.PermissionOut]:
+                        ) -> List[models.Permission]:
         """
         Helper function to retrieve permissions by user_id or room_id.
         """
@@ -85,7 +85,7 @@ class PermissionService:
         else:
             return True
 
-    def create_permission(self, permission: schemas.PermissionCreate, commit: bool = True):
+    def create_permission(self, permission: schemas.PermissionCreate, commit: bool = True) -> models.Permission:
         """
         Creates a new permission in the database.
         """
