@@ -10,7 +10,99 @@ router = APIRouter(
     tags=['Approve']
 )
 
-@router.post("/approve/login/session/{session_id}", response_model=List[schemas.DeviceOperationOut])
+@router.post("/approve/login/session/{session_id}", response_model=List[schemas.DeviceOperationOut],
+             responses={
+        200: {
+            "description": "Session successfully approved.",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "id": 1,
+                            "device": {
+                                "id": 1,
+                                "code": "ABC123",
+                                "dev_type": "Tablet",
+                                "dev_version": "v2.0",
+                                "room": {
+                                    "id": 101,
+                                    "number": "42A"
+                                }
+                            },
+                            "session": {
+                                "id": 1,
+                                "user_id": 5,
+                                "concierge_id": 2,
+                                "start_time": "2023-10-12T13:18:04.071Z",
+                                "status": "in_progress"
+                            },
+                            "operation_type": "activate_device",
+                            "entitled": True,
+                            "timestamp": "2023-10-12T13:18:04.071Z"
+                        }
+                    ]
+                }
+            },
+        },
+        403: {
+            "description": "Authentication failed due to incorrect login credentials.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Invalid credential"
+                    }
+                }
+            }
+        },
+        404: {
+            "description": "Session not found or no unapproved operations for the session.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "session_not_found": {
+                            "summary": "Session not found",
+                            "value": {
+                                    "detail": "IssueReturnSession not found"
+                            }
+                        },
+                        "no_operations_found": {
+                            "summary": "No unapproved operations",
+                            "value": {
+                            "detail": "No unapproved operations found for this session"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        422: {
+            "description": "Validation Error: Invalid input or malformed data.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": [
+                            {
+                                "loc": ["path", "session_id"],
+                                "msg": "Session ID must be an integer",
+                                "type": "type_error.integer"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        500: {
+            "description": "Internal server error occurred during the operation transfer process..",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Error during operation transfer"
+                    }
+                }
+            }
+        },
+    }
+)
 def approve_session_login(session_id: int,
                           db: Session = Depends(database.get_db),
                           concierge_credentials: OAuth2PasswordRequestForm = Depends(),
@@ -18,9 +110,9 @@ def approve_session_login(session_id: int,
     """
     Approve a session and its associated operations using login credentials for authentication.
 
-    This endpoint finalizes an session, allowing a concierge to approve devices
-    modified during the session. The concierge must authenticate via login credentials before approval.
-    Once approved, the devices are transferred from the unapproved state to the approved device data.
+    This endpoint finalizes an session, allowing a concierge to approve operations
+    which modifies devices during the session. The concierge must authenticate via login credentials before approval.
+    Once approved, the operations are transferred from the unapproved state to the approved operations data.
     """
     auth_service = securityService.AuthorizationService(db)
     unapproved_operation_service = operationService.UnapprovedOperationService(db)
@@ -33,7 +125,7 @@ def approve_session_login(session_id: int,
 
 @router.post("/approve/card/session/{session_id}", response_model=List[schemas.DeviceOperationOut])
 def approve_session_card(session_id,
-                         card_data: schemas.CardLogin,
+                         card_data: schemas.CardId,
                          db: Session = Depends(database.get_db),
                          current_concierge=Depends(oauth2.get_current_concierge)
                          ) -> JSONResponse:

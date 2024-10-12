@@ -12,9 +12,9 @@ router = APIRouter(
 # todo uwierzytelniane zewnetrzne, wysylanie requesta z kartą
 
 
-@router.post("/login", response_model=schemas.LoginConcierge)
+@router.post("/login", response_model=schemas.Token)
 def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
-          db: Session = Depends(database.get_db)) -> schemas.LoginConcierge:
+          db: Session = Depends(database.get_db)) -> schemas.Token:
     """
     Authenticate a concierge using their login credentials (username and password).
 
@@ -27,7 +27,7 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
         db (Session): The active database session.
 
     Returns:
-        LoginConcierge: An object containing both the access token and refresh token.
+        Token: An object containing both the access token and refresh token.
 
     Raises:
         HTTPException: If authentication fails or if the user does not have the appropriate permissions.
@@ -40,9 +40,9 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
     return token_service.generate_tokens(concierge.id, concierge.role.value)
 
 
-@router.post("/login/card", response_model=schemas.LoginConcierge)
-def card_login(card_id: schemas.CardLogin,
-               db: Session = Depends(database.get_db)) -> schemas.LoginConcierge:
+@router.post("/login/card", response_model=schemas.Token)
+def card_login(card_id: schemas.CardId,
+               db: Session = Depends(database.get_db)) -> schemas.Token:
     """
     Authenticate a concierge using their card ID.
 
@@ -51,11 +51,11 @@ def card_login(card_id: schemas.CardLogin,
     and a refresh token for future API requests and token refreshing.
 
     Args:
-        card_id (CardLogin): Object containing the card ID.
+        card_id (CardId): Object containing the card ID.
         db (Session): The active database session.
 
     Returns:
-        LoginConcierge: An object containing both the access token and refresh token.
+        Token: An object containing both the access token and refresh token.
 
     Raises:
         HTTPException: If authentication fails or if the user does not have the appropriate permissions.
@@ -97,7 +97,7 @@ def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
 
 
 @router.post("/start-session/card", response_model=schemas.IssueReturnSession)
-def start_card_session(card_id: schemas.CardLogin,
+def start_card_session(card_id: schemas.CardId,
                        current_concierge=Depends(oauth2.get_current_concierge),
                        db: Session = Depends(database.get_db)) -> schemas.IssueReturnSession:
     """
@@ -136,8 +136,7 @@ def refresh_token(refresh_token: schemas.RefreshToken, db: Session = Depends(dat
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
-    access_token = token_service.create_token(token_data.model_dump(), "access")
-    return schemas.Token(access_token=access_token, token_type="bearer")
+    return token_service.generate_tokens(user.id, user.role.value)
 
 
 @router.post("/logout")

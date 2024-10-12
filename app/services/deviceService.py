@@ -3,7 +3,7 @@ from fastapi import HTTPException, status
 from typing import List, Optional
 from app import models, schemas
 from app.services import operationService
-from sqlalchemy import func, case, and_, cast, Integer
+from sqlalchemy import String, func, case, and_, cast, Integer
 
 
 class DeviceService:
@@ -34,7 +34,7 @@ class DeviceService:
                                 detail=f"Device with code: {dev_code} doesn't exist")
         return device
 
-    def get_devs_filtered(self, dev_type: Optional[str] = None, dev_version: Optional[str] = None, room_number: Optional[str] = None) -> List[schemas.DeviceOutNote]:
+    def get_devs_filtered(self, dev_type: Optional[str] = None, dev_version: Optional[str] = None, room_number: Optional[str] = None) -> List[schemas.DeviceOutWithNote]:
         last_operation_subquery = (
             self.db.query(
                 models.DeviceOperation.device_id,
@@ -94,7 +94,10 @@ class DeviceService:
         numeric_part = cast(func.regexp_replace(models.Room.number, '\D', '', 'g'), Integer)
         text_part = func.regexp_replace(models.Room.number, '\d', '', 'g')
 
-        query = query.order_by(numeric_part, text_part)
+        query = query.order_by(
+        func.cast(numeric_part, Integer).asc(),
+        text_part.asc()
+        )
 
         devices = query.all()
 

@@ -6,7 +6,7 @@ import datetime
 from zoneinfo import ZoneInfo
 from jose import JWTError, jwt
 from app.config import settings
-from app.schemas import TokenData, CardLogin, LoginConcierge
+from app.schemas import TokenData, CardId, Token
 from app.models import TokenBlacklist, User
 
 
@@ -136,10 +136,10 @@ class TokenService:
                 self.db.refresh(db_token)
         return True
 
-    def generate_tokens(self, user_id: Column[Integer], role: str) -> LoginConcierge:
+    def generate_tokens(self, user_id: Column[Integer], role: str) -> Token:
         access_token = self.create_token({"user_id": user_id, "user_role": role}, "access")
         refresh_token = self.create_token({"user_id": user_id, "user_role": role}, "refresh")
-        return LoginConcierge(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
+        return Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
 
 
 class AuthorizationService:
@@ -222,7 +222,7 @@ class AuthorizationService:
         self.check_if_entitled(role, user)
         return user
 
-    def authenticate_user_card(self, card_id: CardLogin, role: str) -> User:
+    def authenticate_user_card(self, card_id: CardId, role: str) -> User:
         password_service = PasswordService()
         users = self.db.query(User).filter(User.card_code.isnot(None)).all()
         if not users:

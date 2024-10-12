@@ -1,6 +1,6 @@
 from fastapi import status, HTTPException, Depends, APIRouter
 from typing import List
-from app.schemas import UnauthorizedUser, UnauthorizedUserBase
+from app.schemas import UnauthorizedUser
 from app import database, models, oauth2
 from sqlalchemy.orm import Session
 
@@ -11,7 +11,7 @@ router = APIRouter(
 
 
 @router.post("/", response_model=UnauthorizedUser, status_code=status.HTTP_201_CREATED)
-def create_or_get_unauthorized_user(user: UnauthorizedUserBase,
+def create_or_get_unauthorized_user(user: UnauthorizedUser,
                                     db: Session = Depends(database.get_db),
                                     current_concierge=Depends(oauth2.get_current_concierge)) -> UnauthorizedUser:
     """

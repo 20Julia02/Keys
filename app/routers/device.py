@@ -13,12 +13,12 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=List[schemas.DeviceOutNote])
+@router.get("/", response_model=List[schemas.DeviceOutWithNote])
 def get_devices_filtered(current_concierge=Depends(oauth2.get_current_concierge),
                          dev_type: str = "",
                          dev_version: str = "",
                          room_number: str ="",
-                         db: Session = Depends(database.get_db)) -> List[schemas.DeviceOutNote]:
+                         db: Session = Depends(database.get_db)) -> List[schemas.DeviceOutWithNote]:
     """
     Retrieve all devices from the database, optionally filtered by type or dev_version.
 

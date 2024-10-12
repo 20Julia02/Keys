@@ -1,42 +1,56 @@
 import datetime
 from typing import Optional, Union
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # todo uporządkować to
 
 
-class CardLogin(BaseModel):
+class CardId(BaseModel):
     card_id: str
 
 
-class UserBase(BaseModel):
+class RefreshToken(BaseModel):
+    refresh_token: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    refresh_token: str
+
+
+class TokenData(BaseModel):
+    id: Optional[int] = None
+    role: Optional[str] = None
+
+
+class UserCreate(BaseModel):
     name: str
     surname: str
-
-
-class UserCreate(UserBase):
     role: str
     email: str
     password: str
+    card_code: str
     faculty: Optional[str] = None
     photo_url: Optional[str] = None
-    card_code: str
 
 
-class UserOut(UserBase):
+class UserOut(BaseModel):
     id: int
+    name: str
+    surname: str
     role: str
     faculty: Optional[str]
+    photo_url: Optional[str] = None
+    
 
-
-class DeviceBase(BaseModel):
-    code: str
-    dev_version: str
-    dev_type: str
-
-
-class DeviceCreate(DeviceBase):
-    room_id: int
+class UnauthorizedUser(BaseModel):
+    name: str
+    surname: str
+    email: str
+    addition_time: Optional[datetime.datetime] = None
 
 
 class RoomOut(BaseModel):
@@ -46,13 +60,11 @@ class RoomOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class DeviceOutNote(BaseModel):
-    id: int
-    dev_type: str
+class DeviceCreate(BaseModel):
+    code: str
     dev_version: str
-    room_number: str
-    is_taken: bool
-    has_note: bool
+    dev_type: str
+    room_id: int
 
 
 class DeviceOut(BaseModel):
@@ -65,69 +77,13 @@ class DeviceOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class UserDeviceOut(BaseModel):
+class DeviceOutWithNote(BaseModel):
     id: int
     dev_type: str
     dev_version: str
     room_number: str
     is_taken: bool
-    taken_at: datetime.datetime
-
-
-class PermissionCreate(BaseModel):
-    user_id: int
-    room_id: int
-    start_reservation: datetime.datetime
-    end_reservation: datetime.datetime
-
-
-class PermissionOut(BaseModel):
-    room: RoomOut
-    user: UserOut
-    start_reservation: datetime.datetime
-    end_reservation: datetime.datetime
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class RefreshToken(BaseModel):
-    refresh_token: str
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class LoginConcierge(Token):
-    refresh_token: str
-
-
-class TokenData(BaseModel):
-    id: Optional[int] = None
-    role: Optional[str] = None
-
-
-class UnauthorizedUserBase(BaseModel):
-    name: str
-    surname: str
-    email: str
-
-
-class UnauthorizedUser(UnauthorizedUserBase):
-    addition_time: datetime.datetime
-
-
-class IssueReturnSession(BaseModel):
-    id: int
-    user_id: Optional[int] = None
-    concierge_id: int
-    start_time: datetime.datetime
-    status: Optional[str] = "in_progress"
-
-    model_config = ConfigDict(from_attributes=True)
+    has_note: bool
 
 
 class DeviceOperation(BaseModel):
@@ -147,6 +103,30 @@ class DeviceNote(BaseModel):
 class DeviceNoteOut(BaseModel):
     device: DeviceOut
     note: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PermissionCreate(BaseModel):
+    user_id: int
+    room_id: int
+    start_reservation: datetime.datetime
+    end_reservation: datetime.datetime
+
+
+class PermissionOut(BaseModel):
+    room: RoomOut
+    user: UserOut
+    start_reservation: datetime.datetime
+    end_reservation: datetime.datetime
+
+
+class IssueReturnSession(BaseModel):
+    id: int
+    user_id: Optional[int] = None
+    concierge_id: int
+    start_time: datetime.datetime
+    status: Optional[str] = "in_progress"
 
     model_config = ConfigDict(from_attributes=True)
 
