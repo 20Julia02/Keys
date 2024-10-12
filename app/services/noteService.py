@@ -1,3 +1,4 @@
+import datetime
 from fastapi import status, HTTPException
 from app import models, schemas
 from sqlalchemy.orm import Session
@@ -24,14 +25,20 @@ class NoteService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No note found for user id: {user_id}")
         return notes
 
-    def create_user_note(self, note_data: schemas.UserNote, commit: bool = True):
+    def create_user_note(self, note_data: schemas.UserNoteCreate, commit: bool = True):
         """Create a new user note."""
-        note_data = models.UserNote(**note_data.model_dump())
-        self.db.add(note_data)
+        note_data_dict = note_data.model_dump()
+        note_data_dict["timestamp"] = datetime.datetime.now()
+        note = models.UserNote(**note_data_dict)
+        self.db.add(note)
         if commit:
-            self.db.commit()
-            self.db.refresh(note_data)
-        return note_data
+            try:
+                self.db.commit()
+                self.db.refresh(note)
+            except Exception as e:
+                self.db.rollback()
+                raise e 
+        return note
     
     def get_dev_notes(self):
         notes = self.db.query(models.DeviceNote).all()
@@ -41,32 +48,26 @@ class NoteService:
 
         return notes
 
-    def get_dev_notes_id(self, dev_id: int, issue_return_session_id: Optional[int] = None):
+    def get_dev_notes_id(self, dev_id: int):
         """Retrieve all device notes filtered by device ID or issue/return session ID."""
-        query_note = self.db.query(models.DeviceNote).join(models.DeviceOperation)
-        if dev_id is not None:
-            query_note = query_note.filter(models.DeviceOperation.device_id == dev_id)
-        notes = query_note.all()
-        results = []
-        for note in notes:
-            note_data = {
-                "note": note.note,
-                "device_operation_id": note.device_operation_id,
-                "operation_user_id": note.operation_user_id,
-                "note_device": note.note_device
-            }
-            results.append(note_data)
+        notes = self.db.query(models.DeviceNote).filter(models.DeviceNote.device_id == dev_id).all()
 
-        if not results:
+        if not notes:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There are no notes that match the given criteria")
-        return results
+        return notes
 
     def create_dev_note(self, note_data: schemas.DeviceNote, commit: bool = True):
-        """Create a new operation note."""
-        note_data = models.DeviceNote(**note_data.model_dump())
-        self.db.add(note_data)
+        """Create a new device note."""
+        note_data_dict = note_data.model_dump()
+        note_data_dict["timestamp"] = datetime.datetime.now()
+        note = models.DeviceNote(**note_data_dict)
+        self.db.add(note)
         if commit:
-            self.db.commit()
-            self.db.refresh(note_data)
-        return note_data
+            try:
+                self.db.commit()
+                self.db.refresh(note)
+            except Exception as e:
+                self.db.rollback()
+                raise e 
+        return note

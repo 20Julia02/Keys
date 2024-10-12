@@ -33,41 +33,14 @@ class Device(Base):
     code = Column(String(50), unique=True, nullable=False)
     dev_type = Column(Enum(DeviceType), nullable=False)
     room_id = Column(Integer, ForeignKey("room.id"), nullable=False)
-    version = Column(Enum(DeviceVersion), nullable=False)
-    is_taken = Column(Boolean, nullable=False, server_default="false")
-    last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
-    last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
-    last_owner_id = Column(Integer, ForeignKey("base_user.id"), nullable=True)
+    dev_version = Column(Enum(DeviceVersion), nullable=False)
 
     room = relationship("Room")
-    user = relationship("BaseUser")
+    notes = relationship("DeviceNote", back_populates="device")
 
     __table_args__ = (UniqueConstraint(
-        "dev_type", "room_id", "version", name="uix_device"),)
+        "dev_type", "room_id", "dev_version", name="uix_device"),)
     
-    def get_note_ids(self, session):
-        query = (
-            session.query(DeviceNote.id)
-            .join(DeviceOperation, DeviceOperation.device_id == self.id)
-            .join(DeviceNote, DeviceNote.device_operation_id == DeviceOperation.id)
-            .filter(DeviceOperation.device_id == self.id)
-        )
-        return [note_id[0] for note_id in query.all()]
-
-
-class DeviceUnapproved(Base):
-    __tablename__ = "device_unapproved"
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    device_id = Column(Integer, ForeignKey("device.id"), nullable=False)
-    is_taken = Column(Boolean, nullable=False, server_default="false")
-    last_taken = Column(TIMESTAMP(timezone=True), nullable=True)
-    last_returned = Column(TIMESTAMP(timezone=True), nullable=True)
-    last_owner_id = Column(Integer, ForeignKey("base_user.id"), nullable=True)
-    issue_return_session_id = Column(Integer, ForeignKey("issue_return_session.id"), nullable=False)
-
-    issue_return_session = relationship("IssueReturnSession")
-    user = relationship("BaseUser")
-    device = relationship("Device")
 
 
 class OperationType(enum.Enum):
@@ -75,17 +48,31 @@ class OperationType(enum.Enum):
     return_dev = "return_device"
 
 
-class DeviceOperation(Base):
-    __tablename__ = "device_operation"
+class UnapprovedOperation(Base):
+    __tablename__ = "operation_unapproved"
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     device_id = Column(Integer, ForeignKey("device.id"), nullable=False)
-    issue_return_session_id = Column(Integer, ForeignKey("issue_return_session.id"), nullable=False)
+    session_id = Column(Integer, ForeignKey("session.id"), nullable=False)
     operation_type = Column(Enum(OperationType), nullable=False)
     entitled = Column(Boolean, nullable=True)
+    timestamp = Column(TIMESTAMP(timezone=True), nullable=True)
+    
+    session = relationship("IssueReturnSession")
+    device = relationship("Device")
+
+
+class DeviceOperation(Base):
+    __tablename__ = "device_operation"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    device_id = Column(Integer, ForeignKey("device.id"), nullable=False)
+    session_id = Column(Integer, ForeignKey("session.id"), nullable=False)
+    operation_type = Column(Enum(OperationType), nullable=False)
+    entitled = Column(Boolean, nullable=True)
+    timestamp = Column(TIMESTAMP(timezone=True), nullable=True)
 
     device = relationship("Device")
-    issue_return_session = relationship("IssueReturnSession", back_populates="device_operations")
-    device_notes = relationship("DeviceNote", back_populates="device_operation")
+    session = relationship("IssueReturnSession", back_populates="device_operations")
 
 
 class BaseUser(Base):
@@ -150,7 +137,7 @@ class SessionStatus(enum.Enum):
 
 
 class IssueReturnSession (Base):
-    __tablename__ = "issue_return_session"
+    __tablename__ = "session"
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     user_id = Column(Integer, ForeignKey("base_user.id"), nullable=True)
@@ -159,7 +146,7 @@ class IssueReturnSession (Base):
     end_time = Column(TIMESTAMP(timezone=True), nullable=True)
     status = Column(Enum(SessionStatus), nullable=False)
 
-    device_operations = relationship("DeviceOperation", back_populates="issue_return_session")
+    device_operations = relationship("DeviceOperation", back_populates="session")
 
 
 class Room(Base):
@@ -184,22 +171,11 @@ class Permission(Base):
 class DeviceNote(Base):
     __tablename__ = "device_note"
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    device_operation_id = Column(Integer, ForeignKey("device_operation.id"), nullable=True)
+    device_id = Column(Integer, ForeignKey("device.id"), nullable=True)
     note = Column(String, nullable=False)
+    timestamp = Column(TIMESTAMP(timezone=True), nullable=False)
 
-    device_operation = relationship("DeviceOperation", back_populates="device_notes")
-
-    @property
-    def operation_user_id(self):
-        if self.device_operation and self.device_operation.issue_return_session:
-            return self.device_operation.issue_return_session.user_id
-        return None
-    
-    @property
-    def note_device(self):
-        if self.device_operation:
-            return self.device_operation.device
-        return None
+    device = relationship("Device", back_populates="notes")
 
 
 class UserNote(Base):
@@ -208,5 +184,6 @@ class UserNote(Base):
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     user_id = Column(Integer, ForeignKey("base_user.id"), nullable=False)
     note = Column(String, nullable=False)
+    timestamp = Column(TIMESTAMP(timezone=True), nullable=False)
 
     user = relationship("BaseUser")

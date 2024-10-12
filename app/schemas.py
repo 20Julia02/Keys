@@ -16,7 +16,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     role: str
-    email: EmailStr
+    email: str
     password: str
     faculty: Optional[str] = None
     photo_url: Optional[str] = None
@@ -28,13 +28,10 @@ class UserOut(UserBase):
     role: str
     faculty: Optional[str]
 
-    model_config = ConfigDict(from_attributes=True)
-
 
 class DeviceBase(BaseModel):
     code: str
-    version: str
-    is_taken: bool
+    dev_version: str
     dev_type: str
 
 
@@ -49,25 +46,32 @@ class RoomOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class DeviceOut(DeviceBase):
+class DeviceOutNote(BaseModel):
     id: int
-    room: RoomOut
-    last_taken: Optional[datetime.datetime] = None
-    last_returned: Optional[datetime.datetime] = None
-    last_owner_id: Optional[int] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-class DeviceUnapproved(BaseModel):
-    device_id: int
+    dev_type: str
+    dev_version: str
+    room_number: str
     is_taken: bool
-    last_taken: Optional[datetime.datetime] = None
-    last_returned: Optional[datetime.datetime] = None
-    last_owner_id: Optional[int] = None
-    issue_return_session_id: int
+    has_note: bool
+
+
+class DeviceOut(BaseModel):
+    id: int
+    code: str
+    dev_type: str
+    dev_version: str
+    room: RoomOut
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class UserDeviceOut(BaseModel):
+    id: int
+    dev_type: str
+    dev_version: str
+    room_number: str
+    is_taken: bool
+    taken_at: datetime.datetime
 
 
 class PermissionCreate(BaseModel):
@@ -78,12 +82,10 @@ class PermissionCreate(BaseModel):
 
 
 class PermissionOut(BaseModel):
-    user: UserOut
     room: RoomOut
+    user: UserOut
     start_reservation: datetime.datetime
     end_reservation: datetime.datetime
-
-    model_config = ConfigDict(from_attributes=True)
 
 
 class Token(BaseModel):
@@ -130,23 +132,21 @@ class IssueReturnSession(BaseModel):
 
 class DeviceOperation(BaseModel):
     device_id: int
-    issue_return_session_id: int
+    session_id: int
     operation_type: str
     entitled: bool
 
 
 class DeviceNote(BaseModel):
-    device_operation_id: int
+    device_id: int
     note: str
 
     model_config = ConfigDict(from_attributes=True)
 
 
 class DeviceNoteOut(BaseModel):
-    device_operation_id: int
+    device: DeviceOut
     note: str
-    operation_user_id: Optional[int] = None
-    note_device: Optional[DeviceOut] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -167,7 +167,7 @@ class UserNoteCreate(BaseModel):
 
 class ChangeStatus(BaseModel):
     device_id: int
-    issue_return_session_id: int
+    session_id: int
     force: Optional[bool] = False
 
 
@@ -178,9 +178,10 @@ class DetailMessage(BaseModel):
 class DeviceOperationOut(BaseModel):
     id: int
     device: DeviceOut
-    issue_return_session: IssueReturnSession
+    session: IssueReturnSession
     operation_type: str
     entitled: bool
+    timestamp: datetime.datetime
 
     model_config = ConfigDict(from_attributes=True)
 

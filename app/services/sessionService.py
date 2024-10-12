@@ -35,14 +35,14 @@ class SessionService:
             self.db.refresh(new_session)
         return new_session
 
-    def end_session(self, issue_return_session_id: int, reject: str = False, commit: bool = True) -> IssueReturnSession:
+    def end_session(self, session_id: int, reject: str = False, commit: bool = True) -> IssueReturnSession:
         """
         Changes the status of the session to rejected or completed
         depending on the given value of the reject argument. The default
         (reject = False) changes the status to completed.
 
         Args:
-            issue_return_session_id (int): the ID of the session
+            session_id (int): the ID of the session
 
         Returns:
             _type_: schemas.IssueReturnSession. The session with completed status
@@ -50,7 +50,7 @@ class SessionService:
         Raises:
             HTTPException: If the session with given ID doesn't exist
         """
-        session = self.db.query(models.IssueReturnSession).filter_by(id=issue_return_session_id).first()
+        session = self.db.query(models.IssueReturnSession).filter_by(id=session_id).first()
         if not session:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="IssueReturnSession not found")
         session.status = models.SessionStatus.rejected if reject else models.SessionStatus.completed
@@ -60,9 +60,9 @@ class SessionService:
             self.db.refresh(session)
         return session
 
-    def get_session_id(self, issue_return_session_id: int) -> IssueReturnSession:
+    def get_session_id(self, session_id: int) -> IssueReturnSession:
         session = self.db.query(models.IssueReturnSession).filter(
-                    models.IssueReturnSession.id == issue_return_session_id
+                    models.IssueReturnSession.id == session_id
                 ).first()
 
         if not session:
