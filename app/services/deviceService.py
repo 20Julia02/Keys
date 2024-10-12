@@ -3,7 +3,7 @@ from fastapi import HTTPException, status
 from typing import List, Optional
 from app import models, schemas
 from app.services import operationService
-from sqlalchemy import func, case, and_
+from sqlalchemy import func, case, and_, cast, Integer
 
 
 class DeviceService:
@@ -91,7 +91,10 @@ class DeviceService:
         query = query.group_by(
             models.Device.id, models.Room.number, models.DeviceOperation.operation_type
         )
-        query = query.order_by(models.Room.number)
+        numeric_part = cast(func.regexp_replace(models.Room.number, '\D', '', 'g'), Integer)
+        text_part = func.regexp_replace(models.Room.number, '\d', '', 'g')
+
+        query = query.order_by(numeric_part, text_part)
 
         devices = query.all()
 

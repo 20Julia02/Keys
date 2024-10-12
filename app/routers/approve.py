@@ -16,7 +16,7 @@ def approve_session_login(session_id: int,
                           concierge_credentials: OAuth2PasswordRequestForm = Depends(),
                           current_concierge=Depends(oauth2.get_current_concierge)) -> List[schemas.DeviceOperationOut]:
     """
-    Approve a session and its associated devices using login credentials for authentication.
+    Approve a session and its associated operations using login credentials for authentication.
 
     This endpoint finalizes an session, allowing a concierge to approve devices
     modified during the session. The concierge must authenticate via login credentials before approval.
