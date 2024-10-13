@@ -79,6 +79,30 @@ def add_user_note(note_data: schemas.UserNoteCreate,
     return note_service.create_user_note(note_data)
 
 
+@router.put("/users/{note_id}", response_model=schemas.UserNote)
+def edit_user_note(note_id: int,
+                   note_data: schemas.NoteUpdate,
+                   current_concierge=Depends(oauth2.get_current_concierge),
+                   db: Session = Depends(database.get_db)) -> schemas.UserNote:
+    """
+    Edits a note with the specified ID for a user.
+
+    Args:
+        note_id: The ID of the note to be edited.
+        note_data: The data to update the note with.
+        current_concierge: The currently authenticated concierge.
+        db: The database session to perform the operation.
+
+    Returns:
+        schemas.UserNote: The updated note.
+
+    Raises:
+        HTTPException: If the note with the given ID is not found.
+    """
+    note_service = noteService.NoteService(db)
+    return note_service.update_user_note(note_id, note_data)
+
+
 @router.get("/devices", response_model=List[schemas.DeviceNoteOut])
 def get_all_devices_notes(
         current_concierge=Depends(oauth2.get_current_concierge),
@@ -104,22 +128,22 @@ def add_device_note(note_data: schemas.DeviceNote,
     """
     It allows to add a note to a specific operation. The operation is identified
     by its unique ID, and the note is saved in the database.
-
-    Args:
-        operation_id: The ID of the operation for which the note is being created.
-        note: The text content of the note.
-        current_concierge: The currently authenticated concierge creating the note.
-        db: The database session to perform the operation.
-
-    Returns:
-        schemas.DeviceOperationNote: The newly created operation note.
-
-    Raises:
-        HTTPException: If the note creation process encounters an error.
     """
 
     note_service = noteService.NoteService(db)
     return note_service.create_dev_note(note_data)
+
+
+@router.put("/devices/{note_id}", response_model=schemas.UserNote)
+def edit_device_note(note_id: int,
+                   note_data: schemas.NoteUpdate,
+                   current_concierge=Depends(oauth2.get_current_concierge),
+                   db: Session = Depends(database.get_db)) -> schemas.UserNote:
+    """
+    Edits a note with the specified ID for a device.
+    """
+    note_service = noteService.NoteService(db)
+    return note_service.update_device_note(note_id, note_data)
 
 
 @router.delete("/devices/{note_id}", status_code=status.HTTP_204_NO_CONTENT)

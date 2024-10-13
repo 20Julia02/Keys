@@ -9,10 +9,39 @@ router = APIRouter(
     tags=['Authentication']
 )
 
-# todo uwierzytelniane zewnetrzne, wysylanie requesta z kartą
 
-
-@router.post("/login", response_model=schemas.Token)
+@router.post("/login", response_model=schemas.Token, responses={
+        200: {
+            "description": "Concierge authorized and tokens generated.",
+            "content": {
+                "application/json": {
+                    "example": 
+                        {
+                            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+                            "token_type": "bearer",
+                            "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+                        }
+                    
+                }
+            },
+        },
+        403: {
+            "description": "Authentication failed due to incorrect login credentials.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "invalid_card_code":{
+                        "detail": "Invalid credential"
+                        },
+                        "not_entitled": {
+                        "detail": "You cannot perform this operation without the concierge role"
+                        }
+                    }
+                }
+            }
+        },
+    }
+)
 def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
           db: Session = Depends(database.get_db)) -> schemas.Token:
     """
@@ -40,7 +69,38 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
     return token_service.generate_tokens(concierge.id, concierge.role.value)
 
 
-@router.post("/login/card", response_model=schemas.Token)
+@router.post("/login/card", response_model=schemas.Token, responses={
+        200: {
+            "description": "Concierge authorized and tokens generated.",
+            "content": {
+                "application/json": {
+                    "example": 
+                        {
+                            "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+                            "token_type": "bearer",
+                            "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+                        }
+                    
+                }
+            },
+        },
+        403: {
+            "description": "Authentication failed due to incorrect login credentials.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "invalid_card_code":{
+                        "detail": "Invalid credential"
+                        },
+                        "not_entitled": {
+                        "detail": "You cannot perform this operation without the concierge role"
+                        }
+                    }
+                }
+            }
+        },
+    }
+)
 def card_login(card_id: schemas.CardId,
                db: Session = Depends(database.get_db)) -> schemas.Token:
     """

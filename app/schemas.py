@@ -144,6 +144,8 @@ class UserNoteCreate(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class NoteUpdate(BaseModel):
+    note: Optional[str]
 
 class ChangeStatus(BaseModel):
     device_id: int

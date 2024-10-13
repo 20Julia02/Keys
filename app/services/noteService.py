@@ -40,6 +40,27 @@ class NoteService:
                 raise e 
         return note
     
+    def update_user_note(self, note_id: int, note_data: schemas.NoteUpdate, commit: bool = True) -> models.UserNote:
+
+        note = self.db.query(models.UserNote).filter(models.UserNote.id == note_id).first()
+        
+        if not note:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Note with id {note_id} not found")
+
+        note.note = note_data.note
+        note.timestamp = datetime.datetime.now()
+
+        if commit:
+            try:
+                self.db.commit()
+                self.db.refresh(note)
+            except Exception as e:
+                self.db.rollback()
+                raise e 
+
+        return note
+    
     def get_dev_notes(self) -> List[models.DeviceNote]:
         notes = self.db.query(models.DeviceNote).all()
         if not notes:
@@ -70,4 +91,25 @@ class NoteService:
             except Exception as e:
                 self.db.rollback()
                 raise e 
+        return note
+
+    def update_device_note(self, note_id: int, note_data: schemas.NoteUpdate, commit: bool = True) -> models.UserNote:
+
+        note = self.db.query(models.DeviceNote).filter(models.DeviceNote.id == note_id).first()
+        
+        if not note:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Note with id {note_id} not found")
+
+        note.note = note_data.note
+        note.timestamp = datetime.datetime.now()
+
+        if commit:
+            try:
+                self.db.commit()
+                self.db.refresh(note)
+            except Exception as e:
+                self.db.rollback()
+                raise e 
+
         return note
