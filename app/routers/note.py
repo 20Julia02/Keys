@@ -134,11 +134,11 @@ def add_device_note(note_data: schemas.DeviceNote,
     return note_service.create_dev_note(note_data)
 
 
-@router.put("/devices/{note_id}", response_model=schemas.UserNote)
+@router.put("/devices/{note_id}", response_model=schemas.DeviceNoteOut)
 def edit_device_note(note_id: int,
                    note_data: schemas.NoteUpdate,
                    current_concierge=Depends(oauth2.get_current_concierge),
-                   db: Session = Depends(database.get_db)) -> schemas.UserNote:
+                   db: Session = Depends(database.get_db)) -> schemas.DeviceNoteOut:
     """
     Edits a note with the specified ID for a device.
     """
