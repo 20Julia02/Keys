@@ -18,9 +18,12 @@ class NoteService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No user notes found.")
         return notes
 
-    def get_user_note_by_id(self, user_id: int) -> models.UserNote:
+    def get_user_note_by_id(self, user_id: int) -> List[models.UserNote]:
         """Retrieve a specific user note by user_id."""
-        notes = self.db.query(models.UserNote).filter(models.UserNote.user_id == user_id).all()
+        notes = (self.db.query(models.UserNote)
+                 .filter(models.UserNote.user_id == user_id)
+                 .order_by(models.UserNote.timestamp.asc())
+                 .all())
         if not notes:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No note found for user id: {user_id}")
         return notes
@@ -69,10 +72,12 @@ class NoteService:
 
         return notes
 
-    def get_dev_notes_id(self, dev_id: int) -> models.DeviceNote:
+    def get_dev_notes_id(self, dev_id: int) -> List[models.DeviceNote]:
         """Retrieve all device notes filtered by device ID or issue/return session ID."""
-        notes = self.db.query(models.DeviceNote).filter(models.DeviceNote.device_id == dev_id).all()
-
+        notes = (self.db.query(models.DeviceNote)
+                 .filter(models.DeviceNote.device_id == dev_id)
+                 .order_by(models.DeviceNote.timestamp.asc())
+                 .all())
         if not notes:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There are no notes that match the given criteria")

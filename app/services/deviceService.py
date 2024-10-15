@@ -44,13 +44,13 @@ class DeviceService:
             .subquery()
         )
 
-        query = self.db.query(
+        query = (self.db.query(
             models.Device.id,
             models.Device.dev_type,
             models.Device.dev_version,
             models.Room.number.label("room_number"),
             case(
-                (models.DeviceOperation.operation_type == 'issue_device', True), 
+                (models.DeviceOperation.operation_type == models.OperationType.issue_device, True), 
                 else_=False
             ).label('is_taken'),
             case(
@@ -58,20 +58,18 @@ class DeviceService:
                 else_=False
             ).label('has_note')
         )
-
-        query = query.join(models.Room, models.Device.room_id == models.Room.id)
-
-        query = query.outerjoin(
+        .join(models.Room, models.Device.room_id == models.Room.id)
+        .outerjoin(
             last_operation_subquery, 
             models.Device.id == last_operation_subquery.c.device_id
         )
-
-        query = query.outerjoin(models.DeviceOperation, and_(
+        .outerjoin(models.DeviceOperation, and_(
             models.Device.id == models.DeviceOperation.device_id,
             models.DeviceOperation.timestamp == last_operation_subquery.c.last_operation_timestamp
         ))
+        .outerjoin(models.DeviceNote, models.Device.id == models.DeviceNote.device_id)
+        )
 
-        query = query.outerjoin(models.DeviceNote, models.Device.id == models.DeviceNote.device_id)
         if dev_type:
             try:
                 dev_type_enum = models.DeviceType[dev_type]
@@ -94,6 +92,7 @@ class DeviceService:
         query = query.group_by(
             models.Device.id, models.Room.number, models.DeviceOperation.operation_type
         )
+
         numeric_part = func.regexp_replace(models.Room.number, '\D+', '', 'g')
         text_part = func.regexp_replace(models.Room.number, '\d+', '', 'g')
 
@@ -136,6 +135,7 @@ class DeviceService:
                 (models.DeviceOperation.timestamp == last_operation_subquery.c.last_operation_timestamp)
             )
             .filter(models.DeviceOperation.operation_type == models.OperationType.issue_device)
+            .order_by(models.DeviceOperation.timestamp.asc())
             .group_by(models.DeviceOperation.id)
         )
 
