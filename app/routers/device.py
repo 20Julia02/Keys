@@ -1,8 +1,6 @@
-import datetime
-from zoneinfo import ZoneInfo
-from fastapi import status, Depends, APIRouter, HTTPException
+from fastapi import status, Depends, APIRouter
 from typing import List
-from app import database, oauth2, models, schemas
+from app import database, oauth2, schemas
 from app.services import deviceService, securityService, sessionService, operationService, permissionService
 from sqlalchemy.orm import Session
 
@@ -24,24 +22,12 @@ def get_devices_filtered(current_concierge=Depends(oauth2.get_current_concierge)
 
     This endpoint retrieves a list of devices from the database. Optionally,
     the list can be filtered by device type and dev_version if these parameters are provided.
-
-    Args:
-        current_concierge: The currently authenticated concierge (used for authorization).
-        dev_type (str): Optional filter for device type.
-        dev_version (str): Optional filter for device dev_version.
-        db (Session): The active database session.
-
-    Returns:
-        List[schemas.DeviceOut]: A list of devices that match the optional filters, if any.
-
-    Raises:
-        HTTPException: If no devices are found or there is a database error.
     """
     dev_service = deviceService.DeviceService(db)
     return dev_service.get_devs_filtered(dev_type, dev_version, room_number)
 
 
-@router.get("/{dev_code}", response_model=schemas.DeviceOut)
+@router.get("/code/{dev_code}", response_model=schemas.DeviceOut)
 def get_dev_code(dev_code: str,
                  current_concierge=Depends(oauth2.get_current_concierge),
                  db: Session = Depends(database.get_db)) -> schemas.DeviceOut:

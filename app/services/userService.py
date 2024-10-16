@@ -1,8 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from typing import List
-from app import models, schemas
-
+from app import models
 
 class UserService:
     def __init__(self, db: Session):

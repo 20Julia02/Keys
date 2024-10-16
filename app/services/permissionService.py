@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from typing import List, Optional
 from app import models, schemas
-from sqlalchemy import and_, extract
+from sqlalchemy import extract
 
 
 class PermissionService:

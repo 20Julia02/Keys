@@ -16,14 +16,6 @@ def create_or_get_unauthorized_user(user: UnauthorizedUser,
                                     current_concierge=Depends(oauth2.get_current_concierge)) -> UnauthorizedUser:
     """
     Creates a new unauthorized user in the database.
-
-    Args:
-        user (UnauthorizedUser): The data required to create a new unauthorized user.
-        db (Session): The database session.
-        current_concierge: The current user object (used for authorization).
-
-    Returns:
-        UnauthorizedUser: The newly created unauthorized user.
     """
 
     existing_user = db.query(models.UnauthorizedUser).filter_by(
@@ -46,16 +38,6 @@ def get_all_unathorized_users(current_concierge=Depends(oauth2.get_current_conci
                               db: Session = Depends(database.get_db)) -> List[UnauthorizedUser]:
     """
     Retrieves all unathorized users from the database.
-
-    Args:
-        current_concierge: The current user object (used for authorization).
-        db (Session): The database session.
-
-    Returns:
-        List[UnauthorizedUser]: A list of all unauthorized users in the database.
-
-    Raises:
-        HTTPException: If no unauthorized users are found in the database.
     """
     user = db.query(models.UnauthorizedUser).all()
     if (user is None):
@@ -71,17 +53,6 @@ def get_unathorized_user(id: int,
                          db: Session = Depends(database.get_db)) -> UnauthorizedUser:
     """
     Retrieves an unauthorized user by their ID from the database.
-
-    Args:
-        id (int): The ID of the unauthorized user.
-        current_concierge: The current user object (used for authorization).
-        db (Session): The database session.
-
-    Returns:
-        UnauthorizedUser: The unauthorized user with the specified ID.
-
-    Raises:
-        HTTPException: If the unauthorized user with the specified ID doesn't exist.
     """
     user = db.query(models.UnauthorizedUser).filter(
         models.UnauthorizedUser.id == id).first()
@@ -97,17 +68,6 @@ def delete_unauthorized_user(user_id: int,
                              current_concierge=Depends(oauth2.get_current_concierge)):
     """
     Deletes an unauthorized user by their ID from the database.
-
-    Args:
-        id (int): The ID of the unauthorized user to delete.
-        db (Session): The database session.
-        current_concierge: The current user object (used for authorization).
-
-    Returns:
-        HTTP 204 NO CONTENT: If the user was successfully deleted.
-
-    Raises:
-        HTTPException: If the unauthorized user with the specified ID doesn't exist.
     """
     user = db.query(models.UnauthorizedUser).filter(
         models.UnauthorizedUser.id == user_id).first()

@@ -2,7 +2,7 @@ import datetime
 from fastapi import status, HTTPException
 from app import models, schemas
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import List
 
 
 class NoteService:

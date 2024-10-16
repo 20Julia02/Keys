@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 from app import database, oauth2, schemas
-from app.services import operationService, securityService, sessionService, deviceService
+from app.services import operationService, securityService, sessionService
 from typing import List
 from fastapi import Path
 
@@ -11,7 +11,8 @@ router = APIRouter(
     tags=['Approve']
 )
 
-@router.post("/approve/login/session/{session_id}", response_model=List[schemas.DeviceOperationOut],
+@router.post("/approve/login/session/{session_id}", 
+             response_model=List[schemas.DeviceOperationOut],
              responses={
         200: {
             "description": "Session successfully approved.",
@@ -123,7 +124,9 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
     return operations
 
 
-@router.post("/approve/card/session/{session_id}", response_model=List[schemas.DeviceOperationOut],responses={
+@router.post("/approve/card/session/{session_id}", 
+             response_model=List[schemas.DeviceOperationOut],
+             responses={
         200: {
             "description": "Session successfully approved.",
             "content": {
@@ -166,6 +169,9 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
                         },
                         "not_entitled": {
                         "detail": "You cannot perform this operation without the concierge role"
+                        },
+                        "session_already_approved": {
+                        "detail": "Session has been allready ended with status completed"
                         }
                     }
                 }
@@ -177,7 +183,7 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
                 "application/json": {
                     "example": {
                         "session_not_found": {
-                            "detail": "IssueReturnSession not found"
+                            "detail": "Session not found"
                         },
                         "no_operations_found": {
                             "detail": "No unapproved operations found for this session"

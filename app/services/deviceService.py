@@ -2,8 +2,7 @@ from sqlalchemy.orm import Session, joinedload
 from fastapi import HTTPException, status
 from typing import List, Optional
 from app import models, schemas
-from app.services import operationService
-from sqlalchemy import String, func, case, and_, cast, Integer
+from sqlalchemy import func, case, and_, Integer
 
 
 class DeviceService:

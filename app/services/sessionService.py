@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 import datetime
 from zoneinfo import ZoneInfo
-from app import models, schemas
+from app import models
 from fastapi import status, HTTPException
 
 
@@ -51,9 +51,12 @@ class SessionService:
         """
         session = self.db.query(models.IssueReturnSession).filter_by(id=session_id).first()
         if not session:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="IssueReturnSession not found")
-        session.status = models.SessionStatus.rejected if reject else models.SessionStatus.completed
-        session.end_time = datetime.datetime.now(ZoneInfo("Europe/Warsaw"))
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        if session.status == models.SessionStatus.in_progress and session.end_time is None:
+            session.status = models.SessionStatus.rejected if reject else models.SessionStatus.completed
+            session.end_time = datetime.datetime.now(ZoneInfo("Europe/Warsaw"))
+        else:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Session has been allready approved with status {session.status}")
         if commit:
             self.db.commit()
             self.db.refresh(session)

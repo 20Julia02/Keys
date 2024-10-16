@@ -1,8 +1,8 @@
 import datetime
 from fastapi import Depends, APIRouter
-from app.schemas import PermissionOut, PermissionCreate
+from app.schemas import PermissionOut
 from app import database, oauth2
-from app.services import securityService, permissionService
+from app.services import permissionService
 from sqlalchemy.orm import Session
 from typing import List
 

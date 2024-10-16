@@ -1,5 +1,5 @@
 from fastapi import status, Depends, APIRouter, HTTPException
-from typing import List, Optional
+from typing import List
 from app import database, oauth2, schemas, models
 from app.services import noteService
 from sqlalchemy.orm import Session
@@ -17,16 +17,7 @@ def get_all_user_notes(
     """
     It fetches all user-related notes stored in the database. User notes
     typically contain important information associated with users.
-
-    Args:
-        current_concierge: The currently authenticated concierge.
-        db (Session): The database session to perform the query.
-
-    Returns:
-        List[schemas.UserNote]: A list of notes linked to a specific users in the system.
-
-    Raises:
-        HTTPException: If an error occurs while retrieving the user notes.
+    HTTPException: If an error occurs while retrieving the user notes.
     """
     note_service = noteService.NoteService(db)
     return note_service.get_all_user_notes()
@@ -39,17 +30,6 @@ def get_user_note_id(user_id: int,
     """
     It allows to fetch all notes associated with a specific user
     based on the user ID.
-
-    Args:
-        user_id (int): The unique ID of the user whose notes are being requested.
-        current_concierge: The currently authenticated concierge.
-        db (Session): The database session to perform the query.
-
-    Returns:
-        List[schemas.UserNote]: A list of notes corresponding to the given user ID.
-
-    Raises:
-        HTTPException: If no notes are found for the specified user ID.
     """
     note_service = noteService.NoteService(db)
     return note_service.get_user_note_by_id(user_id)
@@ -62,18 +42,6 @@ def add_user_note(note_data: schemas.UserNoteCreate,
     """
     It allows to add a new note to a specific user.
     The note is stored in the database along with the user ID.
-
-    Args:
-        user_id: The ID of the user for whom the note is being created.
-        note: The content of the note being added (text).
-        current_concierge: The currently authenticated concierge creating the note.
-        db: The database session to perform the operation.
-
-    Returns:
-        schemas.UserNote: The newly created note associated with the specified user.
-
-    Raises:
-        HTTPException: If the note creation fails for any reason.
     """
     note_service = noteService.NoteService(db)
     return note_service.create_user_note(note_data)
@@ -86,18 +54,6 @@ def edit_user_note(note_id: int,
                    db: Session = Depends(database.get_db)) -> schemas.UserNote:
     """
     Edits a note with the specified ID for a user.
-
-    Args:
-        note_id: The ID of the note to be edited.
-        note_data: The data to update the note with.
-        current_concierge: The currently authenticated concierge.
-        db: The database session to perform the operation.
-
-    Returns:
-        schemas.UserNote: The updated note.
-
-    Raises:
-        HTTPException: If the note with the given ID is not found.
     """
     note_service = noteService.NoteService(db)
     return note_service.update_user_note(note_id, note_data)
