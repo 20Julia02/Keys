@@ -101,6 +101,7 @@ class DeviceNote(BaseModel):
 
 
 class DeviceNoteOut(BaseModel):
+    id: int
     device: DeviceOut
     note: str
 
@@ -132,6 +133,7 @@ class IssueReturnSession(BaseModel):
 
 
 class UserNote(BaseModel):
+    id: int
     user: UserOut
     note: str
 
