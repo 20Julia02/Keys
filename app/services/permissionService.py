@@ -49,9 +49,9 @@ class PermissionService:
             )
         return perm
 
-    def check_if_permitted(self, 
-                           user_id: int, 
-                           room_id: int, 
+    def check_if_permitted(self,
+                           user_id: int,
+                           room_id: int,
                            last_operation_type: Optional[str] = None,
                            force: bool = False) -> bool:
         """
@@ -77,8 +77,8 @@ class PermissionService:
             models.Permission.start_reservation < datetime.datetime.now(),
             models.Permission.end_reservation > datetime.datetime.now()
         ).first()
-        if not has_permission: 
-            if not force and (last_operation_type is None or last_operation_type == "return_device"):
+        if not has_permission:
+            if not force and (last_operation_type is None or last_operation_type == "zwrot"):
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                     detail=f"User with id {user_id} does not have permission to access room with id {room_id}")
             return False

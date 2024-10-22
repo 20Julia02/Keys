@@ -26,7 +26,7 @@ class SessionService:
             user_id=user_id,
             concierge_id=concierge_id,
             start_time=start_time,
-            status=models.SessionStatus.in_progress
+            status="w trakcie"
         )
         self.db.add(new_session)
         if commit:
@@ -52,8 +52,8 @@ class SessionService:
         session = self.db.query(models.IssueReturnSession).filter_by(id=session_id).first()
         if not session:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
-        if session.status == models.SessionStatus.in_progress and session.end_time is None:
-            session.status = models.SessionStatus.rejected if reject else models.SessionStatus.completed
+        if session.status == "w trakcie" and session.end_time is None:
+            session.status = "odrzucona" if reject else "potwierdzona"
             session.end_time = datetime.datetime.now(ZoneInfo("Europe/Warsaw"))
         else:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Session has been allready approved with status {session.status}")

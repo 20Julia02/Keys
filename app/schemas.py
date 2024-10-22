@@ -44,13 +44,13 @@ class UserOut(BaseModel):
     role: str
     faculty: Optional[str]
     photo_url: Optional[str] = None
-    
+
 
 class UnauthorizedUser(BaseModel):
     name: str
     surname: str
     email: str
-    addition_time: Optional[datetime.datetime] = None
+    added_at: Optional[datetime.datetime] = None
 
 
 class RoomOut(BaseModel):
@@ -127,7 +127,7 @@ class IssueReturnSession(BaseModel):
     user_id: Optional[int] = None
     concierge_id: int
     start_time: datetime.datetime
-    status: Optional[str] = "in_progress"
+    status: Optional[str] = "w trakcie"
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -146,8 +146,10 @@ class UserNoteCreate(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class NoteUpdate(BaseModel):
     note: Optional[str]
+
 
 class ChangeStatus(BaseModel):
     device_id: int

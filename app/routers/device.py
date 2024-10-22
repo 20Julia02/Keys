@@ -15,7 +15,7 @@ router = APIRouter(
 def get_devices_filtered(current_concierge=Depends(oauth2.get_current_concierge),
                          dev_type: str = "",
                          dev_version: str = "",
-                         room_number: str ="",
+                         room_number: str = "",
                          db: Session = Depends(database.get_db)) -> List[schemas.DeviceOutWithNote]:
     """
     Retrieve all devices from the database, optionally filtered by type or dev_version.
@@ -79,14 +79,16 @@ def change_status(
 
     if unapproved_service.delete_if_rescanned(request.device_id, request.session_id):
         return schemas.DetailMessage(detail="Operation removed.")
-    last_operation = operation_service.get_last_dev_operation_or_none(device.id)
+    last_operation = operation_service.get_last_dev_operation_or_none(
+        device.id)
+
     entitled = permission_service.check_if_permitted(
-        session.user_id, 
+        session.user_id,
         device.room_id,
         last_operation.operation_type if last_operation else None,
         request.force
     )
-    operation_type = "return_device" if last_operation and last_operation.operation_type == "issue_device" else "issue_device"
+    operation_type = "zwrot" if last_operation and last_operation.operation_type == "pobranie" else "pobranie"
     operation = unapproved_service.create_unapproved_operation({
         "device_id": request.device_id,
         "session_id": session.id,
@@ -99,7 +101,8 @@ def change_status(
 
 @router.get("/users/{user_id}", response_model=List[schemas.DeviceOperationOut])
 def get_devs_owned_by_user(user_id: int,
-                           current_concierge=Depends(oauth2.get_current_concierge),
+                           current_concierge=Depends(
+                               oauth2.get_current_concierge),
                            db: Session = Depends(database.get_db)) -> List[schemas.DeviceOut]:
     """
     Retrieve a device by its unique device code.

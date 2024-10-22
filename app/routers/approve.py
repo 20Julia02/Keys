@@ -11,7 +11,7 @@ router = APIRouter(
     tags=['Approve']
 )
 
-@router.post("/approve/login/session/{session_id}", 
+@router.post("/approve/login/session/{session_id}",
              response_model=List[schemas.DeviceOperationOut],
              responses={
         200: {
@@ -36,7 +36,7 @@ router = APIRouter(
                                 "user_id": 5,
                                 "concierge_id": 2,
                                 "start_time": "2023-10-12T13:18:04.071Z",
-                                "status": "in_progress"
+                                "status": "w trakcie"
                             },
                             "operation_type": "activate_device",
                             "entitled": True,
@@ -124,7 +124,7 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
     return operations
 
 
-@router.post("/approve/card/session/{session_id}", 
+@router.post("/approve/card/session/{session_id}",
              response_model=List[schemas.DeviceOperationOut],
              responses={
         200: {
@@ -149,7 +149,7 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
                                 "user_id": 5,
                                 "concierge_id": 2,
                                 "start_time": "2023-10-12T13:18:04.071Z",
-                                "status": "in_progress"
+                                "status": "w trakcie"
                             },
                             "operation_type": "activate_device",
                             "entitled": True,
@@ -171,7 +171,7 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
                         "detail": "You cannot perform this operation without the concierge role"
                         },
                         "session_already_approved": {
-                        "detail": "Session has been allready ended with status completed"
+                        "detail": "Session has been allready ended with status potwierdzona"
                         }
                     }
                 }

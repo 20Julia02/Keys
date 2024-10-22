@@ -49,17 +49,17 @@ class DeviceService:
             models.Device.dev_version,
             models.Room.number.label("room_number"),
             case(
-                (models.DeviceOperation.operation_type == models.OperationType.issue_device, True), 
+                (models.DeviceOperation.operation_type == "pobranie", True),
                 else_=False
             ).label('is_taken'),
             case(
-                (func.count(models.DeviceNote.id) > 0, True), 
+                (func.count(models.DeviceNote.id) > 0, True),
                 else_=False
             ).label('has_note')
         )
         .join(models.Room, models.Device.room_id == models.Room.id)
         .outerjoin(
-            last_operation_subquery, 
+            last_operation_subquery,
             models.Device.id == last_operation_subquery.c.device_id
         )
         .outerjoin(models.DeviceOperation, and_(
@@ -76,7 +76,7 @@ class DeviceService:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                     detail=f"Invalid device type: {dev_type}")
             query = query.filter(models.Device.dev_type == dev_type_enum)
-            
+
         if dev_version:
             try:
                 dev_version_enum = models.DeviceVersion[dev_version]
@@ -129,11 +129,11 @@ class DeviceService:
 
         query = (
             self.db.query(models.DeviceOperation)
-            .join(last_operation_subquery, 
-                (models.DeviceOperation.device_id == last_operation_subquery.c.device_id) & 
+            .join(last_operation_subquery,
+                (models.DeviceOperation.device_id == last_operation_subquery.c.device_id) &
                 (models.DeviceOperation.timestamp == last_operation_subquery.c.last_operation_timestamp)
             )
-            .filter(models.DeviceOperation.operation_type == models.OperationType.issue_device)
+            .filter(models.DeviceOperation.operation_type == "pobranie")
             .order_by(models.DeviceOperation.timestamp.asc())
             .group_by(models.DeviceOperation.id)
         )
@@ -145,5 +145,5 @@ class DeviceService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"User with id {user_id} doesn't have any devices"
             )
-        
+
         return operations

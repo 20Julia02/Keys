@@ -93,7 +93,7 @@ def test_room_2(db: Session):
 def test_permission(db: Session, test_user, test_room):
     permission = models.Permission(user_id=test_user.id, room_id=test_room.id,
                                    start_reservation=datetime.datetime.now() - datetime.timedelta(hours=1),
-                                   end_reservation=datetime.datetime.now()+ datetime.timedelta(hours=1))
+                                   end_reservation=datetime.datetime.now() + datetime.timedelta(hours=1))
     db.add(permission)
     db.commit()
     db.refresh(permission)
@@ -107,7 +107,7 @@ def test_session(db: Session, test_user: models.User, test_concierge: models.Use
         concierge_id=test_concierge.id,
         start_time=datetime.datetime(
             2024, 12, 6, 12, 45, tzinfo=ZoneInfo("Europe/Warsaw")).isoformat(),
-        status=models.SessionStatus.in_progress
+        status="w trakcie"
     )
     db.add(session)
     db.commit()
@@ -145,7 +145,8 @@ def test_device_microphone(db: Session, test_room_2: models.Room):
 
 @pytest.fixture
 def create_user_note(db: Session, test_user: models.User):
-    note = models.UserNote(user_id=test_user.id, note="Test Note", timestamp=datetime.datetime.now())
+    note = models.UserNote(user_id=test_user.id,
+                           note="Test Note", timestamp=datetime.datetime.now())
     db.add(note)
     db.commit()
     db.refresh(note)
@@ -154,7 +155,8 @@ def create_user_note(db: Session, test_user: models.User):
 
 @pytest.fixture
 def create_specific_user_note(db: Session, test_user: models.User):
-    note = models.UserNote(user_id=test_user.id, note="Test Specific Note", timestamp=datetime.datetime.now())
+    note = models.UserNote(
+        user_id=test_user.id, note="Test Specific Note", timestamp=datetime.datetime.now())
     db.add(note)
     db.commit()
     db.refresh(note)
@@ -307,12 +309,14 @@ def test_get_all_devices_invalid_type(test_device: models.Device,
     assert response.status_code == 400
     assert response.json()["detail"] == "Invalid device type: computer"
 
+
 def test_get_all_devices_room_id(test_room: models.Room,
-                                      test_device_microphone: models.Device,
-                                      concierge_token: str):
+                                 test_device_microphone: models.Device,
+                                 concierge_token: str):
     response = client.get(f"/devices/?room_number={test_room.number}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.json()[0]["room_number"] == test_room.number
+
 
 def test_get_all_devices_invalid_version(test_device: models.Device,
                                          test_device_microphone: models.Device,
@@ -426,8 +430,8 @@ def test_changeStatus_with_valid_id_taking(test_concierge: models.User,
                            json={"session_id": response1.json()["id"], "device_id": test_device.id})
     assert response.status_code == 200
     assert response.json()["device"]["code"] == test_device.code
-    assert response.json()["session"]["status"] == "in_progress"
-    assert response.json()["operation_type"] == "issue_device"
+    assert response.json()["session"]["status"] == "w trakcie"
+    assert response.json()["operation_type"] == "pobranie"
     assert response.json()["entitled"] is True
 
 
@@ -455,9 +459,9 @@ def test_changeStatus_without_permission(test_concierge: models.User,
 
 
 def test_changeStatus_without_permission(test_concierge: models.User,
-                                        test_user: models.User,
-                                        test_device_microphone: models.Device,
-                                        concierge_token: str):
+                                         test_user: models.User,
+                                         test_device_microphone: models.Device,
+                                         concierge_token: str):
 
     login_data = {
         "username": test_user.email,
@@ -474,7 +478,7 @@ def test_changeStatus_without_permission(test_concierge: models.User,
                                  "device_id": test_device_microphone.id})
     assert response.status_code == 200
     assert response.json()["entitled"] is False
-    assert response.json()["operation_type"] == "issue_device"
+    assert response.json()["operation_type"] == "pobranie"
 
 
 def test_changeStatus_again(test_concierge: models.User,
@@ -656,19 +660,20 @@ def test_delete_unauthorized_user_valid(db: Session, concierge_token: str):
     assert response.status_code == 204
 
 
-def test_approve_session_login_success(db: Session, 
+def test_approve_session_login_success(db: Session,
                                        test_concierge: models.User,
                                        test_device: models.Device,
                                        test_user: models.User,
                                        test_session: models.IssueReturnSession,
                                        concierge_token: str):
     session_service = sessionService.SessionService(db)
-    unapproved_operation_service = operationService.UnapprovedOperationService(db)
+    unapproved_operation_service = operationService.UnapprovedOperationService(
+        db)
     session = session_service.create_session(test_user.id, test_concierge.id)
     new_data = {
         "device_id": test_device.id,
         "session_id": session.id,
-        "operation_type": "return_device",
+        "operation_type": "zwrot",
         "entitled": False
     }
     unapproved_operation_service.create_unapproved_operation(new_data)
@@ -683,7 +688,7 @@ def test_approve_session_login_success(db: Session,
         data=login_data
     )
     assert response.status_code == 200
-    assert response.json()[0]["operation_type"] == "return_device"
+    assert response.json()[0]["operation_type"] == "zwrot"
 
 
 def test_approve_session_login_invalid_credentials(test_concierge: models.User,
@@ -749,12 +754,13 @@ def test_approve_session_card_success(db: Session,
                                       concierge_token: str):
 
     session_service = sessionService.SessionService(db)
-    unapproved_operation_service = operationService.UnapprovedOperationService(db)
+    unapproved_operation_service = operationService.UnapprovedOperationService(
+        db)
     session = session_service.create_session(test_user.id, test_concierge.id)
     new_data = {
         "device_id": test_device.id,
         "session_id": session.id,
-        "operation_type": "return_device",
+        "operation_type": "zwrot",
         "entitled": False
     }
     unapproved_operation_service.create_unapproved_operation(new_data)
@@ -765,7 +771,7 @@ def test_approve_session_card_success(db: Session,
         json={"card_id": "123456"}
     )
     assert response.status_code == 200
-    assert response.json()[0]["operation_type"] == 'return_device'
+    assert response.json()[0]["operation_type"] == "zwrot"
 
 
 def test_all_change_status(test_user: models.User,
@@ -790,8 +796,8 @@ def test_all_change_status(test_user: models.User,
                                  "device_id": test_device.id})
     assert response.status_code == 200
     assert response.json()["device"]["code"] == test_device.code
-    assert response.json()["session"]["status"] == "in_progress"
-    assert response.json()["operation_type"] == "issue_device"
+    assert response.json()["session"]["status"] == "w trakcie"
+    assert response.json()["operation_type"] == "pobranie"
     assert response.json()["entitled"] is True
 
     response2 = client.post(
@@ -800,7 +806,7 @@ def test_all_change_status(test_user: models.User,
         data=login_data_concierge
     )
     assert response2.status_code == 200
-    assert response2.json()[0]["operation_type"] == "issue_device"
+    assert response2.json()[0]["operation_type"] == "pobranie"
 
 
 def test_get_all_user_devices(db: Session,
@@ -814,7 +820,7 @@ def test_get_all_user_devices(db: Session,
     new_data = {
         "device_id": test_device.id,
         "session_id": session.id,
-        "operation_type": "issue_device",
+        "operation_type": "pobranie",
         "entitled": False
     }
     operation_service.create_operation(new_data)
@@ -822,20 +828,21 @@ def test_get_all_user_devices(db: Session,
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
     assert response.json()[0]['session']['user_id'] == test_user.id
-    assert response.json()[0]['operation_type'] == 'issue_device'
+    assert response.json()[0]['operation_type'] == "pobranie"
+
 
 def test_get_all_user_devices_no_device(db: Session,
-                              test_user: models.User,
-                              test_concierge: models.User,
-                              test_device: models.Device,
-                              concierge_token: str):
+                                        test_user: models.User,
+                                        test_concierge: models.User,
+                                        test_device: models.Device,
+                                        concierge_token: str):
     session_service = sessionService.SessionService(db)
     operation_service = operationService.DeviceOperationService(db)
     session = session_service.create_session(test_user.id, test_concierge.id)
     new_data = {
         "device_id": test_device.id,
         "session_id": session.id,
-        "operation_type": "issue_device",
+        "operation_type": "pobranie",
         "entitled": False
     }
     operation_service.create_operation(new_data)
@@ -843,7 +850,8 @@ def test_get_all_user_devices_no_device(db: Session,
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
     print(response.json())
-    assert response.json()['detail'] == f"User with id {test_concierge.id} doesn't have any devices"
+    assert response.json()[
+        'detail'] == f"User with id {test_concierge.id} doesn't have any devices"
 
 
 def test_get_all_user_notes(create_user_note, concierge_token: str):
