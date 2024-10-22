@@ -2,7 +2,7 @@ from sqlalchemy import Column, ForeignKey, String, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, relationship, mapped_column, Mapped
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 import enum
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 import datetime
 from typing_extensions import Annotated
 
@@ -47,8 +47,10 @@ class Device(Base):
     room_id: Mapped[int] = mapped_column(ForeignKey("room.id"))
     dev_version: Mapped[DeviceVersion]
 
-    room = relationship("Room")
-    notes = relationship("DeviceNote", back_populates="device")
+    room: Mapped["Room"] = relationship(back_populates="devices")
+    notes: Mapped[List["DeviceNote"]] = relationship(back_populates="device")
+    device_operations: Mapped[List["DeviceOperation"]] = relationship(back_populates="device")
+    unapproved_operations: Mapped[List["UnapprovedOperation"]] = relationship(back_populates="device")
 
     __table_args__ = (UniqueConstraint(
         "dev_type", "room_id", "dev_version", name="uix_device"),)
@@ -66,8 +68,8 @@ class UnapprovedOperation(Base):
     entitled: Mapped[bool]
     timestamp: Mapped[Optional[timestamp]]
 
-    session = relationship("IssueReturnSession")
-    device = relationship("Device")
+    session: Mapped["IssueReturnSession"] = relationship(back_populates="unapproved_operations")
+    device: Mapped["Device"] = relationship(back_populates="unapproved_operations")
 
 
 class DeviceOperation(Base):
@@ -80,9 +82,8 @@ class DeviceOperation(Base):
     entitled: Mapped[bool]
     timestamp: Mapped[Optional[timestamp]]
 
-    device = relationship("Device")
-    session = relationship("IssueReturnSession",
-                           back_populates="device_operations")
+    device: Mapped["Device"] = relationship(back_populates="device_operations")
+    session: Mapped["IssueReturnSession"] = relationship(back_populates="device_operations")
 
 
 class BaseUser(Base):
@@ -94,6 +95,9 @@ class BaseUser(Base):
         'polymorphic_on': user_type,
         'polymorphic_identity': 'base_user'
     }
+
+    notes: Mapped[List["UserNote"]] = relationship(back_populates="user")
+    sessions: Mapped[List["IssueReturnSession"]] = relationship(back_populates="user")
 
 
 class UserRole(enum.Enum):
@@ -124,6 +128,9 @@ class User(BaseUser):
         'polymorphic_identity': 'user'
     }
 
+    permissions: Mapped[List["Permission"]] = relationship(back_populates="user")
+    sessions: Mapped[List["IssueReturnSession"]] = relationship(back_populates="concierge")
+
 
 class UnauthorizedUser(BaseUser):
     __tablename__ = "unauthorized_user"
@@ -141,7 +148,7 @@ class UnauthorizedUser(BaseUser):
 SessionStatus = Literal["w trakcie", "potwierdzona", "odrzucona"]
 
 
-class IssueReturnSession (Base):
+class IssueReturnSession(Base):
     __tablename__ = "session"
 
     id: Mapped[intpk]
@@ -151,10 +158,10 @@ class IssueReturnSession (Base):
     end_time: Mapped[Optional[datetime.datetime]]
     status: Mapped[SessionStatus]
 
-    device_operations = relationship(
-        "DeviceOperation", back_populates="session")
-    user = relationship("User", foreign_keys=[user_id])
-    concierge = relationship("User", foreign_keys=[concierge_id])
+    device_operations: Mapped[List["DeviceOperation"]] = relationship(back_populates="session")
+    unapproved_operations: Mapped[List["UnapprovedOperation"]] = relationship(back_populates="session")
+    user: Mapped["BaseUser"] = relationship(foreign_keys=[user_id], back_populates="sessions")
+    concierge: Mapped["User"] = relationship(foreign_keys=[concierge_id], back_populates="sessions")
 
 
 class Room(Base):
@@ -162,6 +169,9 @@ class Room(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     number: Mapped[str] = mapped_column(String(20), unique=True)
+
+    permissions: Mapped[List["Permission"]] = relationship(back_populates="room")
+    devices: Mapped[List["Device"]] = relationship(back_populates="room")
 
 
 class Permission(Base):
@@ -172,8 +182,8 @@ class Permission(Base):
     start_reservation: Mapped[datetime.datetime]
     end_reservation: Mapped[datetime.datetime]
 
-    user = relationship("User")
-    room = relationship("Room")
+    user: Mapped["User"] = relationship(back_populates="permissions")
+    room: Mapped["Room"] = relationship(back_populates="permissions")
 
 
 class DeviceNote(Base):
@@ -183,7 +193,7 @@ class DeviceNote(Base):
     note: Mapped[str]
     timestamp: Mapped[Optional[timestamp]]
 
-    device = relationship("Device", back_populates="notes")
+    device: Mapped["Device"] = relationship(back_populates="notes")
 
 
 class UserNote(Base):
@@ -194,4 +204,4 @@ class UserNote(Base):
     note: Mapped[str]
     timestamp: Mapped[Optional[timestamp]]
 
-    user = relationship("BaseUser")
+    user: Mapped["BaseUser"] = relationship(back_populates="notes")
