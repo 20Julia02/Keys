@@ -25,8 +25,8 @@ def get_all_user_notes(
 
 @router.get("/users/{user_id}", response_model=List[schemas.UserNote])
 def get_user_note_id(user_id: int,
-                  current_concierge=Depends(oauth2.get_current_concierge),
-                  db: Session = Depends(database.get_db)) -> List[schemas.UserNote]:
+                     current_concierge=Depends(oauth2.get_current_concierge),
+                     db: Session = Depends(database.get_db)) -> List[schemas.UserNote]:
     """
     It allows to fetch all notes associated with a specific user
     based on the user ID.
@@ -80,7 +80,6 @@ def get_device_notes_id(
 def add_device_note(note_data: schemas.DeviceNote,
                     current_concierge=Depends(oauth2.get_current_concierge),
                     db: Session = Depends(database.get_db)) -> schemas.DeviceNoteOut:
-
     """
     It allows to add a note to a specific operation. The operation is identified
     by its unique ID, and the note is saved in the database.
@@ -92,9 +91,9 @@ def add_device_note(note_data: schemas.DeviceNote,
 
 @router.put("/devices/{note_id}", response_model=schemas.DeviceNoteOut)
 def edit_device_note(note_id: int,
-                   note_data: schemas.NoteUpdate,
-                   current_concierge=Depends(oauth2.get_current_concierge),
-                   db: Session = Depends(database.get_db)) -> schemas.DeviceNoteOut:
+                     note_data: schemas.NoteUpdate,
+                     current_concierge=Depends(oauth2.get_current_concierge),
+                     db: Session = Depends(database.get_db)) -> schemas.DeviceNoteOut:
     """
     Edits a note with the specified ID for a device.
     """
@@ -107,7 +106,7 @@ def delete_device_note(note_id: int,
                        db: Session = Depends(database.get_db),
                        current_concierge=Depends(oauth2.get_current_concierge)):
     note = db.query(models.DeviceNote).filter(
-            models.DeviceNote.id == note_id).first()
+        models.DeviceNote.id == note_id).first()
 
     if not note:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -115,4 +114,3 @@ def delete_device_note(note_id: int,
 
     db.delete(note)
     db.commit()
-    db.refresh(note)
