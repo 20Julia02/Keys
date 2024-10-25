@@ -1,6 +1,6 @@
 import datetime
 from typing import Optional, Union
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 # todo uporządkować to
 
@@ -77,20 +77,21 @@ class DeviceOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class DeviceOutWithNote(BaseModel):
-    id: int
-    dev_type: str
-    dev_version: str
-    room_number: str
-    is_taken: bool
-    has_note: bool
-
-
 class DeviceOperation(BaseModel):
     device_id: int
     session_id: int
     operation_type: str
     entitled: bool
+
+
+class DeviceOutWithNote(BaseModel):
+    id: int
+    code: str
+    dev_type: str
+    dev_version: str
+    room_number: str
+    has_note: bool
+    is_taken: bool
 
 
 class DeviceNote(BaseModel):

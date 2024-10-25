@@ -13,7 +13,7 @@ class PermissionService:
     def get_user_permission(self,
                             user_id: int,
                             time: datetime = datetime.datetime.now()) -> models.Permission:
-        perm = self.db.query(models.Permission).join(models.Room, models.Permission.room_id == models.Room.id).filter(models.Permission.user_id == user_id,
+        perm = self.db.query(models.Permission).join(models.Room, models.Permission.room).filter(models.Permission.user_id == user_id,
                                                     models.Permission.start_reservation < time,
                                                     models.Permission.end_reservation > time).order_by(models.Room.number).all()
         if not perm:

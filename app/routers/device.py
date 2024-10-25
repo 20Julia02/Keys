@@ -1,6 +1,6 @@
 from fastapi import status, Depends, APIRouter
-from typing import List
-from app import database, oauth2, schemas
+from typing import List, Optional
+from app import database, oauth2, schemas, models
 from app.services import deviceService, securityService, sessionService, operationService, permissionService
 from sqlalchemy.orm import Session
 
@@ -13,9 +13,9 @@ router = APIRouter(
 
 @router.get("/", response_model=List[schemas.DeviceOutWithNote])
 def get_devices_filtered(current_concierge=Depends(oauth2.get_current_concierge),
-                         dev_type: str = "",
-                         dev_version: str = "",
-                         room_number: str = "",
+                         dev_type: Optional[str] = None,
+                         dev_version: Optional[str] = None,
+                         room_number: Optional[str] = None,
                          db: Session = Depends(database.get_db)) -> List[schemas.DeviceOutWithNote]:
     """
     Retrieve all devices from the database, optionally filtered by type or dev_version.
@@ -23,8 +23,7 @@ def get_devices_filtered(current_concierge=Depends(oauth2.get_current_concierge)
     This endpoint retrieves a list of devices from the database. Optionally,
     the list can be filtered by device type and dev_version if these parameters are provided.
     """
-    dev_service = deviceService.DeviceService(db)
-    return dev_service.get_devs_filtered(dev_type, dev_version, room_number)
+    return models.Device.get_device_with_details(db, dev_type, dev_version, room_number)
 
 
 @router.get("/code/{dev_code}", response_model=schemas.DeviceOut)
@@ -36,8 +35,7 @@ def get_dev_code(dev_code: str,
 
     This endpoint retrieves a device from the database using the device's unique code.
     """
-    dev_service = deviceService.DeviceService(db)
-    return dev_service.get_dev_code(dev_code)
+    return models.Device.get_by_code(db, dev_code)
 
 
 @router.post("/", response_model=schemas.DeviceOut, status_code=status.HTTP_201_CREATED)
@@ -52,8 +50,7 @@ def create_device(device: schemas.DeviceCreate,
     """
     auth_service = securityService.AuthorizationService(db)
     auth_service.check_if_entitled("admin", current_concierge)
-    dev_service = deviceService.DeviceService(db)
-    return dev_service.create_dev(device)
+    return  models.Device.create(db, device)
 
 
 @router.post("/change-status", response_model=schemas.DeviceOperationOrDetailResponse)
@@ -68,13 +65,12 @@ def change_status(
     - If the device has already been added as unapproved in the current session, remove the unapproved operation.
     - Otherwise, check user permissions and create a new unapproved operation (issue or return).
     """
-    dev_service = deviceService.DeviceService(db)
     operation_service = operationService.DeviceOperationService(db)
     unapproved_service = operationService.UnapprovedOperationService(db)
     session_service = sessionService.SessionService(db)
     permission_service = permissionService.PermissionService(db)
 
-    device = dev_service.get_dev_id(request.device_id)
+    device = models.Device.get_by_id(db, request.device_id)
     session = session_service.get_session_id(request.session_id)
 
     if unapproved_service.delete_if_rescanned(request.device_id, request.session_id):
@@ -103,11 +99,10 @@ def change_status(
 def get_devs_owned_by_user(user_id: int,
                            current_concierge=Depends(
                                oauth2.get_current_concierge),
-                           db: Session = Depends(database.get_db)) -> List[schemas.DeviceOut]:
+                           db: Session = Depends(database.get_db)) -> List[schemas.DeviceOperationOut]:
     """
     Retrieve a device by its unique device code.
 
     This endpoint retrieves a device from the database using the device's unique code.
     """
-    dev_service = deviceService.DeviceService(db)
-    return dev_service.get_devs_owned_by_user(user_id)
+    return models.DeviceOperation.get_owned_by_user(db, user_id)
