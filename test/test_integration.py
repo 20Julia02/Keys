@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from app.main import app
 from app import models, database
-from app.services import securityService, deviceService, sessionService, operationService
+from app.services import securityService, sessionService, operationService
 from app.schemas import UserCreate
 from app.database import Base
 

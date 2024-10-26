@@ -1,7 +1,7 @@
 from fastapi import status, Depends, APIRouter
 from typing import List, Optional
 from app import database, oauth2, schemas, models
-from app.services import deviceService, securityService, sessionService, operationService, permissionService
+from app.services import securityService, sessionService, operationService, permissionService
 from sqlalchemy.orm import Session
 
 

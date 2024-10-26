@@ -33,7 +33,6 @@ class TokenBlacklist(Base):
 class DeviceVersion(enum.Enum):
     primary = "podstawowa"
     backup = "zapasowa"
-    emergency = "awaryjna"
 
 
 class DeviceType(enum.Enum):
