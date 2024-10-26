@@ -58,6 +58,21 @@ class User(BaseUser):
     permissions: Mapped[List["Permission"]] = relationship(back_populates="user")
     sessions: Mapped[List["IssueReturnSession"]] = relationship(back_populates="concierge")
 
+    @classmethod
+    def get_all_users(cls, db: Session) -> List["User"]:
+        user = db.query(User).all()
+        if (user is None):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="There is no user in database")
+        return user
+
+    @classmethod
+    def get_user_id(cls, db: Session, user_id: int) -> "User":
+        user = db.query(User).filter(User.id == user_id).first()
+        if (not user):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"User with id: {user_id} doesn't exist")
+        return user
 
 class UnauthorizedUser(BaseUser):
     __tablename__ = "unauthorized_user"
@@ -71,7 +86,69 @@ class UnauthorizedUser(BaseUser):
         'polymorphic_identity': 'unauthorized_user'
     }
 
+    @classmethod
+    def create_or_get_unauthorized_user(cls, db: Session, name: str, surname: str, email: str) -> "UnauthorizedUser":
+        """
+        Creates a new unauthorized user in the database.
+        """
 
+        existing_user = db.query(UnauthorizedUser).filter_by(
+            email=email).first()
+
+        if existing_user:
+            if existing_user.name != name or existing_user.surname != surname:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                    detail="User with this email already exists but with different name or surname.")
+            return existing_user
+        new_user = UnauthorizedUser(
+            name=name,
+            surname=surname,
+            email=email
+        )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return new_user
+
+    @classmethod
+    def get_all_unathorized_users(cls, db: Session) -> List["UnauthorizedUser"]:
+        """
+        Retrieves all unathorized users from the database.
+        """
+        user = db.query(UnauthorizedUser).all()
+        if (user is None):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="There is no unauthorized user in database")
+        return user
+    
+    @classmethod
+    def get_unathorized_user(cls, db: Session, user_id: int) -> "UnauthorizedUser":
+        """
+        Retrieves an unauthorized user by their ID from the database.
+        """
+        user = db.query(UnauthorizedUser).filter(
+            UnauthorizedUser.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Unauthorized user with id: {user_id} doesn't exist")
+        return user
+    
+    @classmethod
+    def delete_unauthorized_user(cls, db: Session, user_id: int):
+        """
+        Deletes an unauthorized user by their ID from the database.
+        """
+        user = db.query(UnauthorizedUser).filter(
+            UnauthorizedUser.id == user_id).first()
+
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Unauthorized user with id: {user_id} doesn't exist")
+
+        db.delete(user)
+        db.commit()
+
+        return True
 
 class UserNote(Base):
     __tablename__ = "user_note"

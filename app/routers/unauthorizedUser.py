@@ -1,7 +1,7 @@
 from fastapi import status, HTTPException, Depends, APIRouter
 from typing import List
 from app.schemas import UnauthorizedUser
-from app import database, oauth2
+from app import database, oauth2, schemas
 import app.models.user as muser
 from sqlalchemy.orm import Session
 
@@ -19,18 +19,10 @@ def create_or_get_unauthorized_user(user: UnauthorizedUser,
     Creates a new unauthorized user in the database.
     """
 
-    existing_user = db.query(muser.UnauthorizedUser).filter_by(
-        email=user.email).first()
-
-    if existing_user:
-        if existing_user.name != user.name or existing_user.surname != user.surname:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                detail="User with this email already exists but with different name or surname.")
-        return existing_user
-    new_user = muser.UnauthorizedUser(**user.model_dump())
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    new_user = muser.UnauthorizedUser.create_or_get_unauthorized_user(db, user.name, user.surname, user.email)
+    if user.note:
+        note_data = schemas.UserNoteCreate(user_id = new_user.id, note=user.note)
+        muser.UserNote.create_user_note(db, note_data)
     return new_user
 
 
@@ -40,27 +32,17 @@ def get_all_unathorized_users(current_concierge=Depends(oauth2.get_current_conci
     """
     Retrieves all unathorized users from the database.
     """
-    user = db.query(muser.UnauthorizedUser).all()
-    if (user is None):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="There is no unauthorized user in database")
-    return user
+    return muser.UnauthorizedUser.get_all_unathorized_users(db)
 
 
-@router.get("/{id}", response_model=UnauthorizedUser)
-def get_unathorized_user(id: int,
-                         current_concierge=Depends(
-                             oauth2.get_current_concierge),
+@router.get("/{user_id}", response_model=UnauthorizedUser)
+def get_unathorized_user(user_id: int,
+                         current_concierge=Depends(oauth2.get_current_concierge),
                          db: Session = Depends(database.get_db)) -> UnauthorizedUser:
     """
     Retrieves an unauthorized user by their ID from the database.
     """
-    user = db.query(muser.UnauthorizedUser).filter(
-        muser.UnauthorizedUser.id == id).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Unauthorized user with id: {id} doesn't exist")
-    return user
+    return muser.UnauthorizedUser.get_unathorized_user(db, user_id)
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -70,14 +52,4 @@ def delete_unauthorized_user(user_id: int,
     """
     Deletes an unauthorized user by their ID from the database.
     """
-    user = db.query(muser.UnauthorizedUser).filter(
-        muser.UnauthorizedUser.id == user_id).first()
-
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Unauthorized user with id: {user_id} doesn't exist")
-
-    db.delete(user)
-    db.commit()
-
-    return True
+    return muser.UnauthorizedUser.delete_unauthorized_user(db, user_id)

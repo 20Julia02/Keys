@@ -2,8 +2,8 @@ from fastapi import Depends, APIRouter
 from typing import List
 from app.schemas import UserOut
 from app import database, oauth2
-from app.services import userService
 from sqlalchemy.orm import Session
+import app.models.user as muser
 
 router = APIRouter(
     prefix="/users",
@@ -17,8 +17,7 @@ def get_all_users(current_concierge=Depends(oauth2.get_current_concierge),
     """
     Retrieves all users from the database.
     """
-    user_service = userService.UserService(db)
-    return user_service.get_all_users()
+    return muser.User.get_all_users(db)
 
 
 @router.get("/{user_id}", response_model=UserOut)
@@ -28,5 +27,4 @@ def get_user(user_id: int,
     """
     Retrieves a user by their ID from the database.
     """
-    user_service = userService.UserService(db)
-    return user_service.get_user_id(user_id)
+    return muser.User.get_user_id(db, user_id)

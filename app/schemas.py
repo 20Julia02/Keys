@@ -50,7 +50,7 @@ class UnauthorizedUser(BaseModel):
     name: str
     surname: str
     email: str
-    added_at: Optional[datetime.datetime] = None
+    note: Optional[str] = None
 
 
 class RoomOut(BaseModel):
