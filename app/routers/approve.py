@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 from app import database, oauth2, schemas
-from app.services import operationService, securityService, sessionService
+from app.services import securityService, sessionService
+import app.models.operation as moperation
 from typing import List
 from fastapi import Path
 
@@ -116,11 +117,10 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
     Once approved, the operations are transferred from the unapproved state to the approved operations data.
     """
     auth_service = securityService.AuthorizationService(db)
-    unapproved_operation_service = operationService.UnapprovedOperationService(db)
     session_service = sessionService.SessionService(db)
     auth_service.authenticate_user_login(concierge_credentials.username, concierge_credentials.password, "concierge")
     session_service.end_session(session_id)
-    operations = unapproved_operation_service.create_operation_from_unappproved(session_id)
+    operations = moperation.UnapprovedOperation.create_operation_from_unappproved(db, session_id)
     return operations
 
 
@@ -234,12 +234,11 @@ def approve_session_card(
     Once approved, the operations are transferred from the unapproved state to the approved operations data.
     """
     auth_service = securityService.AuthorizationService(db)
-    unapproved_operation_service = operationService.UnapprovedOperationService(db)
     session_service = sessionService.SessionService(db)
     auth_service.authenticate_user_card(card_data, "concierge")
 
     session_service.end_session(session_id)
 
-    operations = unapproved_operation_service.create_operation_from_unappproved(session_id)
+    operations = moperation.UnapprovedOperation.create_operation_from_unappproved(db, session_id)
 
     return operations

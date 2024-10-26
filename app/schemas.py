@@ -50,6 +50,12 @@ class UnauthorizedUser(BaseModel):
     name: str
     surname: str
     email: str
+
+
+class UnauthorizedUserNote(UnauthorizedUser):
+    name: str
+    surname: str
+    email: str
     note: Optional[str] = None
 
 

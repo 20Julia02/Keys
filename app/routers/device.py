@@ -2,7 +2,7 @@ from fastapi import status, Depends, APIRouter
 from typing import List, Optional
 from app import database, oauth2, schemas
 import app.models.device as mdevice
-from app.services import securityService, sessionService, operationService, permissionService
+from app.services import securityService, sessionService, permissionService
 from sqlalchemy.orm import Session
 import app.models.operation as moperation
 
@@ -67,17 +67,15 @@ def change_status(
     - If the device has already been added as unapproved in the current session, remove the unapproved operation.
     - Otherwise, check user permissions and create a new unapproved operation (issue or return).
     """
-    operation_service = operationService.DeviceOperationService(db)
-    unapproved_service = operationService.UnapprovedOperationService(db)
     session_service = sessionService.SessionService(db)
     permission_service = permissionService.PermissionService(db)
 
     device = mdevice.Device.get_by_id(db, request.device_id)
     session = session_service.get_session_id(request.session_id)
 
-    if unapproved_service.delete_if_rescanned(request.device_id, request.session_id):
+    if moperation.UnapprovedOperation.delete_if_rescanned(db, request.device_id, request.session_id):
         return schemas.DetailMessage(detail="Operation removed.")
-    last_operation = operation_service.get_last_dev_operation_or_none(
+    last_operation = moperation.DeviceOperation.get_last_dev_operation_or_none(db,
         device.id)
 
     entitled = permission_service.check_if_permitted(
@@ -87,7 +85,7 @@ def change_status(
         request.force
     )
     operation_type = "zwrot" if last_operation and last_operation.operation_type == "pobranie" else "pobranie"
-    operation = unapproved_service.create_unapproved_operation({
+    operation = moperation.UnapprovedOperation.create_unapproved_operation(db, {
         "device_id": request.device_id,
         "session_id": session.id,
         "entitled": entitled,

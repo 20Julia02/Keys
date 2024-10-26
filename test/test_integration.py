@@ -10,9 +10,10 @@ import app.models.user as muser
 import app.models.device as mdevice
 import app.models.permission as mpermission
 import app.models.operation as moperation
-from app.services import securityService, sessionService, operationService
+from app.services import securityService, sessionService
 from app.schemas import UserCreate
 from app.models.base import Base
+import app.models.operation as moperation
 
 client = TestClient(app)
 
@@ -671,8 +672,6 @@ def test_approve_session_login_success(db: Session,
                                        test_session: moperation.IssueReturnSession,
                                        concierge_token: str):
     session_service = sessionService.SessionService(db)
-    unapproved_operation_service = operationService.UnapprovedOperationService(
-        db)
     session = session_service.create_session(test_user.id, test_concierge.id)
     new_data = {
         "device_id": test_device.id,
@@ -680,7 +679,7 @@ def test_approve_session_login_success(db: Session,
         "operation_type": "zwrot",
         "entitled": False
     }
-    unapproved_operation_service.create_unapproved_operation(new_data)
+    moperation.UnapprovedOperation.create_unapproved_operation(db, new_data)
 
     login_data = {
         "username": test_concierge.email,
@@ -758,8 +757,6 @@ def test_approve_session_card_success(db: Session,
                                       concierge_token: str):
 
     session_service = sessionService.SessionService(db)
-    unapproved_operation_service = operationService.UnapprovedOperationService(
-        db)
     session = session_service.create_session(test_user.id, test_concierge.id)
     new_data = {
         "device_id": test_device.id,
@@ -767,7 +764,7 @@ def test_approve_session_card_success(db: Session,
         "operation_type": "zwrot",
         "entitled": False
     }
-    unapproved_operation_service.create_unapproved_operation(new_data)
+    moperation.UnapprovedOperation.create_unapproved_operation(db, new_data)
 
     response = client.post(
         f"/approve/card/session/{session.id}",
@@ -819,7 +816,6 @@ def test_get_all_user_devices(db: Session,
                               test_device: mdevice.Device,
                               concierge_token: str):
     session_service = sessionService.SessionService(db)
-    operation_service = operationService.DeviceOperationService(db)
     session = session_service.create_session(test_user.id, test_concierge.id)
     new_data = {
         "device_id": test_device.id,
@@ -827,7 +823,7 @@ def test_get_all_user_devices(db: Session,
         "operation_type": "pobranie",
         "entitled": False
     }
-    operation_service.create_operation(new_data)
+    moperation.DeviceOperation.create_operation(db, new_data)
     response = client.get(f"/devices/users/{test_user.id}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
@@ -841,7 +837,6 @@ def test_get_all_user_devices_no_device(db: Session,
                                         test_device: mdevice.Device,
                                         concierge_token: str):
     session_service = sessionService.SessionService(db)
-    operation_service = operationService.DeviceOperationService(db)
     session = session_service.create_session(test_user.id, test_concierge.id)
     new_data = {
         "device_id": test_device.id,
@@ -849,7 +844,7 @@ def test_get_all_user_devices_no_device(db: Session,
         "operation_type": "pobranie",
         "entitled": False
     }
-    operation_service.create_operation(new_data)
+    moperation.DeviceOperation.create_operation(db, new_data)
     response = client.get(f"/devices/users/{test_concierge.id}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
