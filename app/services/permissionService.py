@@ -2,7 +2,9 @@ import datetime
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from typing import List, Optional
-from app import models, schemas
+from app import schemas
+import app.models.device as mdevice
+import app.models.permission as mpermission
 from sqlalchemy import extract
 
 
@@ -12,10 +14,10 @@ class PermissionService:
 
     def get_user_permission(self,
                             user_id: int,
-                            time: datetime = datetime.datetime.now()) -> models.Permission:
-        perm = self.db.query(models.Permission).join(models.Room, models.Permission.room).filter(models.Permission.user_id == user_id,
-                                                    models.Permission.start_reservation < time,
-                                                    models.Permission.end_reservation > time).order_by(models.Room.number).all()
+                            time: datetime = datetime.datetime.now()) -> mpermission.Permission:
+        perm = self.db.query(mpermission.Permission).join(mdevice.Room, mpermission.Permission.room).filter(mpermission.Permission.user_id == user_id,
+                                                    mpermission.Permission.start_reservation < time,
+                                                    mpermission.Permission.end_reservation > time).order_by(mdevice.Room.number).all()
         if not perm:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -26,21 +28,21 @@ class PermissionService:
     def get_filtered_permissions(self,
                         room_id: Optional[int] = None,
                         day: datetime = datetime.datetime.today()
-                        ) -> List[models.Permission]:
+                        ) -> List[mpermission.Permission]:
         """
         Helper function to retrieve permissions by user_id or room_id.
         """
         query = (
             self.db.query(
-                models.Permission
+                mpermission.Permission
             ).filter(
-                models.Permission.room_id == room_id,
-                extract('year', models.Permission.start_reservation) == day.year,
-                extract('month', models.Permission.start_reservation) == day.month,
-                extract('day', models.Permission.start_reservation) == day.day
+                mpermission.Permission.room_id == room_id,
+                extract('year', mpermission.Permission.start_reservation) == day.year,
+                extract('month', mpermission.Permission.start_reservation) == day.month,
+                extract('day', mpermission.Permission.start_reservation) == day.day
             )
         )
-        perm = query.order_by(models.Permission.start_reservation).all()
+        perm = query.order_by(mpermission.Permission.start_reservation).all()
 
         if not perm:
             raise HTTPException(
@@ -71,11 +73,11 @@ class PermissionService:
         Raises:
             HTTPException: If the user doesn't have permission and the operation is not forced.
         """
-        has_permission = self.db.query(models.Permission).filter(
-            models.Permission.user_id == user_id,
-            models.Permission.room_id == room_id,
-            models.Permission.start_reservation < datetime.datetime.now(),
-            models.Permission.end_reservation > datetime.datetime.now()
+        has_permission = self.db.query(mpermission.Permission).filter(
+            mpermission.Permission.user_id == user_id,
+            mpermission.Permission.room_id == room_id,
+            mpermission.Permission.start_reservation < datetime.datetime.now(),
+            mpermission.Permission.end_reservation > datetime.datetime.now()
         ).first()
         if not has_permission:
             if not force and (last_operation_type is None or last_operation_type == "zwrot"):
@@ -85,11 +87,11 @@ class PermissionService:
         else:
             return True
 
-    def create_permission(self, permission: schemas.PermissionCreate, commit: bool = True) -> models.Permission:
+    def create_permission(self, permission: schemas.PermissionCreate, commit: bool = True) -> mpermission.Permission:
         """
         Creates a new permission in the database.
         """
-        new_permission = models.Permission(**permission.model_dump())
+        new_permission = mpermission.Permission(**permission.model_dump())
         self.db.add(new_permission)
         if commit:
             self.db.commit()

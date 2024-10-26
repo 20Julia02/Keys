@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine
-from app.models import Base
+from app.models import base
 from sqlalchemy.orm import sessionmaker
 from app.config import settings
 
@@ -11,7 +11,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def create_tables():
-    Base.metadata.create_all(bind=engine)
+    base.Base.metadata.create_all(bind=engine)
 
 
 def get_db():

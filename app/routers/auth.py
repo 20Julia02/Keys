@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
-from app import database, models, oauth2, schemas
+from app import database, oauth2, schemas
+import app.models.user as muser
 from app.services import securityService, sessionService
 
 router = APIRouter(
@@ -161,7 +162,7 @@ def refresh_token(refresh_token: schemas.RefreshToken, db: Session = Depends(dat
     token_service = securityService.TokenService(db)
     token_data = token_service.verify_concierge_token(refresh_token.refresh_token)
 
-    user = db.query(models.User).filter_by(id=token_data.id).first()
+    user = db.query(muser.User).filter_by(id=token_data.id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
@@ -180,7 +181,7 @@ def logout(token: str = Depends(oauth2.get_current_concierge_token),
     token_service = securityService.TokenService(db)
     token_data = token_service.verify_concierge_token(token)
 
-    concierge = db.query(models.User).filter_by(id=token_data.id).first()
+    concierge = db.query(muser.User).filter_by(id=token_data.id).first()
     if not concierge:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 

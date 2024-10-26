@@ -1,7 +1,8 @@
 import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app import models, schemas
+from app import schemas
+import app.models.operation as moperation
 from fastapi import HTTPException, status
 from typing import List
 
@@ -12,7 +13,7 @@ class DeviceOperationService:
 
     def create_operation(self,
                          operation_data: schemas.DeviceOperation,
-                         commit: bool = True) -> models.DeviceOperation:
+                         commit: bool = True) -> moperation.DeviceOperation:
         """
         Creates a new operation in the database.
 
@@ -22,7 +23,7 @@ class DeviceOperationService:
         Returns:
             DeviceOperation: The newly created operation.
         """
-        new_operation = models.DeviceOperation(**operation_data)
+        new_operation = moperation.DeviceOperation(**operation_data)
         new_operation.timestamp = datetime.datetime.now()
 
         self.db.add(new_operation)
@@ -31,31 +32,31 @@ class DeviceOperationService:
             self.db.refresh(new_operation)
         return new_operation
     
-    def get_all_operations(self) -> List[models.DeviceOperation]:
-        operations = self.db.query(models.DeviceOperation).all()
+    def get_all_operations(self) -> List[moperation.DeviceOperation]:
+        operations = self.db.query(moperation.DeviceOperation).all()
         if not operations:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"There is no operation")
         return operations
 
-    def get_operation_id(self, operation_id: int) -> models.DeviceOperation:
-        operation = self.db.query(models.DeviceOperation).filter(models.DeviceOperation.id == operation_id).first()
+    def get_operation_id(self, operation_id: int) -> moperation.DeviceOperation:
+        operation = self.db.query(moperation.DeviceOperation).filter(moperation.DeviceOperation.id == operation_id).first()
         if not operation:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Operation with id: {operation_id} doesn't exist")
         return operation
     
-    def get_last_dev_operation_or_none(self, device_id: int) -> models.DeviceOperation:
+    def get_last_dev_operation_or_none(self, device_id: int) -> moperation.DeviceOperation:
         subquery = (
-            self.db.query(func.max(models.DeviceOperation.timestamp))
-            .filter(models.DeviceOperation.device_id == device_id)
+            self.db.query(func.max(moperation.DeviceOperation.timestamp))
+            .filter(moperation.DeviceOperation.device_id == device_id)
             .subquery()
         )
         operation = (
-            self.db.query(models.DeviceOperation)
+            self.db.query(moperation.DeviceOperation)
             .filter(
-                models.DeviceOperation.device_id == device_id,
-                models.DeviceOperation.timestamp == subquery
+                moperation.DeviceOperation.device_id == device_id,
+                moperation.DeviceOperation.timestamp == subquery
             )
             .first()
         )
@@ -66,8 +67,8 @@ class UnapprovedOperationService():
         self.db = db
 
     def delete_if_rescanned(self, device_id: int, session_id: int) -> bool:
-        operation_unapproved = self.db.query(models.UnapprovedOperation).filter(models.UnapprovedOperation.device_id == device_id,
-                                                                       models.UnapprovedOperation.session_id == session_id).first()
+        operation_unapproved = self.db.query(moperation.UnapprovedOperation).filter(moperation.UnapprovedOperation.device_id == device_id,
+                                                                       moperation.UnapprovedOperation.session_id == session_id).first()
         if operation_unapproved:
             self.db.delete(operation_unapproved)
             self.db.commit()
@@ -76,7 +77,7 @@ class UnapprovedOperationService():
     
     def create_unapproved_operation(self,
                          operation_data: schemas.DeviceOperation,
-                         commit: bool = True) -> models.DeviceOperation:
+                         commit: bool = True) -> moperation.DeviceOperation:
         """
         Creates a new operation in the database.
 
@@ -86,7 +87,7 @@ class UnapprovedOperationService():
         Returns:
             DeviceOperation: The newly created operation.
         """
-        new_operation = models.UnapprovedOperation(**operation_data)
+        new_operation = moperation.UnapprovedOperation(**operation_data)
         new_operation.timestamp = datetime.datetime.now()
 
         self.db.add(new_operation)
@@ -95,14 +96,14 @@ class UnapprovedOperationService():
             self.db.refresh(new_operation)
         return new_operation
     
-    def get_unapproved_session(self, session_id: int) -> List[models.UnapprovedOperation]:
-        unapproved = self.db.query(models.UnapprovedOperation).filter(models.UnapprovedOperation.session_id == session_id).all()
+    def get_unapproved_session(self, session_id: int) -> List[moperation.UnapprovedOperation]:
+        unapproved = self.db.query(moperation.UnapprovedOperation).filter(moperation.UnapprovedOperation.session_id == session_id).all()
         if not unapproved:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No unapproved operations found for this session")
         return unapproved
     
 
-    def create_operation_from_unappproved(self, session_id: int, commit: bool = True)-> models.DeviceOperation:
+    def create_operation_from_unappproved(self, session_id: int, commit: bool = True)-> moperation.DeviceOperation:
         unapproved_operations = self.get_unapproved_session(session_id)
         operation_list = []
         for unapproved_operation in unapproved_operations:
@@ -113,7 +114,7 @@ class UnapprovedOperationService():
                 "timestamp": unapproved_operation.timestamp,
                 "entitled": unapproved_operation.entitled
             }
-            new_operation = models.DeviceOperation(**operation_data)
+            new_operation = moperation.DeviceOperation(**operation_data)
             self.db.add(new_operation)
             self.db.flush()
             self.db.delete(unapproved_operation)

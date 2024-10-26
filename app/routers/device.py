@@ -1,8 +1,10 @@
 from fastapi import status, Depends, APIRouter
 from typing import List, Optional
-from app import database, oauth2, schemas, models
+from app import database, oauth2, schemas
+import app.models.device as mdevice
 from app.services import securityService, sessionService, operationService, permissionService
 from sqlalchemy.orm import Session
+import app.models.operation as moperation
 
 
 router = APIRouter(
@@ -23,7 +25,7 @@ def get_devices_filtered(current_concierge=Depends(oauth2.get_current_concierge)
     This endpoint retrieves a list of devices from the database. Optionally,
     the list can be filtered by device type and dev_version if these parameters are provided.
     """
-    return models.Device.get_device_with_details(db, dev_type, dev_version, room_number)
+    return mdevice.Device.get_device_with_details(db, dev_type, dev_version, room_number)
 
 
 @router.get("/code/{dev_code}", response_model=schemas.DeviceOut)
@@ -35,7 +37,7 @@ def get_dev_code(dev_code: str,
 
     This endpoint retrieves a device from the database using the device's unique code.
     """
-    return models.Device.get_by_code(db, dev_code)
+    return mdevice.Device.get_by_code(db, dev_code)
 
 
 @router.post("/", response_model=schemas.DeviceOut, status_code=status.HTTP_201_CREATED)
@@ -50,7 +52,7 @@ def create_device(device: schemas.DeviceCreate,
     """
     auth_service = securityService.AuthorizationService(db)
     auth_service.check_if_entitled("admin", current_concierge)
-    return  models.Device.create(db, device)
+    return  mdevice.Device.create(db, device)
 
 
 @router.post("/change-status", response_model=schemas.DeviceOperationOrDetailResponse)
@@ -70,7 +72,7 @@ def change_status(
     session_service = sessionService.SessionService(db)
     permission_service = permissionService.PermissionService(db)
 
-    device = models.Device.get_by_id(db, request.device_id)
+    device = mdevice.Device.get_by_id(db, request.device_id)
     session = session_service.get_session_id(request.session_id)
 
     if unapproved_service.delete_if_rescanned(request.device_id, request.session_id):
@@ -105,4 +107,4 @@ def get_devs_owned_by_user(user_id: int,
 
     This endpoint retrieves a device from the database using the device's unique code.
     """
-    return models.DeviceOperation.get_owned_by_user(db, user_id)
+    return moperation.DeviceOperation.get_owned_by_user(db, user_id)
