@@ -33,18 +33,27 @@ class Permission(Base):
                         db: Session,
                         user_id: Optional[int] = None,
                         room_id: Optional[int] = None,
-                        start_time: Optional[datetime.datetime] = None,
+                        date: Optional[datetime.date] = None,
+                        start_time: Optional[datetime.time] = None,
                         ) -> List["Permission"]:
+
         query = db.query(Permission)
-        
+
         if user_id is not None:
             query = query.filter(Permission.user_id == user_id)
 
         if room_id is not None:
             query = query.filter(Permission.room_id == room_id)
 
-        if start_time is not None:
-            query = query.filter(Permission.start_reservation >= start_time)
+        if date is None and start_time:
+            date = datetime.datetime.today().date()
+
+        if date is not None:
+            start_datetime = datetime.datetime.combine(date, start_time or datetime.time.min)
+
+            query = query.filter(
+                Permission.start_reservation >= start_datetime,
+            )
 
         permissions = query.order_by(Permission.start_reservation).all()
 

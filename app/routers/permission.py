@@ -18,9 +18,9 @@ router = APIRouter(
 def get_permissions(
     user_id: Optional[int] = None,
     room_id: Optional[int] = None,
-    start_time: Optional[datetime.datetime] = None,
+    date: Optional[datetime.date] = None,
+    start_time: Optional[datetime.time] = None,
     current_concierge=Depends(oauth2.get_current_concierge),
     db: Session = Depends(database.get_db)
 ) -> List[PermissionOut]:
-
-    return mpermission.Permission.get_permissions(db, user_id, room_id, start_time)
+    return mpermission.Permission.get_permissions(db, user_id, room_id, date, start_time)
