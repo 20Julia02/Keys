@@ -125,8 +125,9 @@ class PermissionCreate(BaseModel):
 class PermissionOut(BaseModel):
     room: RoomOut
     user: UserOut
-    start_reservation: datetime.datetime
-    end_reservation: datetime.datetime
+    date: datetime.date
+    start_time: datetime.time
+    end_time: datetime.time
 
 
 class IssueReturnSession(BaseModel):

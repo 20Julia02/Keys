@@ -96,9 +96,13 @@ def test_room_2(db: Session):
 
 @pytest.fixture(scope="module")
 def test_permission(db: Session, test_user, test_room):
-    permission = mpermission.Permission(user_id=test_user.id, room_id=test_room.id,
-                                   start_reservation=datetime.datetime.now() - datetime.timedelta(hours=1),
-                                   end_reservation=datetime.datetime.now() + datetime.timedelta(hours=1))
+    permission = mpermission.Permission(
+    user_id=test_user.id, 
+    room_id=test_room.id,
+    date=datetime.date.today(),
+    start_time=(datetime.datetime.now() - datetime.timedelta(hours=1)).time(),
+    end_time=(datetime.datetime.now() + datetime.timedelta(hours=1)).time()
+)
     db.add(permission)
     db.commit()
     db.refresh(permission)
