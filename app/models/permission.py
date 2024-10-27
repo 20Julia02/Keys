@@ -23,9 +23,9 @@ class Permission(Base):
     id: Mapped[intpk]
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     room_id: Mapped[int] = mapped_column(ForeignKey("room.id"))
-    date: Mapped[datetime.date] = mapped_column(Date)  # Trzyma tylko datę
-    start_time: Mapped[datetime.time] = mapped_column(Time)  # Trzyma tylko godzinę, dokładność do 15 minut
-    end_time: Mapped[datetime.time] = mapped_column(Time)  # Trzyma tylko godzinę, dokładność do 15 minut
+    date: Mapped[datetime.date] = mapped_column(Date)
+    start_time: Mapped[datetime.time] = mapped_column(Time)
+    end_time: Mapped[datetime.time] = mapped_column(Time)
 
     user: Mapped["User"] = relationship(back_populates="permissions")
     room: Mapped["Room"] = relationship(back_populates="permissions")
