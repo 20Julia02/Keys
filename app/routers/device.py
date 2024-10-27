@@ -2,10 +2,10 @@ from fastapi import status, Depends, APIRouter
 from typing import List, Optional
 from app import database, oauth2, schemas
 import app.models.device as mdevice
-from app.services import securityService, sessionService, permissionService
+from app.services import securityService, sessionService
 from sqlalchemy.orm import Session
 import app.models.operation as moperation
-
+import app.models.permission as mpermission
 
 router = APIRouter(
     prefix="/devices",
@@ -68,7 +68,6 @@ def change_status(
     - Otherwise, check user permissions and create a new unapproved operation (issue or return).
     """
     session_service = sessionService.SessionService(db)
-    permission_service = permissionService.PermissionService(db)
 
     device = mdevice.Device.get_by_id(db, request.device_id)
     session = session_service.get_session_id(request.session_id)
@@ -78,7 +77,7 @@ def change_status(
     last_operation = moperation.DeviceOperation.get_last_dev_operation_or_none(db,
         device.id)
 
-    entitled = permission_service.check_if_permitted(
+    entitled = mpermission.Permission.check_if_permitted(db,
         session.user_id,
         device.room_id,
         last_operation.operation_type if last_operation else None,
