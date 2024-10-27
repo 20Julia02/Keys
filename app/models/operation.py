@@ -18,8 +18,8 @@ class IssueReturnSession(Base):
     __tablename__ = "session"
 
     id: Mapped[intpk]
-    user_id: Mapped[int] = mapped_column(ForeignKey("base_user.id"))
-    concierge_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("base_user.id", onupdate="RESTRICT", ondelete="SET NULL"))
+    concierge_id: Mapped[int] = mapped_column(ForeignKey("user.id", onupdate="RESTRICT", ondelete="SET NULL"))
     start_time: Mapped[datetime.datetime]
     end_time: Mapped[Optional[datetime.datetime]]
     status: Mapped[SessionStatus]
@@ -36,11 +36,11 @@ OperationType = Literal["pobranie", "zwrot"]
 class UnapprovedOperation(Base):
     __tablename__ = "operation_unapproved"
     id: Mapped[intpk]
-    device_id: Mapped[int] = mapped_column(ForeignKey("device.id"))
-    session_id: Mapped[int] = mapped_column(ForeignKey("session.id"))
+    device_id: Mapped[int] = mapped_column(ForeignKey("device.id", onupdate="CASCADE", ondelete="CASCADE"), index=True)
+    session_id: Mapped[int] = mapped_column(ForeignKey("session.id", onupdate="CASCADE", ondelete="CASCADE"), index=True)
     operation_type: Mapped[OperationType]
     entitled: Mapped[bool]
-    timestamp: Mapped[Optional[timestamp]]
+    timestamp: Mapped[timestamp]
 
     session: Mapped["IssueReturnSession"] = relationship(back_populates="unapproved_operations")
     device: Mapped["Device"] = relationship(back_populates="unapproved_operations")
@@ -118,11 +118,11 @@ class DeviceOperation(Base):
     __tablename__ = "device_operation"
 
     id: Mapped[intpk]
-    device_id: Mapped[int] = mapped_column(ForeignKey("device.id"))
-    session_id: Mapped[Optional[int]] = mapped_column(ForeignKey("session.id"))
-    operation_type: Mapped[OperationType]
+    device_id: Mapped[int] = mapped_column(ForeignKey("device.id", onupdate="CASCADE", ondelete="CASCADE"), index=True)
+    session_id: Mapped[Optional[int]] = mapped_column(ForeignKey("session.id", onupdate="CASCADE", ondelete="SET NULL"))
+    operation_type: Mapped[OperationType] = mapped_column(index=True)
     entitled: Mapped[bool]
-    timestamp: Mapped[Optional[timestamp]]
+    timestamp: Mapped[timestamp]
 
     device: Mapped["Device"] = relationship(back_populates="device_operations")
     session: Mapped[Optional["IssueReturnSession"]] = relationship(back_populates="device_operations")

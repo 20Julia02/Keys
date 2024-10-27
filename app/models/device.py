@@ -1,4 +1,5 @@
-from sqlalchemy import Integer, and_, case, ForeignKey, String, UniqueConstraint, func
+from operator import indexOf
+from sqlalchemy import Integer, and_, case, ForeignKey, String, UniqueConstraint, func, Index
 from sqlalchemy.orm import relationship, mapped_column, Mapped, Session
 import enum
 from typing import Optional, List, TYPE_CHECKING
@@ -19,7 +20,7 @@ class Room(Base):
     __tablename__ = "room"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    number: Mapped[str] = mapped_column(String(20), unique=True)
+    number: Mapped[str] = mapped_column(String(20), unique=True, index=True)
 
     permissions: Mapped[List["Permission"]] = relationship(back_populates="room")
     devices: Mapped[List["Device"]] = relationship("Device", back_populates="room")
@@ -66,9 +67,9 @@ class DeviceType(enum.Enum):
 class Device(Base):
     __tablename__ = "device"
     id: Mapped[intpk]
-    code: Mapped[str] = mapped_column(String(50), unique=True)
+    code: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     dev_type: Mapped[DeviceType]
-    room_id: Mapped[int] = mapped_column(ForeignKey("room.id"))
+    room_id: Mapped[int] = mapped_column(ForeignKey("room.id", ondelete="RESTRICT", onupdate="RESTRICT"), index=True)
     dev_version: Mapped[DeviceVersion]
 
     room: Mapped["Room"] = relationship("Room", back_populates="devices")
@@ -76,8 +77,9 @@ class Device(Base):
     device_operations: Mapped[List["DeviceOperation"]] = relationship(back_populates="device")
     unapproved_operations: Mapped[List["UnapprovedOperation"]] = relationship(back_populates="device")
 
-    __table_args__ = (UniqueConstraint(
-        "dev_type", "room_id", "dev_version", name="uix_device"),)
+    __table_args__ = (
+        UniqueConstraint("dev_type", "room_id", "dev_version", name="uix_device"),
+    )
 
     @classmethod
     def get_device_with_details(
@@ -189,9 +191,9 @@ class Device(Base):
 class DeviceNote(Base):
     __tablename__ = "device_note"
     id: Mapped[intpk]
-    device_id: Mapped[int] = mapped_column(ForeignKey("device.id"))
+    device_id: Mapped[int] = mapped_column(ForeignKey("device.id", ondelete="CASCADE", onupdate="CASCADE"), index=True,)
     note: Mapped[str]
-    timestamp: Mapped[Optional[timestamp]]
+    timestamp: Mapped[timestamp]
 
     device: Mapped["Device"] = relationship(back_populates="notes")
 
