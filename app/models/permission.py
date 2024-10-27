@@ -38,7 +38,7 @@ class Permission(Base):
                         date: Optional[datetime.date] = None,
                         start_time: Optional[datetime.time] = None,
                         ) -> List["Permission"]:
-        query = db.query(Permission).filter(date>= datetime.date.today())
+        query = db.query(Permission).filter(Permission.date >= datetime.date.today())
 
         if user_id is not None:
             query = query.filter(Permission.user_id == user_id)

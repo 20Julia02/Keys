@@ -24,6 +24,33 @@ class Room(Base):
     permissions: Mapped[List["Permission"]] = relationship(back_populates="room")
     devices: Mapped[List["Device"]] = relationship("Device", back_populates="room")
 
+    @classmethod
+    def get_rooms(cls, db: Session, room_number: Optional[str] = None) -> List["Room"]:
+        query = db.query(Room)
+        if room_number:
+            query = query.filter(Room.number == room_number)
+        rooms = query.all()
+        if rooms is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="There is no room in database")
+        return rooms
+
+    @classmethod
+    def get_room_id(cls, db: Session, room_id: int) -> "Room":
+        room = db.query(Room).filter(Room.id == room_id).first()
+        if not room:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Room with id: {room_id} doesn't exist")
+        return room
+    
+    @classmethod
+    def get_room_number(cls, db: Session, room_number: str) -> "Room":
+        room = db.query(Room).filter(Room.number == room_number).first()
+        if not room:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Room number: {room_number} doesn't exist")
+        return room
+
 
 class DeviceVersion(enum.Enum):
     primary = "podstawowa"

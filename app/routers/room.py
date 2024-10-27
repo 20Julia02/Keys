@@ -2,8 +2,8 @@ from fastapi import Depends, APIRouter
 from typing import List, Optional
 from app.schemas import RoomOut
 from app import database, oauth2
-from app.services import roomService
 from sqlalchemy.orm import Session
+import app.models.device as mdevice
 
 router = APIRouter(
     prefix="/rooms",
@@ -18,8 +18,7 @@ def get_rooms(current_concierge=Depends(oauth2.get_current_concierge),
     """
     Retrieves all rooms from the database that match the specified number.
     """
-    room_service = roomService.RoomService(db)
-    return room_service.get_rooms(number)
+    return mdevice.Room.get_rooms(db, number)
 
 
 @router.get("/{room_id}", response_model=RoomOut)
@@ -29,5 +28,4 @@ def get_room_id(room_id: int,
     """
     Retrieves a room by its ID from the database.
     """
-    room_service = roomService.RoomService(db)
-    return room_service.get_room_id(room_id)
+    return mdevice.Room.get_room_id(db, room_id)
