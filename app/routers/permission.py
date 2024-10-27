@@ -18,7 +18,7 @@ router = APIRouter(
 def get_permissions(
     user_id: Optional[int] = None,
     room_id: Optional[int] = None,
-    date: Optional[datetime.date] = None,
+    date: Optional[datetime.date] = datetime.date.today(),
     start_time: Optional[datetime.time] = None,
     current_concierge=Depends(oauth2.get_current_concierge),
     db: Session = Depends(database.get_db)

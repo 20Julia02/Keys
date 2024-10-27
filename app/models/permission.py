@@ -52,7 +52,7 @@ class Permission(Base):
             start_datetime = datetime.datetime.combine(date, start_time or datetime.time.min)
 
             query = query.filter(
-                Permission.start_reservation >= start_datetime,
+                Permission.start_reservation == start_datetime,
             )
 
         permissions = query.order_by(Permission.start_reservation).all()
