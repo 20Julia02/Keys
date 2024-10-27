@@ -519,7 +519,7 @@ def test_get_user_permission_with_valid_user_id(db: Session,
                                                 test_room: mdevice.Room,
                                                 concierge_token: str):
     response = client.get(
-        f"/permissions/users/{test_user.id}",
+        f"/permissions?user_id={test_user.id}",
         headers={"Authorization": f"Bearer {concierge_token}"}
     )
     assert response.status_code == 200
@@ -527,8 +527,9 @@ def test_get_user_permission_with_valid_user_id(db: Session,
 
 
 def test_get_user_permission_with_invalid_user_id(test_concierge: muser.User, concierge_token: str):
-    response = client.get("/permissions/users/-1",
+    response = client.get("/permissions?user_id=-1",
                           headers={"Authorization": f"Bearer {concierge_token}"})
+    print(response.json())
     assert response.status_code == 404
     assert response.json()[
         "detail"] == "No reservations found"

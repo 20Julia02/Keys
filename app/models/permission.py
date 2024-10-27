@@ -29,47 +29,31 @@ class Permission(Base):
     room: Mapped["Room"] = relationship(back_populates="permissions")
 
     @classmethod
-    def get_user_permission(cls,
-                            db: Session,
-                            user_id: int,
-                            time: datetime = datetime.datetime.now()) -> "Permission":
-        perm = db.query(Permission).join(Room, Permission.room).filter(Permission.user_id == user_id,
-                                                    Permission.start_reservation < time,
-                                                    Permission.end_reservation > time).order_by(Room.number).all()
-        if not perm:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No reservations found"
-            )
-        return perm
-
-    @classmethod    
-    def get_filtered_permissions(cls,
-                                 db: Session,
+    def get_permissions(cls,
+                        db: Session,
+                        user_id: Optional[int] = None,
                         room_id: Optional[int] = None,
-                        day: datetime = datetime.datetime.today()
+                        start_time: Optional[datetime.datetime] = None,
                         ) -> List["Permission"]:
-        """
-        Helper function to retrieve permissions by user_id or room_id.
-        """
-        query = (
-            db.query(
-                Permission
-            ).filter(
-                Permission.room_id == room_id,
-                extract('year', Permission.start_reservation) == day.year,
-                extract('month', Permission.start_reservation) == day.month,
-                extract('day', Permission.start_reservation) == day.day
-            )
-        )
-        perm = query.order_by(Permission.start_reservation).all()
+        query = db.query(Permission)
+        
+        if user_id is not None:
+            query = query.filter(Permission.user_id == user_id)
 
-        if not perm:
+        if room_id is not None:
+            query = query.filter(Permission.room_id == room_id)
+
+        if start_time is not None:
+            query = query.filter(Permission.start_reservation >= start_time)
+
+        permissions = query.order_by(Permission.start_reservation).all()
+
+        if not permissions:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No reservations found"
+                detail="No reservations found"
             )
-        return perm
+        return permissions
 
     @classmethod
     def check_if_permitted(cls,
