@@ -130,7 +130,7 @@ class PermissionOut(BaseModel):
     end_time: datetime.time
 
 
-class IssueReturnSession(BaseModel):
+class Session(BaseModel):
     id: int
     user_id: Optional[int] = None
     concierge_id: int
@@ -172,7 +172,7 @@ class DetailMessage(BaseModel):
 class DeviceOperationOut(BaseModel):
     id: int
     device: DeviceOut
-    session: IssueReturnSession
+    session: Session
     operation_type: str
     entitled: bool
     timestamp: datetime.datetime

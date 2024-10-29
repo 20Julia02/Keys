@@ -96,12 +96,13 @@ def test_room_2(db: Session):
 @pytest.fixture(scope="module")
 def test_permission(db: Session, test_user, test_room):
     permission = mpermission.Permission(
-    user_id=test_user.id,
-    room_id=test_room.id,
-    date=datetime.date.today(),
-    start_time=(datetime.datetime.now() - datetime.timedelta(hours=1)).time(),
-    end_time=(datetime.datetime.now() + datetime.timedelta(hours=1)).time()
-)
+        user_id=test_user.id,
+        room_id=test_room.id,
+        date=datetime.date.today(),
+        start_time=(datetime.datetime.now() -
+                    datetime.timedelta(hours=1)).time(),
+        end_time=(datetime.datetime.now() + datetime.timedelta(hours=1)).time()
+    )
     db.add(permission)
     db.commit()
     db.refresh(permission)
@@ -110,7 +111,7 @@ def test_permission(db: Session, test_user, test_room):
 
 @pytest.fixture(scope="module")
 def test_session(db: Session, test_user: muser.User, test_concierge: muser.User):
-    session = moperation.IssueReturnSession(
+    session = moperation.Session(
         user_id=test_user.id,
         concierge_id=test_concierge.id,
         start_time=datetime.datetime(
@@ -154,7 +155,7 @@ def test_device_microphone(db: Session, test_room_2: mdevice.Room):
 @pytest.fixture
 def create_user_note(db: Session, test_user: muser.User):
     note = muser.UserNote(user_id=test_user.id,
-                           note="Test Note", timestamp=datetime.datetime.now())
+                          note="Test Note", timestamp=datetime.datetime.now())
     db.add(note)
     db.commit()
     db.refresh(note)
@@ -172,7 +173,7 @@ def create_specific_user_note(db: Session, test_user: muser.User):
 
 
 @pytest.fixture
-def create_device_note(db: Session, test_device: mdevice.Device, test_session: moperation.IssueReturnSession):
+def create_device_note(db: Session, test_device: mdevice.Device, test_session: moperation.Session):
     note = mdevice.DeviceNote(
         device_id=test_device.id, note="Device note content", timestamp=datetime.datetime.now())
     db.add(note)
@@ -416,7 +417,7 @@ def test_changeStatus_invalid_session(test_device: mdevice.Device,
                                "Authorization": f"Bearer {concierge_token}"},
                            json={"session_id": 0, "device_id": test_device.id})
     assert response.status_code == 404
-    assert response.json()["detail"] == "IssueReturnSession doesn't exist"
+    assert response.json()["detail"] == "Session doesn't exist"
 
 
 def test_changeStatus_with_valid_id_taking(test_concierge: muser.User,
@@ -628,8 +629,8 @@ def test_get_all_unauthorized_users(test_concierge: muser.User, concierge_token:
 
 def test_get_unauthorized_user_by_id(db: Session, test_concierge: muser.User, concierge_token: str):
     user = muser.UnauthorizedUser(name="Unauthorized",
-                                   surname="User 2",
-                                   email="user123@gmail.com")
+                                  surname="User 2",
+                                  email="user123@gmail.com")
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -659,8 +660,8 @@ def test_delete_unauthorized_user_invalid_id(concierge_token: str):
 def test_delete_unauthorized_user_valid(db: Session, concierge_token: str):
 
     user = muser.UnauthorizedUser(name="Unauthorized",
-                                   surname="User 2",
-                                   email="2user2@kskk.cck")
+                                  surname="User 2",
+                                  email="2user2@kskk.cck")
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -673,9 +674,10 @@ def test_approve_session_login_success(db: Session,
                                        test_concierge: muser.User,
                                        test_device: mdevice.Device,
                                        test_user: muser.User,
-                                       test_session: moperation.IssueReturnSession,
+                                       test_session: moperation.Session,
                                        concierge_token: str):
-    session = moperation.IssueReturnSession.create_session(db, test_user.id, test_concierge.id)
+    session = moperation.Session.create_session(
+        db, test_user.id, test_concierge.id)
     new_data = {
         "device_id": test_device.id,
         "session_id": session.id,
@@ -698,7 +700,7 @@ def test_approve_session_login_success(db: Session,
 
 
 def test_approve_session_login_invalid_credentials(test_concierge: muser.User,
-                                                   test_session: moperation.IssueReturnSession,
+                                                   test_session: moperation.Session,
                                                    concierge_token: str):
     login_data = {
         "username": test_concierge.email,
@@ -714,7 +716,7 @@ def test_approve_session_login_invalid_credentials(test_concierge: muser.User,
 
 
 def test_approve_session_login_no_permission(test_user: muser.User,
-                                             test_session: moperation.IssueReturnSession,
+                                             test_session: moperation.Session,
                                              concierge_token: str):
     login_data = {
         "username": test_user.email,
@@ -730,7 +732,7 @@ def test_approve_session_login_no_permission(test_user: muser.User,
         "detail": "You cannot perform this operation without the concierge role"}
 
 
-def test_approve_session_card_no_devices(test_session: moperation.IssueReturnSession,
+def test_approve_session_card_no_devices(test_session: moperation.Session,
                                          concierge_token: str):
     response = client.post(
         f"/approve/card/session/{test_session.id}",
@@ -742,7 +744,7 @@ def test_approve_session_card_no_devices(test_session: moperation.IssueReturnSes
         "detail": "No unapproved operations found for this session"}
 
 
-def test_approve_session_card_invalid_card(test_session: moperation.IssueReturnSession,
+def test_approve_session_card_invalid_card(test_session: moperation.Session,
                                            concierge_token: str):
     response = client.post(
         f"/approve/card/session/{test_session.id}",
@@ -759,7 +761,8 @@ def test_approve_session_card_success(db: Session,
                                       test_concierge: muser.User,
                                       concierge_token: str):
 
-    session = moperation.IssueReturnSession.create_session(db, test_user.id, test_concierge.id)
+    session = moperation.Session.create_session(
+        db, test_user.id, test_concierge.id)
     new_data = {
         "device_id": test_device.id,
         "session_id": session.id,
@@ -817,7 +820,8 @@ def test_get_all_user_devices(db: Session,
                               test_concierge: muser.User,
                               test_device: mdevice.Device,
                               concierge_token: str):
-    session = moperation.IssueReturnSession.create_session(db, test_user.id, test_concierge.id)
+    session = moperation.Session.create_session(
+        db, test_user.id, test_concierge.id)
     new_data = {
         "device_id": test_device.id,
         "session_id": session.id,
@@ -837,7 +841,8 @@ def test_get_all_user_devices_no_device(db: Session,
                                         test_concierge: muser.User,
                                         test_device: mdevice.Device,
                                         concierge_token: str):
-    session = moperation.IssueReturnSession.create_session(db, test_user.id, test_concierge.id)
+    session = moperation.Session.create_session(
+        db, test_user.id, test_concierge.id)
     new_data = {
         "device_id": test_device.id,
         "session_id": session.id,
@@ -928,7 +933,7 @@ def test_get_device_notes_not_found(concierge_token: str):
 
 
 def test_add_device_note(db: Session,
-                         test_session: moperation.IssueReturnSession,
+                         test_session: moperation.Session,
                          test_device: mdevice.Device,
                          concierge_token: str):
     note_data = {"device_id": test_device.id,

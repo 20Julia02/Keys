@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 SessionStatus = Literal["w trakcie", "potwierdzona", "odrzucona"]
 
 
-class IssueReturnSession(Base):
+class Session(Base):
     __tablename__ = "session"
 
     id: Mapped[intpk]
@@ -36,7 +36,7 @@ class IssueReturnSession(Base):
         foreign_keys=[concierge_id], back_populates="sessions")
 
     @classmethod
-    def create_session(cls, db: Session, user_id: int, concierge_id: int, commit: bool = True) -> "IssueReturnSession":
+    def create_session(cls, db: Session, user_id: int, concierge_id: int, commit: bool = True) -> "Session":
         """
         Creates a new session in the database for a given user and concierge.
 
@@ -49,7 +49,7 @@ class IssueReturnSession(Base):
         """
 
         start_time = datetime.datetime.now(ZoneInfo("Europe/Warsaw"))
-        new_session = IssueReturnSession(
+        new_session = Session(
             user_id=user_id,
             concierge_id=concierge_id,
             start_time=start_time,
@@ -62,7 +62,7 @@ class IssueReturnSession(Base):
         return new_session
 
     @classmethod
-    def end_session(cls, db: Session, session_id: int, reject: bool = False, commit: bool = True) -> "IssueReturnSession":
+    def end_session(cls, db: Session, session_id: int, reject: bool = False, commit: bool = True) -> "Session":
         """
         Changes the status of the session to rejected or completed
         depending on the given value of the reject argument. The default
@@ -72,12 +72,12 @@ class IssueReturnSession(Base):
             session_id (int): the ID of the session
 
         Returns:
-            _type_: schemas.IssueReturnSession. The session with completed status
+            _type_: schemas.Session. The session with completed status
 
         Raises:
             HTTPException: If the session with given ID doesn't exist
         """
-        session = db.query(IssueReturnSession).filter_by(id=session_id).first()
+        session = db.query(Session).filter_by(id=session_id).first()
         if not session:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
@@ -93,14 +93,14 @@ class IssueReturnSession(Base):
         return session
 
     @classmethod
-    def get_session_id(cls, db: Session, session_id: int) -> "IssueReturnSession":
-        session = db.query(IssueReturnSession).filter(
-            IssueReturnSession.id == session_id
+    def get_session_id(cls, db: Session, session_id: int) -> "Session":
+        session = db.query(Session).filter(
+            Session.id == session_id
         ).first()
 
         if not session:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="IssueReturnSession doesn't exist")
+                                detail="Session doesn't exist")
         return session
 
 
@@ -118,7 +118,7 @@ class UnapprovedOperation(Base):
     entitled: Mapped[bool]
     timestamp: Mapped[timestamp]
 
-    session: Mapped["IssueReturnSession"] = relationship(
+    session: Mapped["Session"] = relationship(
         back_populates="unapproved_operations")
     device: Mapped["Device"] = relationship(
         back_populates="unapproved_operations")
@@ -209,7 +209,7 @@ class DeviceOperation(Base):
     timestamp: Mapped[timestamp]
 
     device: Mapped["Device"] = relationship(back_populates="device_operations")
-    session: Mapped[Optional["IssueReturnSession"]] = relationship(
+    session: Mapped[Optional["Session"]] = relationship(
         back_populates="device_operations")
 
     @classmethod
@@ -233,8 +233,8 @@ class DeviceOperation(Base):
                   (cls.device_id == last_operation_subquery.c.device_id) &
                   (cls.timestamp == last_operation_subquery.c.last_operation_timestamp)
                   )
-            .join(IssueReturnSession, cls.session)
-            .filter(IssueReturnSession.user_id == user_id)
+            .join(Session, cls.session)
+            .filter(Session.user_id == user_id)
             .filter(cls.operation_type == "pobranie")
             .order_by(cls.timestamp.asc())
         )

@@ -52,7 +52,7 @@ def create_device(device: schemas.DeviceCreate,
     """
     auth_service = securityService.AuthorizationService(db)
     auth_service.check_if_entitled("admin", current_concierge)
-    return  mdevice.Device.create(db, device)
+    return mdevice.Device.create(db, device)
 
 
 @router.post("/change-status", response_model=schemas.DeviceOperationOrDetailResponse)
@@ -69,19 +69,19 @@ def change_status(
     """
 
     device = mdevice.Device.get_by_id(db, request.device_id)
-    session = moperation.IssueReturnSession.get_session_id(db, request.session_id)
+    session = moperation.Session.get_session_id(db, request.session_id)
 
     if moperation.UnapprovedOperation.delete_if_rescanned(db, request.device_id, request.session_id):
         return schemas.DetailMessage(detail="Operation removed.")
     last_operation = moperation.DeviceOperation.get_last_dev_operation_or_none(db,
-        device.id)
+                                                                               device.id)
 
     entitled = mpermission.Permission.check_if_permitted(db,
-        session.user_id,
-        device.room_id,
-        last_operation.operation_type if last_operation else None,
-        request.force
-    )
+                                                         session.user_id,
+                                                         device.room_id,
+                                                         last_operation.operation_type if last_operation else None,
+                                                         request.force
+                                                         )
     operation_type = "zwrot" if last_operation and last_operation.operation_type == "pobranie" else "pobranie"
     operation = moperation.UnapprovedOperation.create_unapproved_operation(db, {
         "device_id": request.device_id,

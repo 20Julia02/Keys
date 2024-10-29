@@ -9,7 +9,7 @@ from app.models.base import Base, intpk, timestamp
 
 
 if TYPE_CHECKING:
-    from app.models.operation import IssueReturnSession
+    from app.models.operation import Session
     from app.models.permission import Permission
 
 
@@ -24,7 +24,7 @@ class BaseUser(Base):
     }
 
     notes: Mapped[List["UserNote"]] = relationship(back_populates="user")
-    sessions: Mapped[List["IssueReturnSession"]] = relationship(back_populates="user")
+    sessions: Mapped[List["Session"]] = relationship(back_populates="user")
 
 
 class UserRole(enum.Enum):
@@ -55,8 +55,10 @@ class User(BaseUser):
         'polymorphic_identity': 'user'
     }
 
-    permissions: Mapped[List["Permission"]] = relationship(back_populates="user")
-    sessions: Mapped[List["IssueReturnSession"]] = relationship(back_populates="concierge")
+    permissions: Mapped[List["Permission"]
+                        ] = relationship(back_populates="user")
+    sessions: Mapped[List["Session"]] = relationship(
+        back_populates="concierge")
 
     @classmethod
     def get_all_users(cls, db: Session) -> List["User"]:
@@ -73,6 +75,7 @@ class User(BaseUser):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"User with id: {user_id} doesn't exist")
         return user
+
 
 class UnauthorizedUser(BaseUser):
     __tablename__ = "unauthorized_user"
@@ -120,7 +123,7 @@ class UnauthorizedUser(BaseUser):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There is no unauthorized user in database")
         return user
-    
+
     @classmethod
     def get_unathorized_user(cls, db: Session, user_id: int) -> "UnauthorizedUser":
         """
@@ -132,7 +135,7 @@ class UnauthorizedUser(BaseUser):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Unauthorized user with id: {user_id} doesn't exist")
         return user
-    
+
     @classmethod
     def delete_unauthorized_user(cls, db: Session, user_id: int):
         """
@@ -150,6 +153,7 @@ class UnauthorizedUser(BaseUser):
 
         return True
 
+
 class UserNote(Base):
     __tablename__ = "user_note"
 
@@ -165,9 +169,10 @@ class UserNote(Base):
         """Retrieve all user notes."""
         notes = db.query(UserNote).all()
         if not notes:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No user notes found.")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="No user notes found.")
         return notes
-    
+
     @classmethod
     def get_user_note_by_id(cls, db: Session, user_id: int) -> List["UserNote"]:
         """Retrieve a specific user note by user_id."""
@@ -176,9 +181,10 @@ class UserNote(Base):
                  .order_by(UserNote.timestamp.asc())
                  .all())
         if not notes:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No note found for user id: {user_id}")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"No note found for user id: {user_id}")
         return notes
-    
+
     @classmethod
     def create_user_note(cls, db: Session, note_data: schemas.UserNoteCreate, commit: bool = True) -> "UserNote":
         """Create a new user note."""
@@ -192,14 +198,14 @@ class UserNote(Base):
                 db.refresh(note)
             except Exception as e:
                 db.rollback()
-                raise e 
+                raise e
         return note
 
     @classmethod
     def update_user_note(cls, db: Session, note_id: int, note_data: schemas.NoteUpdate, commit: bool = True) -> "UserNote":
 
         note = db.query(UserNote).filter(UserNote.id == note_id).first()
-        
+
         if not note:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Note with id {note_id} not found")
@@ -213,6 +219,6 @@ class UserNote(Base):
                 db.refresh(note)
             except Exception as e:
                 db.rollback()
-                raise e 
+                raise e
 
         return note

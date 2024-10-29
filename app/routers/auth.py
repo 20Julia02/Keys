@@ -109,11 +109,11 @@ def card_login(card_id: schemas.CardId,
     return token_service.generate_tokens(concierge.id, concierge.role.value)
 
 
-@router.post("/start-session/login", response_model=schemas.IssueReturnSession)
+@router.post("/start-session/login", response_model=schemas.Session)
 def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
                         current_concierge=Depends(
                             oauth2.get_current_concierge),
-                        db: Session = Depends(database.get_db)) -> schemas.IssueReturnSession:
+                        db: Session = Depends(database.get_db)) -> schemas.Session:
     """
     Start an session by authenticating a user with credentials (username and password).
 
@@ -125,13 +125,13 @@ def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
 
     user = auth_service.authenticate_user_login(
         user_credentials.username, user_credentials.password, "employee")
-    return moperation.IssueReturnSession.create_session(db, user.id, current_concierge.id)
+    return moperation.Session.create_session(db, user.id, current_concierge.id)
 
 
-@router.post("/start-session/card", response_model=schemas.IssueReturnSession)
+@router.post("/start-session/card", response_model=schemas.Session)
 def start_card_session(card_id: schemas.CardId,
                        current_concierge=Depends(oauth2.get_current_concierge),
-                       db: Session = Depends(database.get_db)) -> schemas.IssueReturnSession:
+                       db: Session = Depends(database.get_db)) -> schemas.Session:
     """
     Start an session by authenticating a user with a card ID.
 
@@ -141,15 +141,15 @@ def start_card_session(card_id: schemas.CardId,
     """
     auth_service = securityService.AuthorizationService(db)
     user = auth_service.authenticate_user_card(card_id, "employee")
-    return moperation.IssueReturnSession.create_session(db, user.id, current_concierge.id)
+    return moperation.Session.create_session(db, user.id, current_concierge.id)
 
 
-@router.post("/start-session/unauthorized", response_model=schemas.IssueReturnSession)
+@router.post("/start-session/unauthorized", response_model=schemas.Session)
 def start_unauthorized_session(unauthorized_id: int,
                                current_concierge=Depends(
                                    oauth2.get_current_concierge),
-                               db: Session = Depends(database.get_db)) -> schemas.IssueReturnSession:
-    return moperation.IssueReturnSession.create_session(db, unauthorized_id, current_concierge.id)
+                               db: Session = Depends(database.get_db)) -> schemas.Session:
+    return moperation.Session.create_session(db, unauthorized_id, current_concierge.id)
 
 
 @router.post("/refresh", response_model=schemas.Token)
