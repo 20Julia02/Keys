@@ -1,7 +1,7 @@
 import pytest
 import datetime
 from zoneinfo import ZoneInfo
-from sqlalchemy import text, true
+from sqlalchemy import text
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from app.main import app
@@ -10,10 +10,9 @@ import app.models.user as muser
 import app.models.device as mdevice
 import app.models.permission as mpermission
 import app.models.operation as moperation
-from app.services import securityService, sessionService
+from app.services import securityService
 from app.schemas import UserCreate
 from app.models.base import Base
-import app.models.operation as moperation
 
 client = TestClient(app)
 
@@ -97,7 +96,7 @@ def test_room_2(db: Session):
 @pytest.fixture(scope="module")
 def test_permission(db: Session, test_user, test_room):
     permission = mpermission.Permission(
-    user_id=test_user.id, 
+    user_id=test_user.id,
     room_id=test_room.id,
     date=datetime.date.today(),
     start_time=(datetime.datetime.now() - datetime.timedelta(hours=1)).time(),
@@ -676,8 +675,7 @@ def test_approve_session_login_success(db: Session,
                                        test_user: muser.User,
                                        test_session: moperation.IssueReturnSession,
                                        concierge_token: str):
-    session_service = sessionService.SessionService(db)
-    session = session_service.create_session(test_user.id, test_concierge.id)
+    session = moperation.IssueReturnSession.create_session(db, test_user.id, test_concierge.id)
     new_data = {
         "device_id": test_device.id,
         "session_id": session.id,
@@ -761,8 +759,7 @@ def test_approve_session_card_success(db: Session,
                                       test_concierge: muser.User,
                                       concierge_token: str):
 
-    session_service = sessionService.SessionService(db)
-    session = session_service.create_session(test_user.id, test_concierge.id)
+    session = moperation.IssueReturnSession.create_session(db, test_user.id, test_concierge.id)
     new_data = {
         "device_id": test_device.id,
         "session_id": session.id,
@@ -820,8 +817,7 @@ def test_get_all_user_devices(db: Session,
                               test_concierge: muser.User,
                               test_device: mdevice.Device,
                               concierge_token: str):
-    session_service = sessionService.SessionService(db)
-    session = session_service.create_session(test_user.id, test_concierge.id)
+    session = moperation.IssueReturnSession.create_session(db, test_user.id, test_concierge.id)
     new_data = {
         "device_id": test_device.id,
         "session_id": session.id,
@@ -841,8 +837,7 @@ def test_get_all_user_devices_no_device(db: Session,
                                         test_concierge: muser.User,
                                         test_device: mdevice.Device,
                                         concierge_token: str):
-    session_service = sessionService.SessionService(db)
-    session = session_service.create_session(test_user.id, test_concierge.id)
+    session = moperation.IssueReturnSession.create_session(db, test_user.id, test_concierge.id)
     new_data = {
         "device_id": test_device.id,
         "session_id": session.id,

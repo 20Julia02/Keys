@@ -2,7 +2,7 @@ from fastapi import status, Depends, APIRouter
 from typing import List, Optional
 from app import database, oauth2, schemas
 import app.models.device as mdevice
-from app.services import securityService, sessionService
+from app.services import securityService
 from sqlalchemy.orm import Session
 import app.models.operation as moperation
 import app.models.permission as mpermission
@@ -67,10 +67,9 @@ def change_status(
     - If the device has already been added as unapproved in the current session, remove the unapproved operation.
     - Otherwise, check user permissions and create a new unapproved operation (issue or return).
     """
-    session_service = sessionService.SessionService(db)
 
     device = mdevice.Device.get_by_id(db, request.device_id)
-    session = session_service.get_session_id(request.session_id)
+    session = moperation.IssueReturnSession.get_session_id(db, request.session_id)
 
     if moperation.UnapprovedOperation.delete_if_rescanned(db, request.device_id, request.session_id):
         return schemas.DetailMessage(detail="Operation removed.")
