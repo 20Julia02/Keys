@@ -1,19 +1,17 @@
-from sqlalchemy import func
-from sqlalchemy.orm import DeclarativeBase, mapped_column
-from sqlalchemy.sql.sqltypes import TIMESTAMP
-import datetime
+from sqlalchemy import func, TIMESTAMP
+from sqlalchemy.orm import declarative_base, mapped_column
 from typing_extensions import Annotated
-
-
+import datetime
 
 intpk = Annotated[int, mapped_column(primary_key=True)]
+
 timestamp = Annotated[
     datetime.datetime,
-    mapped_column(nullable=False, server_default=func.CURRENT_TIMESTAMP()),
+    mapped_column(nullable=False, server_default=func.now()),
 ]
 
+Base = declarative_base()
 
-class Base(DeclarativeBase):
-    type_annotation_map = {
-        datetime.datetime: TIMESTAMP(timezone=True),
-    }
+Base.type_annotation_map = {
+    datetime.datetime: TIMESTAMP(timezone=True),
+}

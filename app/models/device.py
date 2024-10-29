@@ -1,51 +1,50 @@
-from operator import indexOf
-from sqlalchemy import Integer, and_, case, ForeignKey, String, UniqueConstraint, func, Index
+from sqlalchemy import Integer, and_, case, ForeignKey, String, UniqueConstraint, func, TIMESTAMP
 from sqlalchemy.orm import relationship, mapped_column, Mapped, Session
 import enum
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List
 import datetime
 from fastapi import HTTPException, status
 from app import schemas
-from app.models.base import Base, intpk, timestamp
+from app.models.base import Base
 from app.models.operation import DeviceOperation
-
-
-if TYPE_CHECKING:
-    from app.models.operation import UnapprovedOperation
-    from app.models.permission import Permission
-    from app.models.user import UserNote
 
 
 class Room(Base):
     __tablename__ = "room"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     number: Mapped[str] = mapped_column(String(20), unique=True, index=True)
 
-    permissions: Mapped[List["Permission"]] = relationship(back_populates="room")
-    devices: Mapped[List["Device"]] = relationship("Device", back_populates="room")
+    permissions = relationship("Permission", back_populates="room")
+    devices = relationship("Device", back_populates="room")
 
     @classmethod
-    def get_rooms(cls, db: Session, room_number: Optional[str] = None) -> List["Room"]:
+    def get_rooms(cls,
+                  db: Session,
+                  room_number: Optional[str] = None) -> List["Room"]:
         query = db.query(Room)
         if room_number:
             query = query.filter(Room.number == room_number)
         rooms = query.all()
         if rooms is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="There is no room in database")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="There is no room in database")
         return rooms
 
     @classmethod
-    def get_room_id(cls, db: Session, room_id: int) -> "Room":
+    def get_room_id(cls,
+                    db: Session,
+                    room_id: int) -> "Room":
         room = db.query(Room).filter(Room.id == room_id).first()
         if not room:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Room with id: {room_id} doesn't exist")
         return room
-    
+
     @classmethod
-    def get_room_number(cls, db: Session, room_number: str) -> "Room":
+    def get_room_number(cls,
+                        db: Session,
+                        room_number: str) -> "Room":
         room = db.query(Room).filter(Room.number == room_number).first()
         if not room:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -63,22 +62,27 @@ class DeviceType(enum.Enum):
     microphone = "mikrofon"
     remote_controler = "pilot"
 
- 
+
 class Device(Base):
     __tablename__ = "device"
-    id: Mapped[intpk]
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     code: Mapped[str] = mapped_column(String(50), unique=True, index=True)
-    dev_type: Mapped[DeviceType]
-    room_id: Mapped[int] = mapped_column(ForeignKey("room.id", ondelete="RESTRICT", onupdate="RESTRICT"), index=True)
-    dev_version: Mapped[DeviceVersion]
+    dev_type: Mapped[DeviceType] = mapped_column()
+    room_id: Mapped[int] = mapped_column(ForeignKey(
+        "room.id", ondelete="RESTRICT", onupdate="RESTRICT"), index=True)
+    dev_version: Mapped[DeviceVersion] = mapped_column()
 
-    room: Mapped["Room"] = relationship("Room", back_populates="devices")
-    notes: Mapped[List["DeviceNote"]] = relationship(back_populates="device")
-    device_operations: Mapped[List["DeviceOperation"]] = relationship(back_populates="device")
-    unapproved_operations: Mapped[List["UnapprovedOperation"]] = relationship(back_populates="device")
+    room = relationship("Room", back_populates="devices")
+    notes = relationship(
+        "DeviceNote", back_populates="device")
+    device_operations = relationship(
+        "DeviceOperation", back_populates="device")
+    unapproved_operations = relationship(
+        "UnapprovedOperation", back_populates="device")
 
     __table_args__ = (
-        UniqueConstraint("dev_type", "room_id", "dev_version", name="uix_device"),
+        UniqueConstraint("dev_type", "room_id",
+                         "dev_version", name="uix_device"),
     )
 
     @classmethod
@@ -90,7 +94,7 @@ class Device(Base):
         room_number: Optional[str] = None,
     ):
         last_operation_subq = DeviceOperation.last_operation_subquery(db)
-        
+
         query = (
             db.query(
                 cls.id,
@@ -139,8 +143,8 @@ class Device(Base):
             Device.id, Room.number, DeviceOperation.operation_type
         )
 
-        numeric_part = func.regexp_replace(Room.number, '\D+', '', 'g')
-        text_part = func.regexp_replace(Room.number, '\d+', '', 'g')
+        numeric_part = func.regexp_replace(Room.number, r'\D+', '', 'g')
+        text_part = func.regexp_replace(Room.number, r'\d+', '', 'g')
 
         query = query.order_by(
             case(
@@ -160,26 +164,32 @@ class Device(Base):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There are no devices that match the given criteria in the database")
         return devices
-    
 
     @classmethod
-    def get_by_id(cls, db: Session, dev_id: int) -> "Device":
+    def get_by_id(cls,
+                  db: Session,
+                  dev_id: int) -> "Device":
         device = db.query(cls).filter(cls.id == dev_id).first()
         if not device:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Device with id: {dev_id} doesn't exist")
         return device
 
     @classmethod
-    def get_by_code(cls, db: Session, dev_code: str) -> "Device":
+    def get_by_code(cls,
+                    db: Session,
+                    dev_code: str) -> "Device":
         device = db.query(cls).filter(cls.code == dev_code).first()
         if not device:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Device with code: {dev_code} doesn't exist")
         return device
 
     @classmethod
-    def create(cls, db: Session, device_data: schemas.DeviceCreate, commit: bool = True) -> "Device":
+    def create(cls,
+               db: Session,
+               device_data: schemas.DeviceCreate,
+               commit: bool = True) -> "Device":
         new_device = cls(**device_data.model_dump())
         db.add(new_device)
         if commit:
@@ -190,37 +200,40 @@ class Device(Base):
 
 class DeviceNote(Base):
     __tablename__ = "device_note"
-    id: Mapped[intpk]
-    device_id: Mapped[int] = mapped_column(ForeignKey("device.id", ondelete="CASCADE", onupdate="CASCADE"), index=True,)
-    note: Mapped[str]
-    timestamp: Mapped[timestamp]
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    device_id: Mapped[int] = mapped_column(ForeignKey(
+        "device.id", ondelete="CASCADE", onupdate="CASCADE"), index=True)
+    note: Mapped[str] = mapped_column(String)
+    timestamp: Mapped[datetime.datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
 
-    device: Mapped["Device"] = relationship(back_populates="notes")
+    device = relationship("Device", back_populates="notes")
 
     @classmethod
-    def get_dev_notes(cls, db: Session) -> List["DeviceNote"]:
+    def get_dev_notes(cls,
+                      db: Session) -> List["DeviceNote"]:
         notes = db.query(DeviceNote).all()
         if not notes:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There are no device notes in database")
-
         return notes
 
     @classmethod
-    def get_dev_notes_id(cls, db: Session, dev_id: int) -> List["DeviceNote"]:
-        """Retrieve all device notes filtered by device ID or issue/return session ID."""
-        notes = (db.query(DeviceNote)
-                 .filter(DeviceNote.device_id == dev_id)
-                 .order_by(DeviceNote.timestamp.asc())
-                 .all())
+    def get_dev_notes_id(cls,
+                         db: Session,
+                         dev_id: int) -> List["DeviceNote"]:
+        notes = db.query(DeviceNote).filter(DeviceNote.device_id == dev_id).order_by(
+            DeviceNote.timestamp.asc()).all()
         if not notes:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There are no notes that match the given criteria")
         return notes
 
     @classmethod
-    def create_dev_note(cls, db: Session, note_data: schemas.DeviceNote, commit: bool = True) -> "DeviceNote":
-        """Create a new device note."""
+    def create_dev_note(cls,
+                        db: Session,
+                        note_data: schemas.DeviceNote,
+                        commit: bool = True) -> "DeviceNote":
         note_data_dict = note_data.model_dump()
         note_data_dict["timestamp"] = datetime.datetime.now()
         note = DeviceNote(**note_data_dict)
@@ -231,18 +244,19 @@ class DeviceNote(Base):
                 db.refresh(note)
             except Exception as e:
                 db.rollback()
-                raise e 
+                raise e
         return note
 
     @classmethod
-    def update_device_note(cls, db: Session, note_id: int, note_data: schemas.NoteUpdate, commit: bool = True) -> "UserNote":
-
+    def update_device_note(cls,
+                           db: Session,
+                           note_id: int,
+                           note_data: schemas.NoteUpdate,
+                           commit: bool = True) -> "DeviceNote":
         note = db.query(DeviceNote).filter(DeviceNote.id == note_id).first()
-        
         if not note:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Note with id {note_id} not found")
-
         note.note = note_data.note
         note.timestamp = datetime.datetime.now()
 
@@ -252,18 +266,17 @@ class DeviceNote(Base):
                 db.refresh(note)
             except Exception as e:
                 db.rollback()
-                raise e 
+                raise e
 
         return note
-    
-    @classmethod
-    def delete_device_note(cls, db: Session, note_id: int):
-        note = db.query(DeviceNote).filter(
-            DeviceNote.id == note_id).first()
 
+    @classmethod
+    def delete_device_note(cls,
+                           db: Session,
+                           note_id: int):
+        note = db.query(DeviceNote).filter(DeviceNote.id == note_id).first()
         if not note:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Note with id: {note_id} doesn't exist")
-
         db.delete(note)
         db.commit()
