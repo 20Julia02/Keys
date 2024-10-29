@@ -1,5 +1,6 @@
 from sqlalchemy import ForeignKey, func
-from sqlalchemy.orm import relationship, mapped_column, Mapped, Session
+from sqlalchemy.orm import relationship, mapped_column, Mapped
+from sqlalchemy.orm import Session as SQLAlchemySession
 from typing import Optional, Literal, List, TYPE_CHECKING
 import datetime
 from zoneinfo import ZoneInfo
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
 SessionStatus = Literal["w trakcie", "potwierdzona", "odrzucona"]
 
 
-class Session(Base):
+class UserSession(Base):
     __tablename__ = "session"
 
     id: Mapped[intpk]
@@ -36,7 +37,7 @@ class Session(Base):
         foreign_keys=[concierge_id], back_populates="sessions")
 
     @classmethod
-    def create_session(cls, db: Session, user_id: int, concierge_id: int, commit: bool = True) -> "Session":
+    def create_session(cls, db: SQLAlchemySession, user_id: int, concierge_id: int, commit: bool = True) -> "UserSession":
         """
         Creates a new session in the database for a given user and concierge.
 
@@ -49,7 +50,7 @@ class Session(Base):
         """
 
         start_time = datetime.datetime.now(ZoneInfo("Europe/Warsaw"))
-        new_session = Session(
+        new_session = UserSession(
             user_id=user_id,
             concierge_id=concierge_id,
             start_time=start_time,
@@ -62,7 +63,7 @@ class Session(Base):
         return new_session
 
     @classmethod
-    def end_session(cls, db: Session, session_id: int, reject: bool = False, commit: bool = True) -> "Session":
+    def end_session(cls, db: SQLAlchemySession, session_id: int, reject: bool = False, commit: bool = True) -> "UserSession":
         """
         Changes the status of the session to rejected or completed
         depending on the given value of the reject argument. The default
@@ -77,7 +78,7 @@ class Session(Base):
         Raises:
             HTTPException: If the session with given ID doesn't exist
         """
-        session = db.query(Session).filter_by(id=session_id).first()
+        session = db.query(UserSession).filter_by(id=session_id).first()
         if not session:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
@@ -93,9 +94,9 @@ class Session(Base):
         return session
 
     @classmethod
-    def get_session_id(cls, db: Session, session_id: int) -> "Session":
-        session = db.query(Session).filter(
-            Session.id == session_id
+    def get_session_id(cls, db: SQLAlchemySession, session_id: int) -> "UserSession":
+        session = db.query(UserSession).filter(
+            UserSession.id == session_id
         ).first()
 
         if not session:
@@ -118,13 +119,13 @@ class UnapprovedOperation(Base):
     entitled: Mapped[bool]
     timestamp: Mapped[timestamp]
 
-    session: Mapped["Session"] = relationship(
+    session: Mapped["UserSession"] = relationship(
         back_populates="unapproved_operations")
     device: Mapped["Device"] = relationship(
         back_populates="unapproved_operations")
 
     @classmethod
-    def delete_if_rescanned(cls, db: Session, device_id: int, session_id: int) -> bool:
+    def delete_if_rescanned(cls, db: SQLAlchemySession, device_id: int, session_id: int) -> bool:
         operation_unapproved = db.query(UnapprovedOperation).filter(UnapprovedOperation.device_id == device_id,
                                                                     UnapprovedOperation.session_id == session_id).first()
         if operation_unapproved:
@@ -135,7 +136,7 @@ class UnapprovedOperation(Base):
 
     @classmethod
     def create_unapproved_operation(cls,
-                                    db: Session,
+                                    db: SQLAlchemySession,
                                     operation_data: schemas.DeviceOperation,
                                     commit: bool = True) -> "DeviceOperation":
         """
@@ -157,7 +158,7 @@ class UnapprovedOperation(Base):
         return new_operation
 
     @classmethod
-    def get_unapproved_session(cls, db: Session, session_id: int) -> List["UnapprovedOperation"]:
+    def get_unapproved_session(cls, db: SQLAlchemySession, session_id: int) -> List["UnapprovedOperation"]:
         unapproved = db.query(UnapprovedOperation).filter(
             UnapprovedOperation.session_id == session_id).all()
         if not unapproved:
@@ -166,7 +167,7 @@ class UnapprovedOperation(Base):
         return unapproved
 
     @classmethod
-    def create_operation_from_unappproved(cls, db: Session, session_id: int, commit: bool = True) -> "DeviceOperation":
+    def create_operation_from_unappproved(cls, db: SQLAlchemySession, session_id: int, commit: bool = True) -> "DeviceOperation":
         unapproved_operations = cls.get_unapproved_session(db, session_id)
         operation_list = []
         for unapproved_operation in unapproved_operations:
@@ -209,11 +210,11 @@ class DeviceOperation(Base):
     timestamp: Mapped[timestamp]
 
     device: Mapped["Device"] = relationship(back_populates="device_operations")
-    session: Mapped[Optional["Session"]] = relationship(
+    session: Mapped[Optional["UserSession"]] = relationship(
         back_populates="device_operations")
 
     @classmethod
-    def last_operation_subquery(cls, db: Session):
+    def last_operation_subquery(cls, db: SQLAlchemySession):
         return (
             db.query(
                 cls.device_id,
@@ -224,7 +225,7 @@ class DeviceOperation(Base):
         )
 
     @classmethod
-    def get_owned_by_user(cls, db: Session, user_id: int) -> List["DeviceOperation"]:
+    def get_owned_by_user(cls, db: SQLAlchemySession, user_id: int) -> List["DeviceOperation"]:
         last_operation_subquery = cls.last_operation_subquery(db)
 
         query = (
@@ -233,8 +234,8 @@ class DeviceOperation(Base):
                   (cls.device_id == last_operation_subquery.c.device_id) &
                   (cls.timestamp == last_operation_subquery.c.last_operation_timestamp)
                   )
-            .join(Session, cls.session)
-            .filter(Session.user_id == user_id)
+            .join(UserSession, cls.session)
+            .filter(UserSession.user_id == user_id)
             .filter(cls.operation_type == "pobranie")
             .order_by(cls.timestamp.asc())
         )
@@ -251,7 +252,7 @@ class DeviceOperation(Base):
 
     @classmethod
     def create_operation(cls,
-                         db: Session,
+                         db: SQLAlchemySession,
                          operation_data: schemas.DeviceOperation,
                          commit: Optional[bool] = True) -> "DeviceOperation":
         """
@@ -273,7 +274,7 @@ class DeviceOperation(Base):
         return new_operation
 
     @classmethod
-    def get_all_operations(cls, db: Session) -> List["DeviceOperation"]:
+    def get_all_operations(cls, db: SQLAlchemySession) -> List["DeviceOperation"]:
         operations = db.query(DeviceOperation).all()
         if not operations:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -290,7 +291,7 @@ class DeviceOperation(Base):
         return operation
 
     @classmethod
-    def get_last_dev_operation_or_none(cls, db: Session,  device_id: int) -> "DeviceOperation":
+    def get_last_dev_operation_or_none(cls, db: SQLAlchemySession,  device_id: int) -> "DeviceOperation":
         subquery = (
             db.query(func.max(DeviceOperation.timestamp))
             .filter(DeviceOperation.device_id == device_id)

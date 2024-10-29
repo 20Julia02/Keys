@@ -125,7 +125,7 @@ def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
 
     user = auth_service.authenticate_user_login(
         user_credentials.username, user_credentials.password, "employee")
-    return moperation.Session.create_session(db, user.id, current_concierge.id)
+    return moperation.UserSession.create_session(db, user.id, current_concierge.id)
 
 
 @router.post("/start-session/card", response_model=schemas.Session)
@@ -141,7 +141,7 @@ def start_card_session(card_id: schemas.CardId,
     """
     auth_service = securityService.AuthorizationService(db)
     user = auth_service.authenticate_user_card(card_id, "employee")
-    return moperation.Session.create_session(db, user.id, current_concierge.id)
+    return moperation.UserSession.create_session(db, user.id, current_concierge.id)
 
 
 @router.post("/start-session/unauthorized", response_model=schemas.Session)
@@ -149,7 +149,7 @@ def start_unauthorized_session(unauthorized_id: int,
                                current_concierge=Depends(
                                    oauth2.get_current_concierge),
                                db: Session = Depends(database.get_db)) -> schemas.Session:
-    return moperation.Session.create_session(db, unauthorized_id, current_concierge.id)
+    return moperation.UserSession.create_session(db, unauthorized_id, current_concierge.id)
 
 
 @router.post("/refresh", response_model=schemas.Token)

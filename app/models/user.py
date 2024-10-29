@@ -9,7 +9,7 @@ from app.models.base import Base, intpk, timestamp
 
 
 if TYPE_CHECKING:
-    from app.models.operation import Session
+    from app.models.operation import UserSession
     from app.models.permission import Permission
 
 
@@ -24,7 +24,7 @@ class BaseUser(Base):
     }
 
     notes: Mapped[List["UserNote"]] = relationship(back_populates="user")
-    sessions: Mapped[List["Session"]] = relationship(back_populates="user")
+    sessions: Mapped[List["UserSession"]] = relationship(back_populates="user")
 
 
 class UserRole(enum.Enum):
@@ -57,7 +57,7 @@ class User(BaseUser):
 
     permissions: Mapped[List["Permission"]
                         ] = relationship(back_populates="user")
-    sessions: Mapped[List["Session"]] = relationship(
+    sessions: Mapped[List["UserSession"]] = relationship(
         back_populates="concierge")
 
     @classmethod

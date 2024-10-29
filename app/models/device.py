@@ -27,7 +27,7 @@ class Room(Base):
         if room_number:
             query = query.filter(Room.number == room_number)
         rooms = query.all()
-        if rooms is None:
+        if not rooms:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="There is no room in database")
         return rooms

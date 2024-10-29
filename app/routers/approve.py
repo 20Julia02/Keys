@@ -120,7 +120,7 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
     auth_service = securityService.AuthorizationService(db)
     auth_service.authenticate_user_login(
         concierge_credentials.username, concierge_credentials.password, "concierge")
-    moperation.Session.end_session(db, session_id)
+    moperation.UserSession.end_session(db, session_id)
     operations = moperation.UnapprovedOperation.create_operation_from_unappproved(
         db, session_id)
     return operations
@@ -239,7 +239,7 @@ def approve_session_card(
     auth_service = securityService.AuthorizationService(db)
     auth_service.authenticate_user_card(card_data, "concierge")
 
-    moperation.Session.end_session(db, session_id)
+    moperation.UserSession.end_session(db, session_id)
 
     operations = moperation.UnapprovedOperation.create_operation_from_unappproved(
         db, session_id)

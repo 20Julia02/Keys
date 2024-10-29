@@ -69,7 +69,7 @@ def change_status(
     """
 
     device = mdevice.Device.get_by_id(db, request.device_id)
-    session = moperation.Session.get_session_id(db, request.session_id)
+    session = moperation.UserSession.get_session_id(db, request.session_id)
 
     if moperation.UnapprovedOperation.delete_if_rescanned(db, request.device_id, request.session_id):
         return schemas.DetailMessage(detail="Operation removed.")
