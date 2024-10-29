@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
-from fastapi.responses import JSONResponse
 from app import database, oauth2, schemas
 from app.services import securityService
 import app.models.operation as moperation
-from typing import List
+from app.models.user import User
+from typing import Sequence
 from fastapi import Path
 
 router = APIRouter(
@@ -14,7 +14,7 @@ router = APIRouter(
 
 
 @router.post("/approve/login/session/{session_id}",
-             response_model=List[schemas.DeviceOperationOut],
+             response_model=Sequence[schemas.DeviceOperationOut],
              responses={
                  200: {
                      "description": "Session successfully approved.",
@@ -109,7 +109,7 @@ router = APIRouter(
 def approve_session_login(session_id: int = Path(description="Unique identifier of the session that contains operations awaiting approval."),
                           db: Session = Depends(database.get_db),
                           concierge_credentials: OAuth2PasswordRequestForm = Depends(),
-                          current_concierge=Depends(oauth2.get_current_concierge)) -> List[schemas.DeviceOperationOut]:
+                          current_concierge: User = Depends(oauth2.get_current_concierge)) -> Sequence[schemas.DeviceOperationOut]:
     """
     Approve a session and its associated operations using login credentials for authentication.
 
@@ -121,13 +121,13 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
     auth_service.authenticate_user_login(
         concierge_credentials.username, concierge_credentials.password, "concierge")
     moperation.UserSession.end_session(db, session_id)
-    operations = moperation.UnapprovedOperation.create_operation_from_unappproved(
+    operations = moperation.UnapprovedOperation.create_operation_from_unapproved(
         db, session_id)
     return operations
 
 
 @router.post("/approve/card/session/{session_id}",
-             response_model=List[schemas.DeviceOperationOut],
+             response_model=Sequence[schemas.DeviceOperationOut],
              responses={
                  200: {
                      "description": "Session successfully approved.",
@@ -224,11 +224,11 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
              )
 def approve_session_card(
     card_data: schemas.CardId,
-    session_id=Path(
+    session_id: int = Path(
         description="Unique identifier of the session that contains operations awaiting approval."),
     db: Session = Depends(database.get_db),
-    current_concierge=Depends(oauth2.get_current_concierge)
-) -> JSONResponse:
+    current_concierge: User = Depends(oauth2.get_current_concierge)
+) -> Sequence[schemas.DeviceOperationOut]:
     """
     Approve a session and its associated operations using card code.
 
@@ -241,7 +241,7 @@ def approve_session_card(
 
     moperation.UserSession.end_session(db, session_id)
 
-    operations = moperation.UnapprovedOperation.create_operation_from_unappproved(
+    operations = moperation.UnapprovedOperation.create_operation_from_unapproved(
         db, session_id)
 
     return operations

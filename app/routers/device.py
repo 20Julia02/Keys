@@ -1,11 +1,12 @@
 from fastapi import status, Depends, APIRouter
-from typing import List, Optional
+from typing import Optional, Sequence
 from app import database, oauth2, schemas
 import app.models.device as mdevice
 from app.services import securityService
 from sqlalchemy.orm import Session
 import app.models.operation as moperation
 import app.models.permission as mpermission
+from app.models.user import User
 
 router = APIRouter(
     prefix="/devices",
@@ -13,24 +14,27 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=List[schemas.DeviceOutWithNote])
-def get_devices_filtered(current_concierge=Depends(oauth2.get_current_concierge),
+@router.get("/", response_model=Sequence[schemas.DeviceOutWithNote])
+def get_devices_filtered(current_concierge: User = Depends(oauth2.get_current_concierge),
                          dev_type: Optional[str] = None,
                          dev_version: Optional[str] = None,
                          room_number: Optional[str] = None,
-                         db: Session = Depends(database.get_db)) -> List[schemas.DeviceOutWithNote]:
+                         db: Session = Depends(database.get_db)) -> Sequence[schemas.DeviceOutWithNote]:
     """
     Retrieve all devices from the database, optionally filtered by type or dev_version.
 
     This endpoint retrieves a list of devices from the database. Optionally,
     the list can be filtered by device type and dev_version if these parameters are provided.
     """
-    return mdevice.Device.get_device_with_details(db, dev_type, dev_version, room_number)
+    devices = mdevice.Device.get_device_with_details(
+        db, dev_type, dev_version, room_number)
+    return [schemas.DeviceOutWithNote.model_validate(device) for device in devices]
 
 
 @router.get("/code/{dev_code}", response_model=schemas.DeviceOut)
 def get_dev_code(dev_code: str,
-                 current_concierge=Depends(oauth2.get_current_concierge),
+                 current_concierge: User = Depends(
+                     oauth2.get_current_concierge),
                  db: Session = Depends(database.get_db)) -> schemas.DeviceOut:
     """
     Retrieve a device by its unique device code.
@@ -43,7 +47,7 @@ def get_dev_code(dev_code: str,
 @router.post("/", response_model=schemas.DeviceOut, status_code=status.HTTP_201_CREATED)
 def create_device(device: schemas.DeviceCreate,
                   db: Session = Depends(database.get_db),
-                  current_concierge=Depends(oauth2.get_current_concierge)) -> schemas.DeviceOut:
+                  current_concierge: User = Depends(oauth2.get_current_concierge)) -> schemas.DeviceOut:
     """
     Create a new device in the database.
 
@@ -76,28 +80,32 @@ def change_status(
     last_operation = moperation.DeviceOperation.get_last_dev_operation_or_none(db,
                                                                                device.id)
 
-    entitled = mpermission.Permission.check_if_permitted(db,
-                                                         session.user_id,
-                                                         device.room_id,
-                                                         last_operation.operation_type if last_operation else None,
-                                                         request.force
-                                                         )
+    force_flag = request.force if request.force is not None else False
+    entitled = mpermission.Permission.check_if_permitted(
+        db,
+        session.user_id,
+        device.room_id,
+        last_operation.operation_type if last_operation else None,
+        force_flag
+    )
     operation_type = "zwrot" if last_operation and last_operation.operation_type == "pobranie" else "pobranie"
-    operation = moperation.UnapprovedOperation.create_unapproved_operation(db, {
-        "device_id": request.device_id,
-        "session_id": session.id,
-        "entitled": entitled,
-        "operation_type": operation_type
-    })
+    operation_data = moperation.DeviceOperation(
+        device_id=request.device_id,
+        session_id=session.id,
+        entitled=entitled,
+        operation_type=operation_type
+    )
+    operation = moperation.UnapprovedOperation.create_unapproved_operation(
+        db, operation_data)
 
     return operation
 
 
-@router.get("/users/{user_id}", response_model=List[schemas.DeviceOperationOut])
+@router.get("/users/{user_id}", response_model=Sequence[schemas.DeviceOperationOut])
 def get_devs_owned_by_user(user_id: int,
-                           current_concierge=Depends(
+                           current_concierge: User = Depends(
                                oauth2.get_current_concierge),
-                           db: Session = Depends(database.get_db)) -> List[schemas.DeviceOperationOut]:
+                           db: Session = Depends(database.get_db)) -> Sequence[schemas.DeviceOperationOut]:
     """
     Retrieve a device by its unique device code.
 

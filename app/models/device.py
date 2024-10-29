@@ -1,6 +1,6 @@
 from sqlalchemy import Integer, and_, case, ForeignKey, String, UniqueConstraint, func, TIMESTAMP
 from sqlalchemy.orm import relationship, mapped_column, Mapped
-from sqlalchemy.orm import Session as SQLAlchemySession
+from sqlalchemy.orm import Session
 import enum
 from typing import Optional, List
 import datetime
@@ -21,7 +21,7 @@ class Room(Base):
 
     @classmethod
     def get_rooms(cls,
-                  db: SQLAlchemySession,
+                  db: Session,
                   room_number: Optional[str] = None) -> List["Room"]:
         query = db.query(Room)
         if room_number:
@@ -34,7 +34,7 @@ class Room(Base):
 
     @classmethod
     def get_room_id(cls,
-                    db: SQLAlchemySession,
+                    db: Session,
                     room_id: int) -> "Room":
         room = db.query(Room).filter(Room.id == room_id).first()
         if not room:
@@ -44,7 +44,7 @@ class Room(Base):
 
     @classmethod
     def get_room_number(cls,
-                        db: SQLAlchemySession,
+                        db: Session,
                         room_number: str) -> "Room":
         room = db.query(Room).filter(Room.number == room_number).first()
         if not room:
@@ -89,7 +89,7 @@ class Device(Base):
     @classmethod
     def get_device_with_details(
         cls,
-        db: SQLAlchemySession,
+        db: Session,
         dev_type: Optional[str] = None,
         dev_version: Optional[str] = None,
         room_number: Optional[str] = None,
@@ -168,7 +168,7 @@ class Device(Base):
 
     @classmethod
     def get_by_id(cls,
-                  db: SQLAlchemySession,
+                  db: Session,
                   dev_id: int) -> "Device":
         device = db.query(cls).filter(cls.id == dev_id).first()
         if not device:
@@ -178,7 +178,7 @@ class Device(Base):
 
     @classmethod
     def get_by_code(cls,
-                    db: SQLAlchemySession,
+                    db: Session,
                     dev_code: str) -> "Device":
         device = db.query(cls).filter(cls.code == dev_code).first()
         if not device:
@@ -188,7 +188,7 @@ class Device(Base):
 
     @classmethod
     def create(cls,
-               db: SQLAlchemySession,
+               db: Session,
                device_data: schemas.DeviceCreate,
                commit: bool = True) -> "Device":
         new_device = cls(**device_data.model_dump())
@@ -212,7 +212,7 @@ class DeviceNote(Base):
 
     @classmethod
     def get_dev_notes(cls,
-                      db: SQLAlchemySession) -> List["DeviceNote"]:
+                      db: Session) -> List["DeviceNote"]:
         notes = db.query(DeviceNote).all()
         if not notes:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -221,7 +221,7 @@ class DeviceNote(Base):
 
     @classmethod
     def get_dev_notes_id(cls,
-                         db: SQLAlchemySession,
+                         db: Session,
                          dev_id: int) -> List["DeviceNote"]:
         notes = db.query(DeviceNote).filter(DeviceNote.device_id == dev_id).order_by(
             DeviceNote.timestamp.asc()).all()
@@ -232,7 +232,7 @@ class DeviceNote(Base):
 
     @classmethod
     def create_dev_note(cls,
-                        db: SQLAlchemySession,
+                        db: Session,
                         note_data: schemas.DeviceNote,
                         commit: bool = True) -> "DeviceNote":
         note_data_dict = note_data.model_dump()
@@ -250,7 +250,7 @@ class DeviceNote(Base):
 
     @classmethod
     def update_device_note(cls,
-                           db: SQLAlchemySession,
+                           db: Session,
                            note_id: int,
                            note_data: schemas.NoteUpdate,
                            commit: bool = True) -> "DeviceNote":
@@ -258,6 +258,10 @@ class DeviceNote(Base):
         if not note:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Note with id {note_id} not found")
+        if note_data.note is None:
+            cls.delete_device_note(db, note_id)
+            raise HTTPException(
+                status_code=status.HTTP_204_NO_CONTENT, detail="Note deleted")
         note.note = note_data.note
         note.timestamp = datetime.datetime.now()
 
@@ -273,7 +277,7 @@ class DeviceNote(Base):
 
     @classmethod
     def delete_device_note(cls,
-                           db: SQLAlchemySession,
+                           db: Session,
                            note_id: int):
         note = db.query(DeviceNote).filter(DeviceNote.id == note_id).first()
         if not note:

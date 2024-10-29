@@ -70,10 +70,12 @@ class TokenService:
             time_delta = self.ACCESS_TOKEN_EXPIRE_MINUTES
         to_encode = data.copy()
 
-        expire = datetime.datetime.now(ZoneInfo("Europe/Warsaw")) + datetime.timedelta(minutes=time_delta)
+        expire = datetime.datetime.now(
+            ZoneInfo("Europe/Warsaw")) + datetime.timedelta(minutes=time_delta)
         to_encode.update({"exp": expire})
 
-        encoded_jwt = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
+        encoded_jwt = jwt.encode(
+            to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
 
         return encoded_jwt
 
@@ -92,7 +94,8 @@ class TokenService:
             HTTPException: If the token is invalid or missing required data.
         """
         try:
-            payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
+            payload = jwt.decode(token, self.SECRET_KEY,
+                                 algorithms=[self.ALGORITHM])
             user_id = payload.get("user_id")
             role = payload.get("user_role")
 
@@ -137,9 +140,11 @@ class TokenService:
                 self.db.refresh(db_token)
         return True
 
-    def generate_tokens(self, user_id: Column[Integer], role: str) -> schemas.Token:
-        access_token = self.create_token({"user_id": user_id, "user_role": role}, "access")
-        refresh_token = self.create_token({"user_id": user_id, "user_role": role}, "refresh")
+    def generate_tokens(self, user_id: int, role: str) -> schemas.Token:
+        access_token = self.create_token(
+            {"user_id": user_id, "user_role": role}, "access")
+        refresh_token = self.create_token(
+            {"user_id": user_id, "user_role": role}, "refresh")
         return schemas.Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
 
 
@@ -219,16 +224,19 @@ class AuthorizationService:
         password_service = PasswordService()
         user = self.db.query(muser.User).filter_by(email=username).first()
         if not (user and password_service.verify_hashed(password, user.password)):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials")
         self.check_if_entitled(role, user)
         return user
 
     def authenticate_user_card(self, card_id: schemas.CardId, role: str) -> muser.User:
         password_service = PasswordService()
-        users = self.db.query(muser.User).filter(muser.User.card_code.isnot(None)).all()
+        users = self.db.query(muser.User).filter(
+            muser.User.card_code.isnot(None)).all()
         for user in users:
             if password_service.verify_hashed(card_id.card_id, user.card_code):
                 self.check_if_entitled(role, user)
                 return user
 
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials")

@@ -3,8 +3,6 @@ from sqlalchemy.orm import declarative_base, mapped_column
 from typing_extensions import Annotated
 import datetime
 
-intpk = Annotated[int, mapped_column(primary_key=True)]
-
 timestamp = Annotated[
     datetime.datetime,
     mapped_column(nullable=False, server_default=func.now()),

@@ -1,11 +1,11 @@
-from sqlalchemy import ForeignKey, func
+from sqlalchemy import ForeignKey, func, Integer
 from sqlalchemy.orm import relationship, mapped_column, Mapped
-from sqlalchemy.orm import Session as SQLAlchemySession
-from typing import Optional, Literal, List, TYPE_CHECKING
+from sqlalchemy.orm import Session
+from typing import Optional, Literal, List, TYPE_CHECKING, Sequence
 import datetime
 from zoneinfo import ZoneInfo
 from fastapi import HTTPException, status
-from app.models.base import Base, intpk, timestamp
+from app.models.base import Base, timestamp
 from app import schemas
 
 if TYPE_CHECKING:
@@ -18,7 +18,7 @@ SessionStatus = Literal["w trakcie", "potwierdzona", "odrzucona"]
 class UserSession(Base):
     __tablename__ = "session"
 
-    id: Mapped[intpk]
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey(
         "base_user.id", onupdate="RESTRICT", ondelete="SET NULL"))
     concierge_id: Mapped[int] = mapped_column(ForeignKey(
@@ -37,7 +37,7 @@ class UserSession(Base):
         foreign_keys=[concierge_id], back_populates="sessions")
 
     @classmethod
-    def create_session(cls, db: SQLAlchemySession, user_id: int, concierge_id: int, commit: bool = True) -> "UserSession":
+    def create_session(cls, db: Session, user_id: int, concierge_id: int, commit: bool = True) -> "UserSession":
         """
         Creates a new session in the database for a given user and concierge.
 
@@ -63,7 +63,7 @@ class UserSession(Base):
         return new_session
 
     @classmethod
-    def end_session(cls, db: SQLAlchemySession, session_id: int, reject: bool = False, commit: bool = True) -> "UserSession":
+    def end_session(cls, db: Session, session_id: int, reject: bool = False, commit: bool = True) -> "UserSession":
         """
         Changes the status of the session to rejected or completed
         depending on the given value of the reject argument. The default
@@ -94,7 +94,7 @@ class UserSession(Base):
         return session
 
     @classmethod
-    def get_session_id(cls, db: SQLAlchemySession, session_id: int) -> "UserSession":
+    def get_session_id(cls, db: Session, session_id: int) -> "UserSession":
         session = db.query(UserSession).filter(
             UserSession.id == session_id
         ).first()
@@ -110,7 +110,7 @@ OperationType = Literal["pobranie", "zwrot"]
 
 class UnapprovedOperation(Base):
     __tablename__ = "operation_unapproved"
-    id: Mapped[intpk]
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     device_id: Mapped[int] = mapped_column(ForeignKey(
         "device.id", onupdate="CASCADE", ondelete="CASCADE"), index=True)
     session_id: Mapped[int] = mapped_column(ForeignKey(
@@ -125,7 +125,7 @@ class UnapprovedOperation(Base):
         back_populates="unapproved_operations")
 
     @classmethod
-    def delete_if_rescanned(cls, db: SQLAlchemySession, device_id: int, session_id: int) -> bool:
+    def delete_if_rescanned(cls, db: Session, device_id: int, session_id: int) -> bool:
         operation_unapproved = db.query(UnapprovedOperation).filter(UnapprovedOperation.device_id == device_id,
                                                                     UnapprovedOperation.session_id == session_id).first()
         if operation_unapproved:
@@ -136,7 +136,7 @@ class UnapprovedOperation(Base):
 
     @classmethod
     def create_unapproved_operation(cls,
-                                    db: SQLAlchemySession,
+                                    db: Session,
                                     operation_data: schemas.DeviceOperation,
                                     commit: bool = True) -> "DeviceOperation":
         """
@@ -158,7 +158,7 @@ class UnapprovedOperation(Base):
         return new_operation
 
     @classmethod
-    def get_unapproved_session(cls, db: SQLAlchemySession, session_id: int) -> List["UnapprovedOperation"]:
+    def get_unapproved_session(cls, db: Session, session_id: int) -> List["UnapprovedOperation"]:
         unapproved = db.query(UnapprovedOperation).filter(
             UnapprovedOperation.session_id == session_id).all()
         if not unapproved:
@@ -167,20 +167,22 @@ class UnapprovedOperation(Base):
         return unapproved
 
     @classmethod
-    def create_operation_from_unappproved(cls, db: SQLAlchemySession, session_id: int, commit: bool = True) -> "DeviceOperation":
+    def create_operation_from_unapproved(cls, db: Session, session_id: int, commit: bool = True) -> List[schemas.DeviceOperationOut]:
         unapproved_operations = cls.get_unapproved_session(db, session_id)
-        operation_list = []
+
+        operation_list: List[schemas.DeviceOperationOut] = []
+
         for unapproved_operation in unapproved_operations:
-            operation_data = {
-                "device_id": unapproved_operation.device_id,
-                "session_id": unapproved_operation.session_id,
-                "operation_type": unapproved_operation.operation_type,
-                "timestamp": unapproved_operation.timestamp,
-                "entitled": unapproved_operation.entitled
-            }
-            new_operation = DeviceOperation(**operation_data)
+            new_operation = DeviceOperation(
+                device_id=unapproved_operation.device_id,
+                session_id=unapproved_operation.session_id,
+                operation_type=unapproved_operation.operation_type,
+                timestamp=unapproved_operation.timestamp,
+                entitled=unapproved_operation.entitled
+            )
             db.add(new_operation)
             db.flush()
+
             db.delete(unapproved_operation)
 
             validated_operation = schemas.DeviceOperationOut.model_validate(
@@ -194,13 +196,14 @@ class UnapprovedOperation(Base):
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail=f"Error during operation transfer: {str(e)}")
+
         return operation_list
 
 
 class DeviceOperation(Base):
     __tablename__ = "device_operation"
 
-    id: Mapped[intpk]
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     device_id: Mapped[int] = mapped_column(ForeignKey(
         "device.id", onupdate="CASCADE", ondelete="CASCADE"), index=True)
     session_id: Mapped[Optional[int]] = mapped_column(
@@ -214,7 +217,7 @@ class DeviceOperation(Base):
         back_populates="device_operations")
 
     @classmethod
-    def last_operation_subquery(cls, db: SQLAlchemySession):
+    def last_operation_subquery(cls, db: Session):
         return (
             db.query(
                 cls.device_id,
@@ -225,7 +228,7 @@ class DeviceOperation(Base):
         )
 
     @classmethod
-    def get_owned_by_user(cls, db: SQLAlchemySession, user_id: int) -> List["DeviceOperation"]:
+    def get_owned_by_user(cls, db: Session, user_id: int) -> Sequence["DeviceOperation"]:
         last_operation_subquery = cls.last_operation_subquery(db)
 
         query = (
@@ -252,7 +255,7 @@ class DeviceOperation(Base):
 
     @classmethod
     def create_operation(cls,
-                         db: SQLAlchemySession,
+                         db: Session,
                          operation_data: schemas.DeviceOperation,
                          commit: Optional[bool] = True) -> "DeviceOperation":
         """
@@ -274,7 +277,7 @@ class DeviceOperation(Base):
         return new_operation
 
     @classmethod
-    def get_all_operations(cls, db: SQLAlchemySession) -> List["DeviceOperation"]:
+    def get_all_operations(cls, db: Session) -> List["DeviceOperation"]:
         operations = db.query(DeviceOperation).all()
         if not operations:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -282,7 +285,7 @@ class DeviceOperation(Base):
         return operations
 
     @classmethod
-    def get_operation_id(cls, db, operation_id: int) -> "DeviceOperation":
+    def get_operation_id(cls, db: Session, operation_id: int) -> "DeviceOperation":
         operation = db.query(DeviceOperation).filter(
             DeviceOperation.id == operation_id).first()
         if not operation:
@@ -291,7 +294,7 @@ class DeviceOperation(Base):
         return operation
 
     @classmethod
-    def get_last_dev_operation_or_none(cls, db: SQLAlchemySession,  device_id: int) -> "DeviceOperation":
+    def get_last_dev_operation_or_none(cls, db: Session,  device_id: int) -> "DeviceOperation":
         subquery = (
             db.query(func.max(DeviceOperation.timestamp))
             .filter(DeviceOperation.device_id == device_id)

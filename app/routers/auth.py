@@ -111,7 +111,7 @@ def card_login(card_id: schemas.CardId,
 
 @router.post("/start-session/login", response_model=schemas.Session)
 def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
-                        current_concierge=Depends(
+                        current_concierge: muser.User = Depends(
                             oauth2.get_current_concierge),
                         db: Session = Depends(database.get_db)) -> schemas.Session:
     """
@@ -130,7 +130,8 @@ def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
 
 @router.post("/start-session/card", response_model=schemas.Session)
 def start_card_session(card_id: schemas.CardId,
-                       current_concierge=Depends(oauth2.get_current_concierge),
+                       current_concierge: muser.User = Depends(
+                           oauth2.get_current_concierge),
                        db: Session = Depends(database.get_db)) -> schemas.Session:
     """
     Start an session by authenticating a user with a card ID.
@@ -146,7 +147,7 @@ def start_card_session(card_id: schemas.CardId,
 
 @router.post("/start-session/unauthorized", response_model=schemas.Session)
 def start_unauthorized_session(unauthorized_id: int,
-                               current_concierge=Depends(
+                               current_concierge: muser.User = Depends(
                                    oauth2.get_current_concierge),
                                db: Session = Depends(database.get_db)) -> schemas.Session:
     return moperation.UserSession.create_session(db, unauthorized_id, current_concierge.id)

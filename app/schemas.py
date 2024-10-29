@@ -90,6 +90,15 @@ class DeviceOperation(BaseModel):
     entitled: bool
 
 
+class UnapprovedOperation(BaseModel):
+    id: int
+    device_id: int
+    session_id: int
+    operation_type: str
+    timestamp: datetime.datetime
+    entitled: bool
+
+
 class DeviceOutWithNote(BaseModel):
     id: int
     code: str

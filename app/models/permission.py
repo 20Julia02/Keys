@@ -1,26 +1,25 @@
-from sqlalchemy import ForeignKey, String, Date, Time, text
+from sqlalchemy import ForeignKey, String, Date, Time, text, Table, Connection, event, Integer
 from sqlalchemy.orm import relationship, mapped_column, Mapped, Session
-from typing import Optional, List
+from typing import Optional, List, Any
 import datetime
-from app.models.base import Base, intpk, timestamp
+from app.models.base import Base, timestamp
 from app.models.user import User
 from app.models.device import Room
 from fastapi import HTTPException, status
 from app import schemas
-from sqlalchemy import event
 
 
 class TokenBlacklist(Base):
     __tablename__ = 'token_blacklist'
 
-    id: Mapped[intpk]
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     token: Mapped[str] = mapped_column(String(255), unique=True)
     added_at: Mapped[Optional[timestamp]]
 
 
 class Permission(Base):
     __tablename__ = "permission"
-    id: Mapped[intpk]
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     room_id: Mapped[int] = mapped_column(ForeignKey("room.id"))
     date: Mapped[datetime.date] = mapped_column(Date)
@@ -38,7 +37,8 @@ class Permission(Base):
                         date: Optional[datetime.date] = None,
                         start_time: Optional[datetime.time] = None,
                         ) -> List["Permission"]:
-        query = db.query(Permission).filter(Permission.date >= datetime.date.today())
+        query = db.query(Permission).filter(
+            Permission.date >= datetime.date.today())
 
         if user_id is not None:
             query = query.filter(Permission.user_id == user_id)
@@ -52,7 +52,8 @@ class Permission(Base):
         if start_time is not None:
             query = query.filter(Permission.start_time == start_time)
 
-        permissions = query.order_by(Permission.date, Permission.start_time).all()
+        permissions = query.order_by(
+            Permission.date, Permission.start_time).all()
 
         if not permissions:
             raise HTTPException(
@@ -76,7 +77,7 @@ class Permission(Base):
         """
         current_date = datetime.date.today()
         current_time = datetime.datetime.now().time()
-        
+
         has_permission = db.query(Permission).filter(
             Permission.user_id == user_id,
             Permission.room_id == room_id,
@@ -84,7 +85,7 @@ class Permission(Base):
             Permission.start_time <= current_time,
             Permission.end_time >= current_time
         ).first()
-        
+
         if not has_permission:
             if not force and (last_operation_type is None or last_operation_type == "zwrot"):
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
@@ -95,9 +96,9 @@ class Permission(Base):
 
     @classmethod
     def create_permission(cls,
-                           db: Session, 
-                           permission: schemas.PermissionCreate, 
-                           commit: bool = True) -> "Permission":
+                          db: Session,
+                          permission: schemas.PermissionCreate,
+                          commit: bool = True) -> "Permission":
         """
         Creates a new permission in the database.
         """
@@ -110,7 +111,8 @@ class Permission(Base):
 
 
 @event.listens_for(Permission.__table__, 'after_create')
-def delete_old_reservations(target, connection, **kwargs):
+def delete_old_reservations(target: Table, connection: Connection, **kwargs: Any) -> None:
     one_week_ago = datetime.date.today() - datetime.timedelta(weeks=1)
-    delete_query = text(f"DELETE FROM {target.name} WHERE date < :one_week_ago")
+    delete_query = text(
+        f"DELETE FROM {target.name} WHERE date < :one_week_ago")
     connection.execute(delete_query, {"one_week_ago": one_week_ago})

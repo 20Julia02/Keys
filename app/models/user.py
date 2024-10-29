@@ -1,11 +1,11 @@
-from sqlalchemy import Column, ForeignKey, String
+from sqlalchemy import ForeignKey, String, Integer
 from sqlalchemy.orm import relationship, mapped_column, Mapped, Session
 import enum
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List, TYPE_CHECKING, Any
 import datetime
 from fastapi import HTTPException, status
 from app import schemas
-from app.models.base import Base, intpk, timestamp
+from app.models.base import Base, timestamp
 
 
 if TYPE_CHECKING:
@@ -15,10 +15,10 @@ if TYPE_CHECKING:
 
 class BaseUser(Base):
     __tablename__ = "base_user"
-    id: Mapped[intpk]
-    user_type = Column(String(50))
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_type: Mapped[str] = mapped_column(String(50))
 
-    __mapper_args__ = {
+    __mapper_args__: dict[str, Any] = {
         'polymorphic_on': user_type,
         'polymorphic_identity': 'base_user'
     }
@@ -41,7 +41,8 @@ class Faculty(enum.Enum):
 
 class User(BaseUser):
     __tablename__ = 'user'
-    id: Mapped[intpk] = mapped_column(ForeignKey('base_user.id'))
+    id: Mapped[int] = mapped_column(ForeignKey(
+        'base_user.id'), Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(50))
     surname: Mapped[str] = mapped_column(String(50))
     role: Mapped[UserRole]
@@ -63,7 +64,7 @@ class User(BaseUser):
     @classmethod
     def get_all_users(cls, db: Session) -> List["User"]:
         user = db.query(User).all()
-        if (user is None):
+        if (not user):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There is no user in database")
         return user
@@ -79,7 +80,8 @@ class User(BaseUser):
 
 class UnauthorizedUser(BaseUser):
     __tablename__ = "unauthorized_user"
-    id: Mapped[intpk] = mapped_column(ForeignKey('base_user.id'))
+    id: Mapped[int] = mapped_column(ForeignKey(
+        'base_user.id'), Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(50))
     surname: Mapped[str] = mapped_column(String(50))
     email: Mapped[str] = mapped_column(String(50), unique=True)
@@ -119,7 +121,7 @@ class UnauthorizedUser(BaseUser):
         Retrieves all unathorized users from the database.
         """
         user = db.query(UnauthorizedUser).all()
-        if (user is None):
+        if (not user):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There is no unauthorized user in database")
         return user
@@ -157,7 +159,7 @@ class UnauthorizedUser(BaseUser):
 class UserNote(Base):
     __tablename__ = "user_note"
 
-    id: Mapped[intpk]
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("base_user.id"))
     note: Mapped[str]
     timestamp: Mapped[Optional[timestamp]]
@@ -209,7 +211,10 @@ class UserNote(Base):
         if not note:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Note with id {note_id} not found")
-
+        if note_data.note is None:
+            cls.delete_user_note(db, note_id)
+            raise HTTPException(
+                status_code=status.HTTP_204_NO_CONTENT, detail="Note deleted")
         note.note = note_data.note
         note.timestamp = datetime.datetime.now()
 
@@ -222,3 +227,14 @@ class UserNote(Base):
                 raise e
 
         return note
+
+    @classmethod
+    def delete_user_note(cls,
+                         db: Session,
+                         note_id: int):
+        note = db.query(UserNote).filter(UserNote.id == note_id).first()
+        if not note:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Note with id: {note_id} doesn't exist")
+        db.delete(note)
+        db.commit()
