@@ -14,7 +14,7 @@ router = APIRouter(
 
 
 @router.post("/approve/login/session/{session_id}",
-             response_model=Sequence[schemas.DeviceOperationOut],
+             response_model=Sequence[schemas.DevOperationOut],
              responses={
                  200: {
                      "description": "Session successfully approved.",
@@ -109,7 +109,7 @@ router = APIRouter(
 def approve_session_login(session_id: int = Path(description="Unique identifier of the session that contains operations awaiting approval."),
                           db: Session = Depends(database.get_db),
                           concierge_credentials: OAuth2PasswordRequestForm = Depends(),
-                          current_concierge: User = Depends(oauth2.get_current_concierge)) -> Sequence[schemas.DeviceOperationOut]:
+                          current_concierge: User = Depends(oauth2.get_current_concierge)):
     """
     Approve a session and its associated operations using login credentials for authentication.
 
@@ -127,7 +127,7 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
 
 
 @router.post("/approve/card/session/{session_id}",
-             response_model=Sequence[schemas.DeviceOperationOut],
+             response_model=Sequence[schemas.DevOperationOut],
              responses={
                  200: {
                      "description": "Session successfully approved.",
@@ -228,7 +228,7 @@ def approve_session_card(
         description="Unique identifier of the session that contains operations awaiting approval."),
     db: Session = Depends(database.get_db),
     current_concierge: User = Depends(oauth2.get_current_concierge)
-) -> Sequence[schemas.DeviceOperationOut]:
+) -> Sequence[schemas.DevOperationOut]:
     """
     Approve a session and its associated operations using card code.
 

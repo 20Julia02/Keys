@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 class BaseUser(Base):
     __tablename__ = "base_user"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     user_type: Mapped[str] = mapped_column(String(50))
 
     __mapper_args__: dict[str, Any] = {
@@ -42,7 +42,7 @@ class Faculty(enum.Enum):
 class User(BaseUser):
     __tablename__ = 'user'
     id: Mapped[int] = mapped_column(ForeignKey(
-        'base_user.id'), Integer, primary_key=True)
+        'base_user.id'), primary_key=True)
     name: Mapped[str] = mapped_column(String(50))
     surname: Mapped[str] = mapped_column(String(50))
     role: Mapped[UserRole]
@@ -81,7 +81,7 @@ class User(BaseUser):
 class UnauthorizedUser(BaseUser):
     __tablename__ = "unauthorized_user"
     id: Mapped[int] = mapped_column(ForeignKey(
-        'base_user.id'), Integer, primary_key=True)
+        'base_user.id'), primary_key=True)
     name: Mapped[str] = mapped_column(String(50))
     surname: Mapped[str] = mapped_column(String(50))
     email: Mapped[str] = mapped_column(String(50), unique=True)
@@ -159,7 +159,7 @@ class UnauthorizedUser(BaseUser):
 class UserNote(Base):
     __tablename__ = "user_note"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("base_user.id"))
     note: Mapped[str]
     timestamp: Mapped[Optional[timestamp]]

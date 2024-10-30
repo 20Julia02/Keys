@@ -83,11 +83,13 @@ class DeviceOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class DeviceOperation(BaseModel):
+class DevOperation(BaseModel):
     device_id: int
     session_id: int
     operation_type: str
     entitled: bool
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UnapprovedOperation(BaseModel):
@@ -178,7 +180,7 @@ class DetailMessage(BaseModel):
     detail: str
 
 
-class DeviceOperationOut(BaseModel):
+class DevOperationOut(BaseModel):
     id: int
     device: DeviceOut
     session: Session
@@ -189,4 +191,4 @@ class DeviceOperationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-DeviceOperationOrDetailResponse = Union[DeviceOperationOut, DetailMessage]
+DevOperationOrDetailResponse = Union[DevOperationOut, DetailMessage]

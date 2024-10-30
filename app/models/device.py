@@ -13,7 +13,7 @@ from app.models.operation import DeviceOperation
 class Room(Base):
     __tablename__ = "room"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     number: Mapped[str] = mapped_column(String(20), unique=True, index=True)
 
     permissions = relationship("Permission", back_populates="room")
@@ -66,7 +66,7 @@ class DeviceType(enum.Enum):
 
 class Device(Base):
     __tablename__ = "device"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     code: Mapped[str] = mapped_column(String(50), unique=True, index=True)
     dev_type: Mapped[DeviceType] = mapped_column()
     room_id: Mapped[int] = mapped_column(ForeignKey(
@@ -201,7 +201,7 @@ class Device(Base):
 
 class DeviceNote(Base):
     __tablename__ = "device_note"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     device_id: Mapped[int] = mapped_column(ForeignKey(
         "device.id", ondelete="CASCADE", onupdate="CASCADE"), index=True)
     note: Mapped[str]

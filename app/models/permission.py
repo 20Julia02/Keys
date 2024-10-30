@@ -12,14 +12,14 @@ from app import schemas
 class TokenBlacklist(Base):
     __tablename__ = 'token_blacklist'
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     token: Mapped[str] = mapped_column(String(255), unique=True)
     added_at: Mapped[Optional[timestamp]]
 
 
 class Permission(Base):
     __tablename__ = "permission"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     room_id: Mapped[int] = mapped_column(ForeignKey("room.id"))
     date: Mapped[datetime.date] = mapped_column(Date)

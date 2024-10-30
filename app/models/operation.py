@@ -18,7 +18,7 @@ SessionStatus = Literal["w trakcie", "potwierdzona", "odrzucona"]
 class UserSession(Base):
     __tablename__ = "session"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey(
         "base_user.id", onupdate="RESTRICT", ondelete="SET NULL"))
     concierge_id: Mapped[int] = mapped_column(ForeignKey(
@@ -110,7 +110,7 @@ OperationType = Literal["pobranie", "zwrot"]
 
 class UnapprovedOperation(Base):
     __tablename__ = "operation_unapproved"
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     device_id: Mapped[int] = mapped_column(ForeignKey(
         "device.id", onupdate="CASCADE", ondelete="CASCADE"), index=True)
     session_id: Mapped[int] = mapped_column(ForeignKey(
@@ -137,7 +137,7 @@ class UnapprovedOperation(Base):
     @classmethod
     def create_unapproved_operation(cls,
                                     db: Session,
-                                    operation_data: schemas.DeviceOperation,
+                                    operation_data: schemas.DevOperation,
                                     commit: bool = True) -> "DeviceOperation":
         """
         Creates a new operation in the database.
@@ -148,7 +148,8 @@ class UnapprovedOperation(Base):
         Returns:
             DeviceOperation: The newly created operation.
         """
-        new_operation = UnapprovedOperation(**operation_data)
+        print(dir(operation_data))
+        new_operation = cls(**operation_data.model_dump())
         new_operation.timestamp = datetime.datetime.now()
 
         db.add(new_operation)
@@ -167,10 +168,10 @@ class UnapprovedOperation(Base):
         return unapproved
 
     @classmethod
-    def create_operation_from_unapproved(cls, db: Session, session_id: int, commit: bool = True) -> List[schemas.DeviceOperationOut]:
+    def create_operation_from_unapproved(cls, db: Session, session_id: int, commit: bool = True) -> List[schemas.DevOperationOut]:
         unapproved_operations = cls.get_unapproved_session(db, session_id)
 
-        operation_list: List[schemas.DeviceOperationOut] = []
+        operation_list: List[schemas.DevOperationOut] = []
 
         for unapproved_operation in unapproved_operations:
             new_operation = DeviceOperation(
@@ -185,7 +186,7 @@ class UnapprovedOperation(Base):
 
             db.delete(unapproved_operation)
 
-            validated_operation = schemas.DeviceOperationOut.model_validate(
+            validated_operation = schemas.DevOperationOut.model_validate(
                 new_operation)
             operation_list.append(validated_operation)
 
@@ -203,7 +204,7 @@ class UnapprovedOperation(Base):
 class DeviceOperation(Base):
     __tablename__ = "device_operation"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True)
     device_id: Mapped[int] = mapped_column(ForeignKey(
         "device.id", onupdate="CASCADE", ondelete="CASCADE"), index=True)
     session_id: Mapped[Optional[int]] = mapped_column(
@@ -256,7 +257,7 @@ class DeviceOperation(Base):
     @classmethod
     def create_operation(cls,
                          db: Session,
-                         operation_data: schemas.DeviceOperation,
+                         operation_data: schemas.DevOperation,
                          commit: Optional[bool] = True) -> "DeviceOperation":
         """
         Creates a new operation in the database.

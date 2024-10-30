@@ -1,5 +1,5 @@
 from fastapi import status, Depends, APIRouter
-from typing import Optional, Sequence
+from typing import Optional, Sequence, List
 from app import database, oauth2, schemas
 import app.models.device as mdevice
 from app.services import securityService
@@ -14,21 +14,19 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=Sequence[schemas.DeviceOutWithNote])
+@router.get("/", response_model=List[schemas.DeviceOutWithNote])
 def get_devices_filtered(current_concierge: User = Depends(oauth2.get_current_concierge),
                          dev_type: Optional[str] = None,
                          dev_version: Optional[str] = None,
                          room_number: Optional[str] = None,
-                         db: Session = Depends(database.get_db)) -> Sequence[schemas.DeviceOutWithNote]:
+                         db: Session = Depends(database.get_db)) -> List[schemas.DeviceOutWithNote]:
     """
     Retrieve all devices from the database, optionally filtered by type or dev_version.
 
     This endpoint retrieves a list of devices from the database. Optionally,
     the list can be filtered by device type and dev_version if these parameters are provided.
     """
-    devices = mdevice.Device.get_device_with_details(
-        db, dev_type, dev_version, room_number)
-    return [schemas.DeviceOutWithNote.model_validate(device) for device in devices]
+    return mdevice.Device.get_device_with_details(db, dev_type, dev_version, room_number)
 
 
 @router.get("/code/{dev_code}", response_model=schemas.DeviceOut)
@@ -59,12 +57,12 @@ def create_device(device: schemas.DeviceCreate,
     return mdevice.Device.create(db, device)
 
 
-@router.post("/change-status", response_model=schemas.DeviceOperationOrDetailResponse)
+@router.post("/change-status", response_model=schemas.DevOperationOrDetailResponse)
 def change_status(
     request: schemas.ChangeStatus,
     db: Session = Depends(database.get_db),
     current_concierge: int = Depends(oauth2.get_current_concierge),
-) -> schemas.DeviceOperationOrDetailResponse:
+) -> schemas.DevOperationOrDetailResponse:
     """
     Change the status of the device based on session id, permissions, and optional force flag.
 
@@ -89,7 +87,7 @@ def change_status(
         force_flag
     )
     operation_type = "zwrot" if last_operation and last_operation.operation_type == "pobranie" else "pobranie"
-    operation_data = moperation.DeviceOperation(
+    operation_data = schemas.DevOperation(
         device_id=request.device_id,
         session_id=session.id,
         entitled=entitled,
@@ -101,11 +99,11 @@ def change_status(
     return operation
 
 
-@router.get("/users/{user_id}", response_model=Sequence[schemas.DeviceOperationOut])
+@router.get("/users/{user_id}", response_model=Sequence[schemas.DevOperationOut])
 def get_devs_owned_by_user(user_id: int,
                            current_concierge: User = Depends(
                                oauth2.get_current_concierge),
-                           db: Session = Depends(database.get_db)) -> Sequence[schemas.DeviceOperationOut]:
+                           db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
     """
     Retrieve a device by its unique device code.
 

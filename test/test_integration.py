@@ -5,7 +5,7 @@ from sqlalchemy import text
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 from app.main import app
-from app import database
+from app import database, schemas
 import app.models.user as muser
 import app.models.device as mdevice
 import app.models.permission as mpermission
@@ -678,12 +678,11 @@ def test_approve_session_login_success(db: Session,
                                        concierge_token: str):
     session = moperation.UserSession.create_session(
         db, test_user.id, test_concierge.id)
-    new_data = {
-        "device_id": test_device.id,
-        "session_id": session.id,
-        "operation_type": "zwrot",
-        "entitled": False
-    }
+    new_data = schemas.DevOperation(device_id=test_device.id,
+                                    session_id=session.id,
+                                    operation_type="zwrot",
+                                    entitled=False)
+
     moperation.UnapprovedOperation.create_unapproved_operation(db, new_data)
 
     login_data = {
@@ -763,12 +762,11 @@ def test_approve_session_card_success(db: Session,
 
     session = moperation.UserSession.create_session(
         db, test_user.id, test_concierge.id)
-    new_data = {
-        "device_id": test_device.id,
-        "session_id": session.id,
-        "operation_type": "zwrot",
-        "entitled": False
-    }
+    new_data = schemas.DevOperation(device_id=test_device.id,
+                                    session_id=session.id,
+                                    operation_type="zwrot",
+                                    entitled=False)
+
     moperation.UnapprovedOperation.create_unapproved_operation(db, new_data)
 
     response = client.post(
