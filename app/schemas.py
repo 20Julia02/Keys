@@ -110,6 +110,8 @@ class DeviceOutWithNote(BaseModel):
     has_note: bool
     is_taken: bool
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class DeviceNote(BaseModel):
     device_id: int

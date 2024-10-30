@@ -26,7 +26,9 @@ def get_devices_filtered(current_concierge: User = Depends(oauth2.get_current_co
     This endpoint retrieves a list of devices from the database. Optionally,
     the list can be filtered by device type and dev_version if these parameters are provided.
     """
-    return mdevice.Device.get_device_with_details(db, dev_type, dev_version, room_number)
+    devices = mdevice.Device.get_device_with_details(db, dev_type, dev_version, room_number)
+    return [schemas.DeviceOutWithNote.model_validate(device) for device in devices]
+
 
 
 @router.get("/code/{dev_code}", response_model=schemas.DeviceOut)

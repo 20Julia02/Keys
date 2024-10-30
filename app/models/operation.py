@@ -301,7 +301,7 @@ class DeviceOperation(Base):
         return operation
 
     @classmethod
-    def get_last_dev_operation_or_none(cls, db: Session,  device_id: int) -> "DeviceOperation":
+    def get_last_dev_operation_or_none(cls, db: Session,  device_id: int) -> "DeviceOperation|None":
         subquery = (
             db.query(func.max(DeviceOperation.timestamp))
             .filter(DeviceOperation.device_id == device_id)
