@@ -37,7 +37,11 @@ class UserSession(Base):
         foreign_keys=[concierge_id], back_populates="sessions")
 
     @classmethod
-    def create_session(cls, db: Session, user_id: int, concierge_id: int, commit: bool = True) -> "UserSession":
+    def create_session(cls,
+                       db: Session,
+                       user_id: int,
+                       concierge_id: int,
+                       commit: bool = True) -> "UserSession":
         """
         Creates a new session in the database for a given user and concierge.
 
@@ -63,7 +67,11 @@ class UserSession(Base):
         return new_session
 
     @classmethod
-    def end_session(cls, db: Session, session_id: int, reject: bool = False, commit: bool = True) -> "UserSession":
+    def end_session(cls,
+                    db: Session,
+                    session_id: int,
+                    reject: bool = False,
+                    commit: bool = True) -> "UserSession":
         """
         Changes the status of the session to rejected or completed
         depending on the given value of the reject argument. The default
@@ -94,7 +102,9 @@ class UserSession(Base):
         return session
 
     @classmethod
-    def get_session_id(cls, db: Session, session_id: int) -> "UserSession":
+    def get_session_id(cls,
+                       db: Session,
+                       session_id: int) -> "UserSession":
         session = db.query(UserSession).filter(
             UserSession.id == session_id
         ).first()
@@ -125,7 +135,10 @@ class UnapprovedOperation(Base):
         back_populates="unapproved_operations")
 
     @classmethod
-    def delete_if_rescanned(cls, db: Session, device_id: int, session_id: int) -> bool:
+    def delete_if_rescanned(cls,
+                            db: Session,
+                            device_id: int,
+                            session_id: int) -> bool:
         operation_unapproved = db.query(UnapprovedOperation).filter(
             UnapprovedOperation.device_id == device_id,
             UnapprovedOperation.session_id == session_id).first()
@@ -224,7 +237,8 @@ class DeviceOperation(Base):
         back_populates="device_operations")
 
     @classmethod
-    def last_operation_subquery(cls, db: Session):
+    def last_operation_subquery(cls,
+                                db: Session):
         return (
             db.query(
                 cls.device_id,
@@ -235,7 +249,9 @@ class DeviceOperation(Base):
         )
 
     @classmethod
-    def get_owned_by_user(cls, db: Session, user_id: int) -> Sequence["DeviceOperation"]:
+    def get_owned_by_user(cls,
+                          db: Session,
+                          user_id: int) -> Sequence["DeviceOperation"]:
         last_operation_subquery = cls.last_operation_subquery(db)
 
         query = (
@@ -284,7 +300,8 @@ class DeviceOperation(Base):
         return new_operation
 
     @classmethod
-    def get_all_operations(cls, db: Session) -> List["DeviceOperation"]:
+    def get_all_operations(cls,
+                           db: Session) -> List["DeviceOperation"]:
         operations = db.query(DeviceOperation).all()
         if not operations:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -292,7 +309,9 @@ class DeviceOperation(Base):
         return operations
 
     @classmethod
-    def get_operation_id(cls, db: Session, operation_id: int) -> "DeviceOperation":
+    def get_operation_id(cls,
+                         db: Session,
+                         operation_id: int) -> "DeviceOperation":
         operation = db.query(DeviceOperation).filter(
             DeviceOperation.id == operation_id).first()
         if not operation:
@@ -301,7 +320,9 @@ class DeviceOperation(Base):
         return operation
 
     @classmethod
-    def get_last_dev_operation_or_none(cls, db: Session,  device_id: int) -> "DeviceOperation|None":
+    def get_last_dev_operation_or_none(cls,
+                                       db: Session,
+                                       device_id: int) -> "DeviceOperation|None":
         subquery = (
             db.query(func.max(DeviceOperation.timestamp))
             .filter(DeviceOperation.device_id == device_id)

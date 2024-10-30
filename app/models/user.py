@@ -62,7 +62,8 @@ class User(BaseUser):
         back_populates="concierge")
 
     @classmethod
-    def get_all_users(cls, db: Session) -> List["User"]:
+    def get_all_users(cls,
+                      db: Session) -> List["User"]:
         user = db.query(User).all()
         if (not user):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -70,7 +71,9 @@ class User(BaseUser):
         return user
 
     @classmethod
-    def get_user_id(cls, db: Session, user_id: int) -> "User":
+    def get_user_id(cls,
+                    db: Session,
+                    user_id: int) -> "User":
         user = db.query(User).filter(User.id == user_id).first()
         if (not user):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -92,7 +95,11 @@ class UnauthorizedUser(BaseUser):
     }
 
     @classmethod
-    def create_or_get_unauthorized_user(cls, db: Session, name: str, surname: str, email: str) -> "UnauthorizedUser":
+    def create_or_get_unauthorized_user(cls,
+                                        db: Session,
+                                        name: str,
+                                        surname: str,
+                                        email: str) -> "UnauthorizedUser":
         """
         Creates a new unauthorized user in the database.
         """
@@ -116,7 +123,8 @@ class UnauthorizedUser(BaseUser):
         return new_user
 
     @classmethod
-    def get_all_unathorized_users(cls, db: Session) -> List["UnauthorizedUser"]:
+    def get_all_unathorized_users(cls,
+                                  db: Session) -> List["UnauthorizedUser"]:
         """
         Retrieves all unathorized users from the database.
         """
@@ -127,7 +135,9 @@ class UnauthorizedUser(BaseUser):
         return user
 
     @classmethod
-    def get_unathorized_user(cls, db: Session, user_id: int) -> "UnauthorizedUser":
+    def get_unathorized_user(cls,
+                             db: Session,
+                             user_id: int) -> "UnauthorizedUser":
         """
         Retrieves an unauthorized user by their ID from the database.
         """
@@ -139,7 +149,9 @@ class UnauthorizedUser(BaseUser):
         return user
 
     @classmethod
-    def delete_unauthorized_user(cls, db: Session, user_id: int):
+    def delete_unauthorized_user(cls,
+                                 db: Session,
+                                 user_id: int):
         """
         Deletes an unauthorized user by their ID from the database.
         """
@@ -167,7 +179,8 @@ class UserNote(Base):
     user: Mapped["BaseUser"] = relationship(back_populates="notes")
 
     @classmethod
-    def get_all_user_notes(cls, db: Session) -> List["UserNote"]:
+    def get_all_user_notes(cls,
+                           db: Session) -> List["UserNote"]:
         """Retrieve all user notes."""
         notes = db.query(UserNote).all()
         if not notes:
@@ -176,7 +189,9 @@ class UserNote(Base):
         return notes
 
     @classmethod
-    def get_user_note_by_id(cls, db: Session, user_id: int) -> List["UserNote"]:
+    def get_user_note_by_id(cls,
+                            db: Session,
+                            user_id: int) -> List["UserNote"]:
         """Retrieve a specific user note by user_id."""
         notes = (db.query(UserNote)
                  .filter(UserNote.user_id == user_id)
@@ -188,7 +203,10 @@ class UserNote(Base):
         return notes
 
     @classmethod
-    def create_user_note(cls, db: Session, note_data: schemas.UserNoteCreate, commit: bool = True) -> "UserNote":
+    def create_user_note(cls,
+                         db: Session,
+                         note_data: schemas.UserNoteCreate,
+                         commit: bool = True) -> "UserNote":
         """Create a new user note."""
         note_data_dict = note_data.model_dump()
         note_data_dict["timestamp"] = datetime.datetime.now()
@@ -204,7 +222,11 @@ class UserNote(Base):
         return note
 
     @classmethod
-    def update_user_note(cls, db: Session, note_id: int, note_data: schemas.NoteUpdate, commit: bool = True) -> "UserNote":
+    def update_user_note(cls,
+                         db: Session,
+                         note_id: int,
+                         note_data: schemas.NoteUpdate,
+                         commit: bool = True) -> "UserNote":
 
         note = db.query(UserNote).filter(UserNote.id == note_id).first()
 

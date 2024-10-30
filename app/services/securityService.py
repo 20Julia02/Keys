@@ -14,7 +14,8 @@ class PasswordService:
     def __init__(self):
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-    def hash_password(self, password: str) -> str:
+    def hash_password(self,
+                      password: str) -> str:
         """
         Hashes the given password using the bcrypt algorithm.
 
@@ -26,7 +27,9 @@ class PasswordService:
         """
         return self.pwd_context.hash(password)
 
-    def verify_hashed(self, plain_text: str, hashed_text: str) -> bool:
+    def verify_hashed(self,
+                      plain_text: str,
+                      hashed_text: str) -> bool:
         """
         Verifies that the given plain text password matches the hashed password.
 
@@ -42,7 +45,8 @@ class PasswordService:
 
 
 class TokenService:
-    def __init__(self, db: Session):
+    def __init__(self,
+                 db: Session):
         """
         Initializes the TokenService with a given database session and token settings.
         """
@@ -52,7 +56,9 @@ class TokenService:
         self.ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
         self.REFRESH_TOKEN_EXPIRE_MINUTES = settings.refresh_token_expire_minutes
 
-    def create_token(self, data: dict[str, str], token_type: str) -> str:
+    def create_token(self,
+                     data: dict[str, str],
+                     token_type: str) -> str:
         """
         Creates a JWT token with the given data and token type (refresh or access).
 
@@ -78,7 +84,8 @@ class TokenService:
 
         return encoded_jwt
 
-    def verify_concierge_token(self, token: str) -> schemas.TokenData:
+    def verify_concierge_token(self,
+                               token: str) -> schemas.TokenData:
         """
         Verifies the given JWT token and extracts the token data.
 
@@ -107,7 +114,8 @@ class TokenService:
                                 detail="Invalid token")
         return token_data
 
-    def is_token_blacklisted(self, token: str) -> bool:
+    def is_token_blacklisted(self,
+                             token: str) -> bool:
         """
         Checks if a token is in the blacklist.
 
@@ -120,7 +128,9 @@ class TokenService:
         """
         return self.db.query(mpermission.TokenBlacklist).filter_by(token=token).first() is not None
 
-    def add_token_to_blacklist(self, token: str, commit: bool = True) -> bool:
+    def add_token_to_blacklist(self,
+                               token: str,
+                               commit: bool = True) -> bool:
         """
         Adds a token to the blacklist in the database.
 
@@ -139,7 +149,9 @@ class TokenService:
                 self.db.refresh(db_token)
         return True
 
-    def generate_tokens(self, user_id: int, role: str) -> schemas.Token:
+    def generate_tokens(self,
+                        user_id: int,
+                        role: str) -> schemas.Token:
         access_token = self.create_token(
             {"user_id": user_id, "user_role": role}, "access")
         refresh_token = self.create_token(
@@ -148,13 +160,16 @@ class TokenService:
 
 
 class AuthorizationService:
-    def __init__(self, db: Session):
+    def __init__(self,
+                 db: Session):
         """
         Initializes the AuthorizationService with a given database session.
         """
         self.db = db
 
-    def check_if_entitled(self, role: str, user: muser.User) -> None:
+    def check_if_entitled(self,
+                          role: str,
+                          user: muser.User) -> None:
         """
         Checks if the current user has the required role or is an admin.
         Raises an HTTP 403 Forbidden exception if the user is not entitled.
@@ -171,7 +186,8 @@ class AuthorizationService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"You cannot perform this operation without the {role} role")
 
-    def get_current_concierge(self, token: str) -> muser.User:
+    def get_current_concierge(self,
+                              token: str) -> muser.User:
         """
         Retrieves the current concierge from the database using the provided JWT token.
 
@@ -204,7 +220,8 @@ class AuthorizationService:
         self.check_if_entitled("concierge", user)
         return user
 
-    def get_current_concierge_token(self, token: str) -> str:
+    def get_current_concierge_token(self,
+                                    token: str) -> str:
         """
         Retrieves the current user's token after validating the user's identity.
 
@@ -218,7 +235,10 @@ class AuthorizationService:
         _ = self.get_current_concierge(token)
         return token
 
-    def authenticate_user_login(self, username: str, password: str, role: str) -> muser.User:
+    def authenticate_user_login(self,
+                                username: str,
+                                password: str,
+                                role: str) -> muser.User:
         """Authenticate user by email and password."""
         password_service = PasswordService()
         user = self.db.query(muser.User).filter_by(email=username).first()
@@ -228,7 +248,9 @@ class AuthorizationService:
         self.check_if_entitled(role, user)
         return user
 
-    def authenticate_user_card(self, card_id: schemas.CardId, role: str) -> muser.User:
+    def authenticate_user_card(self,
+                               card_id: schemas.CardId,
+                               role: str) -> muser.User:
         password_service = PasswordService()
         users = self.db.query(muser.User).filter(
             muser.User.card_code.isnot(None)).all()

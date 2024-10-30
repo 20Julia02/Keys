@@ -111,7 +111,9 @@ class Permission(Base):
 
 
 @event.listens_for(Permission.__table__, 'after_create')
-def delete_old_reservations(target: Table, connection: Connection, **kwargs: Any) -> None:
+def delete_old_reservations(target: Table,
+                            connection: Connection,
+                            **kwargs: Any) -> None:
     one_week_ago = datetime.date.today() - datetime.timedelta(weeks=1)
     delete_query = text(
         f"DELETE FROM {target.name} WHERE date < :one_week_ago")
