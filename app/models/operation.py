@@ -326,7 +326,7 @@ class DeviceOperation(Base):
         subquery = (
             db.query(func.max(DeviceOperation.timestamp))
             .filter(DeviceOperation.device_id == device_id)
-            .subquery()
+            .as_scalar()
         )
         operation = (
             db.query(DeviceOperation)

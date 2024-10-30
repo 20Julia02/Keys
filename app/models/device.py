@@ -272,7 +272,6 @@ class DeviceNote(Base):
             except Exception as e:
                 db.rollback()
                 raise e
-
         return note
 
     @classmethod
