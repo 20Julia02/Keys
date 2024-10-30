@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from passlib.context import CryptContext
@@ -57,7 +58,7 @@ class TokenService:
         self.REFRESH_TOKEN_EXPIRE_MINUTES = settings.refresh_token_expire_minutes
 
     def create_token(self,
-                     data: dict[str, str],
+                     data: dict[str, Any],
                      token_type: str) -> str:
         """
         Creates a JWT token with the given data and token type (refresh or access).

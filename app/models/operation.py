@@ -290,7 +290,7 @@ class DeviceOperation(Base):
         Returns:
             DeviceOperation: The newly created operation.
         """
-        new_operation = DeviceOperation(**operation_data)
+        new_operation = DeviceOperation(**operation_data.model_dump())
         new_operation.timestamp = datetime.datetime.now()
 
         db.add(new_operation)

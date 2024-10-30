@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 import datetime
 from zoneinfo import ZoneInfo
@@ -94,7 +95,9 @@ def test_room_2(db: Session):
 
 
 @pytest.fixture(scope="module")
-def test_permission(db: Session, test_user, test_room):
+def test_permission(db: Session,
+                    test_user: muser.User,
+                    test_room: mdevice.Room):
     permission = mpermission.Permission(
         user_id=test_user.id,
         room_id=test_room.id,
@@ -110,7 +113,9 @@ def test_permission(db: Session, test_user, test_room):
 
 
 @pytest.fixture(scope="module")
-def test_session(db: Session, test_user: muser.User, test_concierge: muser.User):
+def test_session(db: Session,
+                 test_user: muser.User,
+                 test_concierge: muser.User):
     session = moperation.UserSession(
         user_id=test_user.id,
         concierge_id=test_concierge.id,
@@ -125,7 +130,8 @@ def test_session(db: Session, test_user: muser.User, test_concierge: muser.User)
 
 
 @pytest.fixture(scope="module")
-def test_device(db: Session, test_room: mdevice.Room):
+def test_device(db: Session,
+                test_room: mdevice.Room):
     device = mdevice.Device(
         dev_type="key",
         room_id=test_room.id,
@@ -139,7 +145,8 @@ def test_device(db: Session, test_room: mdevice.Room):
 
 
 @pytest.fixture(scope="module")
-def test_device_microphone(db: Session, test_room_2: mdevice.Room):
+def test_device_microphone(db: Session,
+                           test_room_2: mdevice.Room):
     device = mdevice.Device(
         dev_type="microphone",
         room_id=test_room_2.id,
@@ -153,7 +160,8 @@ def test_device_microphone(db: Session, test_room_2: mdevice.Room):
 
 
 @pytest.fixture
-def create_user_note(db: Session, test_user: muser.User):
+def test_user_note(db: Session,
+                   test_user: muser.User):
     note = muser.UserNote(user_id=test_user.id,
                           note="Test Note", timestamp=datetime.datetime.now())
     db.add(note)
@@ -163,7 +171,8 @@ def create_user_note(db: Session, test_user: muser.User):
 
 
 @pytest.fixture
-def create_specific_user_note(db: Session, test_user: muser.User):
+def test_specific_user_note(db: Session,
+                            test_user: muser.User):
     note = muser.UserNote(
         user_id=test_user.id, note="Test Specific Note", timestamp=datetime.datetime.now())
     db.add(note)
@@ -173,7 +182,9 @@ def create_specific_user_note(db: Session, test_user: muser.User):
 
 
 @pytest.fixture
-def create_device_note(db: Session, test_device: mdevice.Device, test_session: moperation.UserSession):
+def create_device_note(db: Session,
+                       test_device: mdevice.Device,
+                       test_session: moperation.UserSession):
     note = mdevice.DeviceNote(
         device_id=test_device.id, note="Device note content", timestamp=datetime.datetime.now())
     db.add(note)
@@ -196,14 +207,12 @@ def cleanup_db_after_tests(db: Session):
 
 
 @pytest.fixture(scope="module")
-def token_service(db: Session):
-    return securityService.TokenService(db)
+def concierge_token(db: Session,
+                    test_concierge: muser.User) -> str:
 
-
-@pytest.fixture(scope="module")
-def concierge_token(test_concierge, token_service):
-    token_data = {'user_id': test_concierge.id,
-                  'user_role': test_concierge.role.value}
+    token_service = securityService.TokenService(db)
+    token_data: dict[str, Any] = {'user_id': test_concierge.id,
+                                  'user_role': test_concierge.role.value}
     token = token_service.create_token(token_data, token_type="access")
     return token
 
@@ -215,7 +224,8 @@ def test_get_all_users(concierge_token: str):
     assert len(response.json()) >= 1
 
 
-def test_get_user_by_id(test_concierge: muser.User, concierge_token: str):
+def test_get_user_by_id(test_concierge: muser.User,
+                        concierge_token: str):
     response = client.get(f"/users/{test_concierge.id}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
@@ -273,7 +283,8 @@ def test_card_login_with_invalid_card_id():
     assert response.json()["detail"] == "Invalid credentials"
 
 
-def test_refresh_token_with_valid_token(db: Session, test_concierge: muser.User):
+def test_refresh_token_with_valid_token(db: Session,
+                                        test_concierge: muser.User):
     token_service = securityService.TokenService(db)
     refresh_token = token_service.create_token({"user_id": test_concierge.id, "user_role": test_concierge.role.value},
                                                "refresh")
@@ -336,7 +347,8 @@ def test_get_all_devices_invalid_version(test_device: mdevice.Device,
     assert response.json()["detail"] == "Invalid device version: first"
 
 
-def test_get_dev_by_code(test_device: mdevice.Device, concierge_token: str):
+def test_get_dev_by_code(test_device: mdevice.Device,
+                         concierge_token: str):
     response = client.get(f"/devices/code/{test_device.code}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
@@ -350,8 +362,10 @@ def test_get_dev_by_invalid_code(concierge_token: str):
     assert response.json()["detail"] == "Device with code: -5 doesn't exist"
 
 
-def test_create_device(test_room: mdevice.Room, test_concierge: muser.User, concierge_token: str):
-    device_data = {
+def test_create_device(test_room: mdevice.Room,
+                       test_concierge: muser.User,
+                       concierge_token: str):
+    device_data: dict[str, Any] = {
         "room_id": test_room.id,
         "dev_version": "primary",
         "dev_type": "microphone",
@@ -366,7 +380,7 @@ def test_create_device(test_room: mdevice.Room, test_concierge: muser.User, conc
 
 
 def test_create_device_with_invalid_data(concierge_token: str):
-    device_data = {
+    device_data: dict[str, Any] = {
         "is_taken": False,
         "room": 6
     }
@@ -375,7 +389,8 @@ def test_create_device_with_invalid_data(concierge_token: str):
     assert response.status_code == 422
 
 
-def test_start_session_login(test_user: muser.User, concierge_token: str):
+def test_start_session_login(test_user: muser.User,
+                             concierge_token: str):
     login_data = {
         "username": test_user.email,
         "password": "password456"
@@ -385,7 +400,8 @@ def test_start_session_login(test_user: muser.User, concierge_token: str):
     assert response.status_code == 200
 
 
-def test_start_session_invalid_credentials(test_user: muser.User, concierge_token: str):
+def test_start_session_invalid_credentials(test_user: muser.User,
+                                           concierge_token: str):
     login_data = {
         "password": "password456"
     }
@@ -394,14 +410,16 @@ def test_start_session_invalid_credentials(test_user: muser.User, concierge_toke
     assert response.status_code == 422
 
 
-def test_start_session_card(test_user: muser.User, concierge_token: str):
+def test_start_session_card(test_user: muser.User,
+                            concierge_token: str):
     card_data = {"card_id": "7890"}
     response = client.post("/start-session/card",
                            headers={"Authorization": f"Bearer {concierge_token}"}, json=card_data)
     assert response.status_code == 200
 
 
-def test_start_session_invalid_card(test_user: muser.User, concierge_token: str):
+def test_start_session_invalid_card(test_user: muser.User,
+                                    concierge_token: str):
     card_data = {"card_id": "7891"}
     response = client.post("/start-session/card",
                            headers={"Authorization": f"Bearer {concierge_token}"}, json=card_data)
@@ -467,10 +485,10 @@ def test_changeStatus_without_permission(test_concierge: muser.User,
         "detail"] == f"User with id {test_user.id} does not have permission to access room with id {test_room_2.id}"
 
 
-def test_changeStatus_without_permission(test_concierge: muser.User,
-                                         test_user: muser.User,
-                                         test_device_microphone: mdevice.Device,
-                                         concierge_token: str):
+def test_changeStatus_with_force(test_concierge: muser.User,
+                                 test_user: muser.User,
+                                 test_device_microphone: mdevice.Device,
+                                 concierge_token: str):
 
     login_data = {
         "username": test_user.email,
@@ -530,7 +548,8 @@ def test_get_user_permission_with_valid_user_id(db: Session,
     assert response.json()[0]["user"]["id"] == test_user.id
 
 
-def test_get_user_permission_with_invalid_user_id(test_concierge: muser.User, concierge_token: str):
+def test_get_user_permission_with_invalid_user_id(test_concierge: muser.User,
+                                                  concierge_token: str):
     response = client.get("/permissions?user_id=-1",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     print(response.json())
@@ -552,7 +571,8 @@ def test_get_key_permission_with_valid_room_id(db: Session,
     assert response.json()[0]["room"]["id"] == test_room.id
 
 
-def test_get_key_permission_with_invalid_room_id(test_concierge: muser.User, concierge_token: str):
+def test_get_key_permission_with_invalid_room_id(test_concierge: muser.User,
+                                                 concierge_token: str):
     response = client.get("/permissions?user_id=-1",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
@@ -560,21 +580,25 @@ def test_get_key_permission_with_invalid_room_id(test_concierge: muser.User, con
         "detail"] == "No reservations found"
 
 
-def test_get_all_rooms(test_concierge: muser.User, concierge_token: str):
+def test_get_all_rooms(test_concierge: muser.User,
+                       concierge_token: str):
     response = client.get(
         "/rooms", headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
 
-def test_get_room_by_id(test_room: mdevice.Room, test_concierge: muser.User, concierge_token: str):
+def test_get_room_by_id(test_room: mdevice.Room,
+                        test_concierge: muser.User,
+                        concierge_token: str):
     response = client.get(
         f"/rooms/{test_room.id}", headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
     assert response.json()["number"] == test_room.number
 
 
-def test_create_unauthorized_user(test_concierge: muser.User, concierge_token: str):
+def test_create_unauthorized_user(test_concierge: muser.User,
+                                  concierge_token: str):
     user_data = {
         "name": "Unauthorized",
         "surname": "User",
@@ -586,7 +610,8 @@ def test_create_unauthorized_user(test_concierge: muser.User, concierge_token: s
     assert response.json()["surname"] == user_data["surname"]
 
 
-def test_create_unauthorized_user_duplicated(test_concierge: muser.User, concierge_token: str):
+def test_create_unauthorized_user_duplicated(test_concierge: muser.User,
+                                             concierge_token: str):
     user_data = {
         "name": "Unauthorized",
         "surname": "User",
@@ -598,7 +623,8 @@ def test_create_unauthorized_user_duplicated(test_concierge: muser.User, concier
     assert response.json()["surname"] == user_data["surname"]
 
 
-def test_create_unauthorized_user_duplicated_invalid(test_concierge: muser.User, concierge_token: str):
+def test_create_unauthorized_user_duplicated_invalid(test_concierge: muser.User,
+                                                     concierge_token: str):
     user_data = {
         "name": "Unauthorized1",
         "surname": "User1",
@@ -611,7 +637,8 @@ def test_create_unauthorized_user_duplicated_invalid(test_concierge: muser.User,
         "detail"] == "User with this email already exists but with different name or surname."
 
 
-def test_create_unauthorized_user_with_missing_data(test_concierge: muser.User, concierge_token: str):
+def test_create_unauthorized_user_with_missing_data(test_concierge: muser.User,
+                                                    concierge_token: str):
     user_data = {
         "name": "Unauthorized User"
     }
@@ -620,14 +647,17 @@ def test_create_unauthorized_user_with_missing_data(test_concierge: muser.User, 
     assert response.status_code == 422
 
 
-def test_get_all_unauthorized_users(test_concierge: muser.User, concierge_token: str):
+def test_get_all_unauthorized_users(test_concierge: muser.User,
+                                    concierge_token: str):
     response = client.get("/unauthorized-users/",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
     assert len(response.json()) >= 1
 
 
-def test_get_unauthorized_user_by_id(db: Session, test_concierge: muser.User, concierge_token: str):
+def test_get_unauthorized_user_by_id(db: Session,
+                                     test_concierge: muser.User,
+                                     concierge_token: str):
     user = muser.UnauthorizedUser(name="Unauthorized",
                                   surname="User 2",
                                   email="user123@gmail.com")
@@ -641,7 +671,8 @@ def test_get_unauthorized_user_by_id(db: Session, test_concierge: muser.User, co
     assert response.json()["surname"] == user.surname
 
 
-def test_get_unauthorized_user_with_invalid_id(test_concierge: muser.User, concierge_token: str):
+def test_get_unauthorized_user_with_invalid_id(test_concierge: muser.User,
+                                               concierge_token: str):
     response = client.get("/unauthorized-users/9999",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
@@ -657,7 +688,8 @@ def test_delete_unauthorized_user_invalid_id(concierge_token: str):
         "detail"] == "Unauthorized user with id: 9999 doesn't exist"
 
 
-def test_delete_unauthorized_user_valid(db: Session, concierge_token: str):
+def test_delete_unauthorized_user_valid(db: Session,
+                                        concierge_token: str):
 
     user = muser.UnauthorizedUser(name="Unauthorized",
                                   surname="User 2",
@@ -820,12 +852,10 @@ def test_get_all_user_devices(db: Session,
                               concierge_token: str):
     session = moperation.UserSession.create_session(
         db, test_user.id, test_concierge.id)
-    new_data = {
-        "device_id": test_device.id,
-        "session_id": session.id,
-        "operation_type": "pobranie",
-        "entitled": False
-    }
+    new_data = schemas.DevOperation(device_id=test_device.id,
+                                    session_id=session.id,
+                                    operation_type="pobranie",
+                                    entitled=False)
     moperation.DeviceOperation.create_operation(db, new_data)
     response = client.get(f"/devices/users/{test_user.id}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
@@ -841,12 +871,10 @@ def test_get_all_user_devices_no_device(db: Session,
                                         concierge_token: str):
     session = moperation.UserSession.create_session(
         db, test_user.id, test_concierge.id)
-    new_data = {
-        "device_id": test_device.id,
-        "session_id": session.id,
-        "operation_type": "pobranie",
-        "entitled": False
-    }
+    new_data = schemas.DevOperation(device_id=test_device.id,
+                                    session_id=session.id,
+                                    operation_type="pobranie",
+                                    entitled=False)
     moperation.DeviceOperation.create_operation(db, new_data)
     response = client.get(f"/devices/users/{test_concierge.id}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
@@ -856,7 +884,8 @@ def test_get_all_user_devices_no_device(db: Session,
         'detail'] == f"User with id {test_concierge.id} doesn't have any devices"
 
 
-def test_get_all_user_notes(create_user_note, concierge_token: str):
+def test_get_all_user_notes(concierge_token: str,
+                            test_user_note: muser.UserNote):
     response = client.get("/notes/users",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
@@ -864,7 +893,9 @@ def test_get_all_user_notes(create_user_note, concierge_token: str):
     assert response.json()[0]["note"] == "Test Note"
 
 
-def test_get_user_notes(test_user: muser.User, create_specific_user_note, concierge_token: str):
+def test_get_user_notes(test_user: muser.User,
+                        concierge_token: str,
+                        test_specific_user_note: muser.UserNote):
     response = client.get(f"/notes/users/{test_user.id}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
@@ -879,8 +910,10 @@ def test_get_user_notes_not_found(concierge_token: str):
     assert response.json()["detail"] == "No note found for user id: 9999"
 
 
-def test_add_user_note(test_user: muser.User, concierge_token: str):
-    note_data = {"user_id": test_user.id, "note": "New note for user"}
+def test_add_user_note(test_user: muser.User,
+                       concierge_token: str):
+    note_data: dict[str, Any] = {
+        "user_id": test_user.id, "note": "New note for user"}
     response = client.post(f"/notes/users",
                            headers={
                                "Authorization": f"Bearer {concierge_token}"},
@@ -890,7 +923,8 @@ def test_add_user_note(test_user: muser.User, concierge_token: str):
     assert response.json()["note"] == "New note for user"
 
 
-def test_add_user_note_invalid_data(test_user: muser.User, concierge_token: str):
+def test_add_user_note_invalid_data(test_user: muser.User,
+                                    concierge_token: str):
     note_data = {"note": "Invalid note data"}
     response = client.post(f"/notes/users",
                            headers={
@@ -900,7 +934,8 @@ def test_add_user_note_invalid_data(test_user: muser.User, concierge_token: str)
     assert response.status_code == 422
 
 
-def test_get_all_device_notes(create_device_note, concierge_token: str):
+def test_get_all_device_notes(create_device_note: muser.UserNote,
+                              concierge_token: str):
     response = client.get("/notes/devices",
                           headers={"Authorization": f"Bearer {concierge_token}"})
 
@@ -934,8 +969,8 @@ def test_add_device_note(db: Session,
                          test_session: moperation.UserSession,
                          test_device: mdevice.Device,
                          concierge_token: str):
-    note_data = {"device_id": test_device.id,
-                 "note": "New note for device"}
+    note_data: dict[str, Any] = {"device_id": test_device.id,
+                                 "note": "New note for device"}
     response = client.post("/notes/devices", json=note_data,
                            headers={"Authorization": f"Bearer {concierge_token}"})
 
@@ -951,7 +986,8 @@ def test_add_device_note_invalid_data(concierge_token: str):
     assert response.status_code == 422
 
 
-def test_logout_with_valid_token(test_concierge: muser.User, concierge_token: str):
+def test_logout_with_valid_token(test_concierge: muser.User,
+                                 concierge_token: str):
     response = client.post(
         "/logout", headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
@@ -965,7 +1001,8 @@ def test_logout_with_invalid_token():
     assert response.json()["detail"] == "Invalid token"
 
 
-def test_logout_with_blacklisted_token(test_concierge: muser.User, concierge_token: str):
+def test_logout_with_blacklisted_token(test_concierge: muser.User,
+                                       concierge_token: str):
     client.post(
         "/logout", headers={"Authorization": f"Bearer {concierge_token}"})
     response2 = client.post(
