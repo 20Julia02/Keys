@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, String, Integer
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import relationship, mapped_column, Mapped, Session
 import enum
 from typing import Optional, List, TYPE_CHECKING, Any

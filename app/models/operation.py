@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, func, Integer
+from sqlalchemy import ForeignKey, func
 from sqlalchemy.orm import relationship, mapped_column, Mapped
 from sqlalchemy.orm import Session
 from typing import Optional, Literal, List, TYPE_CHECKING, Sequence
@@ -126,8 +126,9 @@ class UnapprovedOperation(Base):
 
     @classmethod
     def delete_if_rescanned(cls, db: Session, device_id: int, session_id: int) -> bool:
-        operation_unapproved = db.query(UnapprovedOperation).filter(UnapprovedOperation.device_id == device_id,
-                                                                    UnapprovedOperation.session_id == session_id).first()
+        operation_unapproved = db.query(UnapprovedOperation).filter(
+            UnapprovedOperation.device_id == device_id,
+            UnapprovedOperation.session_id == session_id).first()
         if operation_unapproved:
             db.delete(operation_unapproved)
             db.commit()
@@ -159,7 +160,9 @@ class UnapprovedOperation(Base):
         return new_operation
 
     @classmethod
-    def get_unapproved_session(cls, db: Session, session_id: int) -> List["UnapprovedOperation"]:
+    def get_unapproved_session(cls,
+                               db: Session,
+                               session_id: int) -> List["UnapprovedOperation"]:
         unapproved = db.query(UnapprovedOperation).filter(
             UnapprovedOperation.session_id == session_id).all()
         if not unapproved:
@@ -168,7 +171,10 @@ class UnapprovedOperation(Base):
         return unapproved
 
     @classmethod
-    def create_operation_from_unapproved(cls, db: Session, session_id: int, commit: bool = True) -> List[schemas.DevOperationOut]:
+    def create_operation_from_unapproved(cls,
+                                         db: Session,
+                                         session_id: int,
+                                         commit: bool = True) -> List[schemas.DevOperationOut]:
         unapproved_operations = cls.get_unapproved_session(db, session_id)
 
         operation_list: List[schemas.DevOperationOut] = []
@@ -282,7 +288,7 @@ class DeviceOperation(Base):
         operations = db.query(DeviceOperation).all()
         if not operations:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"There is no operation")
+                                detail="There is no operation")
         return operations
 
     @classmethod
