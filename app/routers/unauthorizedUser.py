@@ -1,4 +1,4 @@
-from fastapi import status, Depends, APIRouter
+from fastapi import status, Depends, APIRouter, Response
 from typing import Sequence
 from app import database, oauth2, schemas
 import app.models.user as muser
@@ -9,36 +9,44 @@ router = APIRouter(
     tags=['Unauthorized users']
 )
 
-
-@router.post("/", response_model=schemas.UnauthorizedUser, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.UnauthorizedUserOut)
 def create_or_get_unauthorized_user(user: schemas.UnauthorizedUserNote,
+                                    response: Response,
                                     db: Session = Depends(database.get_db),
-                                    current_concierge: muser.User = Depends(oauth2.get_current_concierge)) -> schemas.UnauthorizedUser:
+                                    current_concierge: muser.User = Depends(oauth2.get_current_concierge)
+                                    ) -> schemas.UnauthorizedUserOut:
     """
-    Creates a new unauthorized user in the database.
+    Creates a new unauthorized user in the database or returns an existing one.
     """
-    new_user = muser.UnauthorizedUser.create_or_get_unauthorized_user(
+    new_user, created = muser.UnauthorizedUser.create_or_get_unauthorized_user(
         db, user.name, user.surname, user.email)
+    
+    if created:
+        response.status_code = status.HTTP_201_CREATED
+    else:
+        response.status_code = status.HTTP_200_OK
+
     if user.note:
         note_data = schemas.UserNoteCreate(user_id=new_user.id, note=user.note)
         muser.UserNote.create_user_note(db, note_data)
+        
     return new_user
 
 
-@router.get("/", response_model=Sequence[schemas.UnauthorizedUser])
+@router.get("/", response_model=Sequence[schemas.UnauthorizedUserOut])
 def get_all_unathorized_users(current_concierge: muser.User = Depends(oauth2.get_current_concierge),
-                              db: Session = Depends(database.get_db)) -> Sequence[schemas.UnauthorizedUser]:
+                              db: Session = Depends(database.get_db)) -> Sequence[schemas.UnauthorizedUserOut]:
     """
     Retrieves all unathorized users from the database.
     """
     return muser.UnauthorizedUser.get_all_unathorized_users(db)
 
 
-@router.get("/{user_id}", response_model=schemas.UnauthorizedUser)
+@router.get("/{user_id}", response_model=schemas.UnauthorizedUserOut)
 def get_unathorized_user(user_id: int,
                          current_concierge: muser.User = Depends(
                              oauth2.get_current_concierge),
-                         db: Session = Depends(database.get_db)) -> schemas.UnauthorizedUser:
+                         db: Session = Depends(database.get_db)) -> schemas.UnauthorizedUserOut:
     """
     Retrieves an unauthorized user by their ID from the database.
     """

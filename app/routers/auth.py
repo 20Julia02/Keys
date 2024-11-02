@@ -145,11 +145,17 @@ def start_card_session(card_id: schemas.CardId,
     return moperation.UserSession.create_session(db, user.id, current_concierge.id)
 
 
-@router.post("/start-session/unauthorized", response_model=schemas.Session)
+@router.post("/start-session/unauthorized/{unauthorized_id}", response_model=schemas.Session)
 def start_unauthorized_session(unauthorized_id: int,
                                current_concierge: muser.User = Depends(
                                    oauth2.get_current_concierge),
                                db: Session = Depends(database.get_db)) -> schemas.Session:
+    user = db.query(muser.UnauthorizedUser).filter_by(id=unauthorized_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Unauthorized user with id {unauthorized_id} not found"
+        )
     return moperation.UserSession.create_session(db, unauthorized_id, current_concierge.id)
 
 

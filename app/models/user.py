@@ -1,7 +1,7 @@
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import relationship, mapped_column, Mapped, Session
 import enum
-from typing import Optional, List, TYPE_CHECKING, Any
+from typing import Optional, List, TYPE_CHECKING, Any, Tuple
 import datetime
 from fastapi import HTTPException, status
 from app import schemas
@@ -99,19 +99,21 @@ class UnauthorizedUser(BaseUser):
                                         db: Session,
                                         name: str,
                                         surname: str,
-                                        email: str) -> "UnauthorizedUser":
+                                        email: str) ->Tuple["UnauthorizedUser", bool]:
         """
         Creates a new unauthorized user in the database.
         """
 
-        existing_user = db.query(UnauthorizedUser).filter_by(
-            email=email).first()
+        existing_user = db.query(UnauthorizedUser).filter_by(email=email).first()
 
         if existing_user:
             if existing_user.name != name or existing_user.surname != surname:
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                    detail="User with this email already exists but with different name or surname.")
-            return existing_user
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="User with this email already exists but with a different name or surname."
+                )
+            return existing_user, False
+
         new_user = UnauthorizedUser(
             name=name,
             surname=surname,
@@ -120,7 +122,7 @@ class UnauthorizedUser(BaseUser):
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
-        return new_user
+        return new_user, True
 
     @classmethod
     def get_all_unathorized_users(cls,
@@ -179,28 +181,31 @@ class UserNote(Base):
     user: Mapped["BaseUser"] = relationship(back_populates="notes")
 
     @classmethod
-    def get_all_user_notes(cls,
-                           db: Session) -> List["UserNote"]:
+    def get_user_notes_filter(cls,
+                              db: Session,
+                              user_id: Optional[int]=None) -> List["UserNote"]:
         """Retrieve all user notes."""
-        notes = db.query(UserNote).all()
+
+        notes = db.query(UserNote)
+        if user_id:
+            notes = notes.filter(UserNote.user_id == user_id)
+        notes = notes.all()
         if not notes:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="No user notes found.")
         return notes
 
     @classmethod
-    def get_user_note_by_id(cls,
-                            db: Session,
-                            user_id: int) -> List["UserNote"]:
-        """Retrieve a specific user note by user_id."""
-        notes = (db.query(UserNote)
-                 .filter(UserNote.user_id == user_id)
-                 .order_by(UserNote.timestamp.asc())
-                 .all())
-        if not notes:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"No note found for user id: {user_id}")
-        return notes
+    def get_user_note_id(cls,
+                          db: Session,
+                          note_id: Optional[int]=None) -> "UserNote":
+        """Retrieve all user notes."""
+
+        note = db.query(UserNote).filter(UserNote.id == note_id).first()
+        if not note:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"There is no user notes with id {note_id}.")
+        return note
 
     @classmethod
     def create_user_note(cls,

@@ -169,7 +169,7 @@ def test_specific_user_note(db: Session, test_user: muser.User) -> muser.UserNot
 
 
 @pytest.fixture
-def create_device_note(db: Session, test_device: mdevice.Device, test_session: moperation.UserSession) -> mdevice.DeviceNote:
+def test_device_note(db: Session, test_device: mdevice.Device, test_session: moperation.UserSession) -> mdevice.DeviceNote:
     note = mdevice.DeviceNote(
         device_id=test_device.id, note="Device note content", timestamp=datetime.datetime.now())
     db.add(note)

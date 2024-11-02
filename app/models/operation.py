@@ -249,9 +249,10 @@ class DeviceOperation(Base):
         )
 
     @classmethod
-    def get_owned_by_user(cls,
+    def get_last_operation_user_id(cls,
                           db: Session,
-                          user_id: int) -> Sequence["DeviceOperation"]:
+                          user_id: int,
+                          operation_type: Optional[str] = "pobranie") -> Sequence["DeviceOperation"]:
         last_operation_subquery = cls.last_operation_subquery(db)
 
         query = (
@@ -262,7 +263,7 @@ class DeviceOperation(Base):
                   )
             .join(UserSession, cls.session)
             .filter(UserSession.user_id == user_id)
-            .filter(cls.operation_type == "pobranie")
+            .filter(cls.operation_type == operation_type)
             .order_by(cls.timestamp.asc())
         )
 
@@ -326,7 +327,7 @@ class DeviceOperation(Base):
         subquery = (
             db.query(func.max(DeviceOperation.timestamp))
             .filter(DeviceOperation.device_id == device_id)
-            .as_scalar()
+            .scalar_subquery()
         )
         operation = (
             db.query(DeviceOperation)

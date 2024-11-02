@@ -111,4 +111,4 @@ def get_devs_owned_by_user(user_id: int,
 
     This endpoint retrieves a device from the database using the device's unique code.
     """
-    return moperation.DeviceOperation.get_owned_by_user(db, user_id)
+    return moperation.DeviceOperation.get_last_operation_user_id(db, user_id)

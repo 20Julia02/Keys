@@ -1,5 +1,5 @@
 from fastapi import status, Depends, APIRouter
-from typing import Sequence
+from typing import Sequence, Optional
 from app import database, oauth2, schemas
 import app.models.user as muser
 import app.models.device as mdevice
@@ -12,7 +12,8 @@ router = APIRouter(
 
 
 @router.get("/users", response_model=Sequence[schemas.UserNote])
-def get_all_user_notes(
+def get_user_notes_filtered(
+        user_id: Optional[int] = None,
         current_concierge: muser.User = Depends(oauth2.get_current_concierge),
         db: Session = Depends(database.get_db)) -> Sequence[schemas.UserNote]:
     """
@@ -20,19 +21,20 @@ def get_all_user_notes(
     typically contain important information associated with users.
     HTTPException: If an error occurs while retrieving the user notes.
     """
-    return muser.UserNote.get_all_user_notes(db)
+    return muser.UserNote.get_user_notes_filter(db, user_id)
 
 
-@router.get("/users/{user_id}", response_model=Sequence[schemas.UserNote])
-def get_user_note_id(user_id: int,
-                     current_concierge: muser.User = Depends(
-                         oauth2.get_current_concierge),
-                     db: Session = Depends(database.get_db)) -> Sequence[schemas.UserNote]:
+@router.get("/users/{note_id}", response_model=schemas.UserNote)
+def get_user_notes_id(
+        note_id: int,
+        current_concierge: muser.User = Depends(oauth2.get_current_concierge),
+        db: Session = Depends(database.get_db)) -> schemas.UserNote:
     """
-    It allows to fetch all notes associated with a specific user
-    based on the user ID.
+    It fetches all user-related notes stored in the database. User notes
+    typically contain important information associated with users.
+    HTTPException: If an error occurs while retrieving the user notes.
     """
-    return muser.UserNote.get_user_note_by_id(db, user_id)
+    return muser.UserNote.get_user_note_id(db, note_id)
 
 
 @router.post("/users", response_model=schemas.UserNote, status_code=status.HTTP_201_CREATED)
@@ -60,18 +62,23 @@ def edit_user_note(note_id: int,
 
 
 @router.get("/devices", response_model=Sequence[schemas.DeviceNoteOut])
-def get_all_devices_notes(
-        current_concierge: muser.User = Depends(oauth2.get_current_concierge),
-        db: Session = Depends(database.get_db)) -> Sequence[schemas.DeviceNoteOut]:
-    return mdevice.DeviceNote.get_dev_notes(db)
+def get_devices_notes_filtered(device_id: Optional[int] = None,
+                               current_concierge: muser.User = Depends(oauth2.get_current_concierge),
+                               db: Session = Depends(database.get_db)) -> Sequence[schemas.DeviceNoteOut]:
+    return mdevice.DeviceNote.get_dev_notes(db, device_id)
 
 
-@router.get("/devices/{device_id}", response_model=Sequence[schemas.DeviceNoteOut])
+@router.get("/devices/{note_id}", response_model=schemas.DeviceNote)
 def get_device_notes_id(
-        device_id: int,
+        note_id: int,
         current_concierge: muser.User = Depends(oauth2.get_current_concierge),
-        db: Session = Depends(database.get_db)) -> Sequence[schemas.DeviceNoteOut]:
-    return mdevice.DeviceNote.get_dev_notes_id(db, device_id)
+        db: Session = Depends(database.get_db)) -> schemas.DeviceNote:
+    """
+    It fetches all user-related notes stored in the database. User notes
+    typically contain important information associated with users.
+    HTTPException: If an error occurs while retrieving the user notes.
+    """
+    return mdevice.DeviceNote.get_device_note_id(db, note_id)
 
 
 @router.post("/devices", response_model=schemas.DeviceNoteOut, status_code=status.HTTP_201_CREATED)

@@ -212,24 +212,29 @@ class DeviceNote(Base):
 
     @classmethod
     def get_dev_notes(cls,
-                      db: Session) -> List["DeviceNote"]:
-        notes = db.query(DeviceNote).all()
+                      db: Session,
+                      device_id: Optional[int]) -> List["DeviceNote"]:
+        notes = db.query(DeviceNote)
+        if device_id:
+            notes = notes.filter(DeviceNote.device_id == device_id)
+        notes = notes.all()
         if not notes:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="There are no device notes in database")
+                                detail="There are no device notes that match given criteria")
         return notes
-
+    
     @classmethod
-    def get_dev_notes_id(cls,
-                         db: Session,
-                         dev_id: int) -> List["DeviceNote"]:
-        notes = db.query(DeviceNote).filter(DeviceNote.device_id == dev_id).order_by(
-            DeviceNote.timestamp.asc()).all()
-        if not notes:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="There are no notes that match the given criteria")
-        return notes
+    def get_device_note_id(cls,
+                          db: Session,
+                          note_id: Optional[int]=None) -> "DeviceNote":
+        """Retrieve all user notes."""
 
+        note = db.query(DeviceNote).filter(DeviceNote.id == note_id).first()
+        if not note:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"There is no device notes with id {note_id}.")
+        return note
+    
     @classmethod
     def create_dev_note(cls,
                         db: Session,

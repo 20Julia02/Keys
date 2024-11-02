@@ -52,6 +52,9 @@ class UnauthorizedUser(BaseModel):
     email: str
 
 
+class UnauthorizedUserOut(UnauthorizedUser):
+    id: int
+
 class UnauthorizedUserNote(UnauthorizedUser):
     name: str
     surname: str
