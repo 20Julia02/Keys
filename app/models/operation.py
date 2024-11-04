@@ -303,7 +303,7 @@ class DeviceOperation(Base):
     @classmethod
     def get_all_operations(cls,
                            db: Session) -> List["DeviceOperation"]:
-        operations = db.query(DeviceOperation).all()
+        operations = db.query(DeviceOperation).all() 
         if not operations:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There is no operation")

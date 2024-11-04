@@ -94,6 +94,7 @@ class Device(Base):
         dev_version: Optional[str] = None,
         room_number: Optional[str] = None,
     ):
+
         last_operation_subq = DeviceOperation.last_operation_subquery(db=db)
 
         query = (
@@ -160,8 +161,7 @@ class Device(Base):
         )
 
         devices = query.all()
-
-        if not devices:
+        if len(devices) == 0:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There are no devices that match the given criteria in the database")
         return devices
