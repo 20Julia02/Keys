@@ -323,7 +323,6 @@ def test_verify_hashed_password_no_match():
     assert not password_service.verify_hashed("wrongpassword", hashed_password)
 
 
-# Testy dla TokenService
 def test_create_token():
     db = MagicMock()
     token_service = TokenService(db)
@@ -371,7 +370,6 @@ def test_add_token_to_blacklist():
     db.commit.assert_called_once()
 
 
-# Testy dla AuthorizationService
 def test_check_if_entitled_user_has_role():
     db = MagicMock()
     auth_service = AuthorizationService(db)
