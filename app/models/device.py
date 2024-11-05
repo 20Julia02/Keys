@@ -42,16 +42,6 @@ class Room(Base):
                                 detail=f"Room with id: {room_id} doesn't exist")
         return room
 
-    @classmethod
-    def get_room_number(cls,
-                        db: Session,
-                        room_number: str) -> "Room":
-        room = db.query(Room).filter(Room.number == room_number).first()
-        if not room:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Room number: {room_number} doesn't exist")
-        return room
-
 
 class DeviceVersion(enum.Enum):
     primary = "podstawowa"

@@ -40,7 +40,7 @@ def test_get_rooms_with_specific_number():
     rooms = mdevice.Room.get_rooms(db, room_number="101")
     assert len(rooms) == 1
     assert rooms[0].number == "101"
-
+    
 
 def test_get_room_id_not_found():
     db = MagicMock()
@@ -60,25 +60,6 @@ def test_get_room_id_found():
     room = mdevice.Room.get_room_id(db, room_id=1)
     assert room.id == 1
     assert room.number == "101"
-
-
-def test_get_room_number_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
-
-    with pytest.raises(HTTPException) as excinfo:
-        mdevice.Room.get_room_number(db, room_number="InvalidNumber")
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "Room number: InvalidNumber doesn't exist"
-
-
-def test_get_room_number_found():
-    db = MagicMock()
-    mock_room = mdevice.Room(id=2, number="102")
-    db.query.return_value.filter.return_value.first.return_value = mock_room
-
-    room = mdevice.Room.get_room_number(db, room_number="102")
-    assert room.number == "102"
 
 
 def test_get_device_with_details_no_devices():
@@ -237,6 +218,19 @@ def test_create_or_get_unauthorized_user_new():
     db.commit.assert_called_once()
 
 
+def test_create_or_get_unauthorized_user_conflict():
+    db = MagicMock()
+    existing_user = UnauthorizedUser(name="John", surname="Doe", email="john@example.com")
+    db.query.return_value.filter_by.return_value.first.return_value = existing_user
+
+    with pytest.raises(HTTPException) as excinfo:
+        UnauthorizedUser.create_or_get_unauthorized_user(
+            db, name="Jane", surname="Doe", email="john@example.com"
+        )
+    assert excinfo.value.status_code == 403
+    assert excinfo.value.detail == "User with this email already exists but with a different name or surname."
+
+
 def test_get_user_notes_filter_no_notes():
     db = MagicMock()
     db.query.return_value.filter.return_value.all.return_value = []
@@ -260,6 +254,13 @@ def test_create_user_note_success():
     db.commit.assert_called_once()
 
 
+def test_create_user_note_empty_note():
+    db = MagicMock()
+    note_data = schemas.UserNoteCreate(user_id=1, note="")
+    with pytest.raises(ValueError):
+        UserNote.create_user_note(db, note_data=note_data)
+
+
 def test_update_user_note_not_found():
     db = MagicMock()
     db.query.return_value.filter.return_value.first.return_value = None
@@ -280,6 +281,19 @@ def test_delete_user_note_success():
     db.delete.assert_called_once_with(mock_note)
     db.commit.assert_called_once()
 
+def test_permission_get_permissions_with_filters():
+    db = MagicMock()
+    mock_permission = Permission(id=1, user_id=1, room_id=101, date=datetime.date.today())
+
+    query_mock = db.query.return_value
+    query_mock.filter.return_value = query_mock
+    query_mock.order_by.return_value = query_mock
+    query_mock.all.return_value = [mock_permission]
+
+    permissions = Permission.get_permissions(db, user_id=1, room_id=101, date=datetime.date.today())
+    assert len(permissions) == 1
+    assert permissions[0].user_id == 1
+    assert permissions[0].room_id == 101
 
 def test_permission_get_permissions_no_permissions():
     db = MagicMock()
@@ -359,6 +373,14 @@ def test_is_token_blacklisted():
     db.query.return_value.filter_by.return_value.first.return_value = None
     token_service = TokenService(db)
     assert not token_service.is_token_blacklisted("sometoken")
+
+
+def test_is_token_blacklisted_true():
+    db = MagicMock()
+    db.query.return_value.filter_by.return_value.first.return_value = (token="blacklisted_token")
+    token_service = TokenService(db)
+
+    assert token_service.is_token_blacklisted("blacklisted_token") is True
 
 
 def test_add_token_to_blacklist():
