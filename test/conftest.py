@@ -181,7 +181,7 @@ def test_device_note(db: Session, test_device: mdevice.Device, test_session: mop
 @pytest.fixture
 def test_operation(db: Session, test_device: mdevice.Device, test_session: moperation.UserSession) -> mdevice.DeviceNote:
     note = moperation.DeviceOperation(
-        device_id=test_device.id, session_id = test_session.id, operation_type = "pobranie", entitled = True, timestamp=datetime.datetime.now())
+        device_id=test_device.id, session_id=test_session.id, operation_type="pobranie", entitled=True, timestamp=datetime.datetime.now())
     db.add(note)
     db.commit()
     db.refresh(note)

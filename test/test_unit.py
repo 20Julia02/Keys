@@ -5,7 +5,7 @@ import app.models.device as mdevice
 import datetime
 import app.models.operation as moperation
 from app.models.user import User, UnauthorizedUser, UserNote, UserRole
-from app.models.permission import Permission
+from app.models.permission import Permission, TokenBlacklist
 from app import schemas
 from app.services.securityService import PasswordService, TokenService, AuthorizationService
 from jose import JWTError
@@ -40,7 +40,7 @@ def test_get_rooms_with_specific_number():
     rooms = mdevice.Room.get_rooms(db, room_number="101")
     assert len(rooms) == 1
     assert rooms[0].number == "101"
-    
+
 
 def test_get_room_id_not_found():
     db = MagicMock()
@@ -220,7 +220,8 @@ def test_create_or_get_unauthorized_user_new():
 
 def test_create_or_get_unauthorized_user_conflict():
     db = MagicMock()
-    existing_user = UnauthorizedUser(name="John", surname="Doe", email="john@example.com")
+    existing_user = UnauthorizedUser(
+        name="John", surname="Doe", email="john@example.com")
     db.query.return_value.filter_by.return_value.first.return_value = existing_user
 
     with pytest.raises(HTTPException) as excinfo:
@@ -281,19 +282,23 @@ def test_delete_user_note_success():
     db.delete.assert_called_once_with(mock_note)
     db.commit.assert_called_once()
 
+
 def test_permission_get_permissions_with_filters():
     db = MagicMock()
-    mock_permission = Permission(id=1, user_id=1, room_id=101, date=datetime.date.today())
+    mock_permission = Permission(
+        id=1, user_id=1, room_id=101, date=datetime.date.today())
 
     query_mock = db.query.return_value
     query_mock.filter.return_value = query_mock
     query_mock.order_by.return_value = query_mock
     query_mock.all.return_value = [mock_permission]
 
-    permissions = Permission.get_permissions(db, user_id=1, room_id=101, date=datetime.date.today())
+    permissions = Permission.get_permissions(
+        db, user_id=1, room_id=101, date=datetime.date.today())
     assert len(permissions) == 1
     assert permissions[0].user_id == 1
     assert permissions[0].room_id == 101
+
 
 def test_permission_get_permissions_no_permissions():
     db = MagicMock()
@@ -345,6 +350,15 @@ def test_create_token():
     assert token is not None
 
 
+def test_create_token_with_special_characters():
+    db = MagicMock()
+    token_service = TokenService(db)
+    data: dict[str, Any] = {"user_id": 1,
+                            "user_role": "admin", "extra_info": "@#$%^&*()!"}
+    token = token_service.create_token(data, "access")
+    assert token is not None
+
+
 @patch("jose.jwt.decode")
 def test_verify_concierge_token_valid(mock_jwt_decode: Any):
     mock_jwt_decode.return_value = {"user_id": 1, "user_role": "concierge"}
@@ -377,7 +391,8 @@ def test_is_token_blacklisted():
 
 def test_is_token_blacklisted_true():
     db = MagicMock()
-    db.query.return_value.filter_by.return_value.first.return_value = (token="blacklisted_token")
+    db.query.return_value.filter_by.return_value.first.return_value = TokenBlacklist(
+        token="blacklisted_token")
     token_service = TokenService(db)
 
     assert token_service.is_token_blacklisted("blacklisted_token") is True

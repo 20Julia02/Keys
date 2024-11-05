@@ -99,12 +99,13 @@ class UnauthorizedUser(BaseUser):
                                         db: Session,
                                         name: str,
                                         surname: str,
-                                        email: str) ->Tuple["UnauthorizedUser", bool]:
+                                        email: str) -> Tuple["UnauthorizedUser", bool]:
         """
         Creates a new unauthorized user in the database.
         """
 
-        existing_user = db.query(UnauthorizedUser).filter_by(email=email).first()
+        existing_user = db.query(
+            UnauthorizedUser).filter_by(email=email).first()
 
         if existing_user:
             if existing_user.name != name or existing_user.surname != surname:
@@ -183,7 +184,7 @@ class UserNote(Base):
     @classmethod
     def get_user_notes_filter(cls,
                               db: Session,
-                              user_id: Optional[int]=None) -> List["UserNote"]:
+                              user_id: Optional[int] = None) -> List["UserNote"]:
         """Retrieve all user notes."""
 
         notes = db.query(UserNote)
@@ -197,8 +198,8 @@ class UserNote(Base):
 
     @classmethod
     def get_user_note_id(cls,
-                          db: Session,
-                          note_id: Optional[int]=None) -> "UserNote":
+                         db: Session,
+                         note_id: Optional[int] = None) -> "UserNote":
         """Retrieve all user notes."""
 
         note = db.query(UserNote).filter(UserNote.id == note_id).first()
@@ -213,6 +214,8 @@ class UserNote(Base):
                          note_data: schemas.UserNoteCreate,
                          commit: bool = True) -> "UserNote":
         """Create a new user note."""
+        if not note_data.note:
+            raise ValueError("Note cannot be empty")
         note_data_dict = note_data.model_dump()
         note_data_dict["timestamp"] = datetime.datetime.now()
         note = UserNote(**note_data_dict)
