@@ -45,14 +45,14 @@ class Room(Base):
 
 
 class DeviceVersion(enum.Enum):
-    primary = "podstawowa"
-    backup = "zapasowa"
+    podstawowa = "podstawowa"
+    zapasowa = "zapasowa"
 
 
 class DeviceType(enum.Enum):
-    key = "klucz"
-    microphone = "mikrofon"
-    remote_controler = "pilot"
+    klucz = "klucz"
+    mikrofon = "mikrofon"
+    pilot = "pilot"
 
 
 class Device(Base):
@@ -148,7 +148,6 @@ class Device(Base):
         query = query.group_by(
             Device.id, Room.number, DeviceOperation.operation_type, User.name, User.surname
         )
-        print(query.all())
         numeric_part = func.regexp_replace(Room.number, r'\D+', '', 'g')
         text_part = func.regexp_replace(Room.number, r'\d+', '', 'g')
 

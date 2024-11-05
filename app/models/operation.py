@@ -162,7 +162,6 @@ class UnapprovedOperation(Base):
         Returns:
             DeviceOperation: The newly created operation.
         """
-        print(dir(operation_data))
         new_operation = cls(**operation_data.model_dump())
         new_operation.timestamp = datetime.datetime.now()
 
@@ -250,9 +249,9 @@ class DeviceOperation(Base):
 
     @classmethod
     def get_last_operation_user_id(cls,
-                          db: Session,
-                          user_id: int,
-                          operation_type: Optional[str] = "pobranie") -> Sequence["DeviceOperation"]:
+                                   db: Session,
+                                   user_id: int,
+                                   operation_type: Optional[str] = "pobranie") -> Sequence["DeviceOperation"]:
         last_operation_subquery = cls.last_operation_subquery(db)
 
         query = (
@@ -303,7 +302,7 @@ class DeviceOperation(Base):
     @classmethod
     def get_all_operations(cls,
                            db: Session) -> List["DeviceOperation"]:
-        operations = db.query(DeviceOperation).all() 
+        operations = db.query(DeviceOperation).all()
         if not operations:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There is no operation")

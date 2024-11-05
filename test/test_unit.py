@@ -78,7 +78,7 @@ def test_get_device_with_details_with_criteria():
     db = MagicMock()
 
     mock_device = MagicMock(code="device_key_101",
-                            dev_type="key", dev_version="primary")
+                            dev_type="klucz", dev_version="podstawowa")
 
     query_mock = db.query.return_value
     query_mock.join.return_value = query_mock
@@ -88,7 +88,7 @@ def test_get_device_with_details_with_criteria():
     query_mock.order_by.return_value = query_mock
     query_mock.all.return_value = [mock_device]
 
-    devices = mdevice.Device.get_device_with_details(db, dev_type="key")
+    devices = mdevice.Device.get_device_with_details(db, dev_type="klucz")
 
     assert len(devices) > 0
     assert "device_key_101" in [d.code for d in devices]

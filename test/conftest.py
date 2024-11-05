@@ -123,9 +123,9 @@ def test_session(db: Session, test_user: muser.User, test_concierge: muser.User)
 @pytest.fixture(scope="module")
 def test_device(db: Session, test_room: mdevice.Room) -> mdevice.Device:
     device = mdevice.Device(
-        dev_type="key",
+        dev_type="klucz",
         room_id=test_room.id,
-        dev_version="primary",
+        dev_version="podstawowa",
         code="device_key_101"
     )
     db.add(device)
@@ -135,11 +135,11 @@ def test_device(db: Session, test_room: mdevice.Room) -> mdevice.Device:
 
 
 @pytest.fixture(scope="module")
-def test_device_microphone(db: Session, test_room_2: mdevice.Room) -> mdevice.Device:
+def test_device_mikrofon(db: Session, test_room_2: mdevice.Room) -> mdevice.Device:
     device = mdevice.Device(
-        dev_type="microphone",
+        dev_type="mikrofon",
         room_id=test_room_2.id,
-        dev_version="backup",
+        dev_version="zapasowa",
         code="device_mic_101"
     )
     db.add(device)

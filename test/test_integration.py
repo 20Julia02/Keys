@@ -96,7 +96,7 @@ def test_refresh_token_with_invalid_token():
 
 
 def test_get_all_devices(test_device: mdevice.Device,
-                         test_device_microphone: mdevice.Device,
+                         test_device_mikrofon: mdevice.Device,
                          concierge_token: str):
     response = client.get(
         "/devices/", headers={"Authorization": f"Bearer {concierge_token}"})
@@ -106,9 +106,9 @@ def test_get_all_devices(test_device: mdevice.Device,
 
 
 def test_get_devices_type_version(test_device: mdevice.Device,
-                                  test_device_microphone: mdevice.Device,
+                                  test_device_mikrofon: mdevice.Device,
                                   concierge_token: str):
-    response = client.get("/devices/?dev_type=key&dev_version=primary",
+    response = client.get("/devices/?dev_type=klucz&dev_version=podstawowa",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
     assert isinstance(response.json(), list)
@@ -119,7 +119,7 @@ def test_get_devices_type_version(test_device: mdevice.Device,
 
 def test_get_all_devices_room(test_device: mdevice.Device,
                               test_room: mdevice.Room,
-                              test_device_microphone: mdevice.Device,
+                              test_device_mikrofon: mdevice.Device,
                               concierge_token: str):
     response = client.get(f"/devices/?room_number={test_room.number}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
@@ -131,9 +131,9 @@ def test_get_all_devices_room(test_device: mdevice.Device,
 
 def test_get_all_devices_type_version_room(test_device: mdevice.Device,
                                            test_room: mdevice.Room,
-                                           test_device_microphone: mdevice.Device,
+                                           test_device_mikrofon: mdevice.Device,
                                            concierge_token: str):
-    response = client.get(f"/devices/?dev_type=key&dev_version=primary&room_number={test_room.number}",
+    response = client.get(f"/devices/?dev_type=klucz&dev_version=podstawowa&room_number={test_room.number}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
     assert isinstance(response.json(), list)
@@ -146,7 +146,7 @@ def test_get_all_devices_type_version_room(test_device: mdevice.Device,
 
 
 def test_get_all_devices_invalid_type(test_device: mdevice.Device,
-                                      test_device_microphone: mdevice.Device,
+                                      test_device_mikrofon: mdevice.Device,
                                       concierge_token: str):
     response = client.get("/devices/?dev_type=computer",
                           headers={"Authorization": f"Bearer {concierge_token}"})
@@ -155,7 +155,7 @@ def test_get_all_devices_invalid_type(test_device: mdevice.Device,
 
 
 def test_get_all_devices_invalid_version(test_device: mdevice.Device,
-                                         test_device_microphone: mdevice.Device,
+                                         test_device_mikrofon: mdevice.Device,
                                          concierge_token: str):
     response = client.get("/devices/?dev_version=first",
                           headers={"Authorization": f"Bearer {concierge_token}"})
@@ -164,9 +164,9 @@ def test_get_all_devices_invalid_version(test_device: mdevice.Device,
 
 
 def test_get_all_devices_type_version_invalid(test_device: mdevice.Device,
-                                              test_device_microphone: mdevice.Device,
+                                              test_device_mikrofon: mdevice.Device,
                                               concierge_token: str):
-    response = client.get("/devices/?dev_version=backup&dev_type=remote_controler",
+    response = client.get("/devices/?dev_version=zapasowa&dev_type=pilot",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
     assert response.json()[
@@ -193,8 +193,8 @@ def test_create_device(test_room: mdevice.Room,
                        concierge_token: str):
     device_data: dict[str, Any] = {
         "room_id": test_room.id,
-        "dev_version": "primary",
-        "dev_type": "microphone",
+        "dev_version": "podstawowa",
+        "dev_type": "mikrofon",
         "code": "123467"
     }
 
@@ -290,7 +290,7 @@ def test_changeStatus_with_valid_id_taking(test_concierge: muser.User,
 
 def test_changeStatus_without_permission(test_concierge: muser.User,
                                          test_user: muser.User,
-                                         test_device_microphone: mdevice.Device,
+                                         test_device_mikrofon: mdevice.Device,
                                          test_permission: mpermission.Permission,
                                          test_room_2: mdevice.Room,
                                          concierge_token: str):
@@ -305,7 +305,7 @@ def test_changeStatus_without_permission(test_concierge: muser.User,
     response = client.post("/devices/change-status",
                            headers={
                                "Authorization": f"Bearer {concierge_token}"},
-                           json={"session_id": response1.json()["id"], "device_id": test_device_microphone.id})
+                           json={"session_id": response1.json()["id"], "device_id": test_device_mikrofon.id})
     assert response.status_code == 403
     assert response.json()[
         "detail"] == f"User with id {test_user.id} does not have permission to access room with id {test_room_2.id}"
@@ -313,7 +313,7 @@ def test_changeStatus_without_permission(test_concierge: muser.User,
 
 def test_changeStatus_with_force(test_concierge: muser.User,
                                  test_user: muser.User,
-                                 test_device_microphone: mdevice.Device,
+                                 test_device_mikrofon: mdevice.Device,
                                  concierge_token: str):
 
     login_data = {
@@ -328,7 +328,7 @@ def test_changeStatus_with_force(test_concierge: muser.User,
                                "Authorization": f"Bearer {concierge_token}"},
                            json={"session_id": response1.json()["id"],
                                  "force": True,
-                                 "device_id": test_device_microphone.id})
+                                 "device_id": test_device_mikrofon.id})
     assert response.status_code == 200
     assert response.json()["entitled"] is False
     assert response.json()["operation_type"] == "pobranie"
@@ -378,7 +378,6 @@ def test_get_permission_with_invalid_user_id(test_concierge: muser.User,
                                              concierge_token: str):
     response = client.get("/permissions?user_id=-1",
                           headers={"Authorization": f"Bearer {concierge_token}"})
-    print(response.json())
     assert response.status_code == 404
     assert response.json()[
         "detail"] == "No reservations found"
@@ -452,7 +451,6 @@ def test_get_room_by_invalid_id(test_concierge: muser.User,
     response = client.get(
         f"/rooms/{-5}", headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
-    print(response.json())
     assert response.json()["detail"] == "Room with id: -5 doesn't exist"
 
 
@@ -486,7 +484,6 @@ def test_start_session_unauthorized(concierge_token: str):
 def test_start_session_unauthorized_invalid(concierge_token: str):
     response = client.post("/start-session/unauthorized/-11",
                            headers={"Authorization": f"Bearer {concierge_token}"})
-    print(response.json())
     assert response.status_code == 404
     assert response.json()[
         "detail"] == f"Unauthorized user with id -11 not found"
@@ -749,9 +746,9 @@ def test_get_all_user_devices(db: Session,
 def test_get_all_devices_with_owner(test_device: mdevice.Device,
                                     test_room: mdevice.Room,
                                     test_user: muser.User,
-                                    test_device_microphone: mdevice.Device,
+                                    test_device_mikrofon: mdevice.Device,
                                     concierge_token: str):
-    response = client.get(f"/devices/?dev_type=key&dev_version=primary&room_number={test_room.number}",
+    response = client.get(f"/devices/?dev_type=klucz&dev_version=podstawowa&room_number={test_room.number}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
     assert isinstance(response.json(), list)
