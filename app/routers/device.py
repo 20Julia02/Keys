@@ -106,9 +106,4 @@ def get_devs_owned_by_user(user_id: int,
                            current_concierge: User = Depends(
                                oauth2.get_current_concierge),
                            db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
-    """
-    Retrieve a device by its unique device code.
-
-    This endpoint retrieves a device from the database using the device's unique code.
-    """
     return moperation.DeviceOperation.get_last_operation_user_id(db, user_id)

@@ -7,7 +7,8 @@ import datetime
 from fastapi import HTTPException, status
 from app import schemas
 from app.models.base import Base
-from app.models.operation import DeviceOperation
+from app.models.operation import DeviceOperation, UserSession
+from app.models.user import User
 
 
 class Room(Base):
@@ -84,7 +85,6 @@ class Device(Base):
         dev_version: Optional[str] = None,
         room_number: Optional[str] = None,
     ):
-
         last_operation_subq = DeviceOperation.last_operation_subquery(db=db)
 
         query = (
@@ -101,7 +101,15 @@ class Device(Base):
                 case(
                     (DeviceOperation.operation_type == "pobranie", True),
                     else_=False
-                ).label('is_taken')
+                ).label('is_taken'),
+                case(
+                    (DeviceOperation.operation_type == "pobranie", User.name),
+                    else_=None
+                ).label("owner_name"),
+                case(
+                    (DeviceOperation.operation_type == "pobranie", User.surname),
+                    else_=None
+                ).label("owner_surname")
             )
             .join(Room, Device.room_id == Room.id)
             .outerjoin(last_operation_subq, Device.id == last_operation_subq.c.device_id)
@@ -109,7 +117,13 @@ class Device(Base):
                 Device.id == DeviceOperation.device_id,
                 DeviceOperation.timestamp == last_operation_subq.c.last_operation_timestamp
             ))
+            .outerjoin(UserSession, DeviceOperation.session_id == UserSession.id)
+            .outerjoin(User, User.id == UserSession.user_id)
             .outerjoin(DeviceNote, Device.id == DeviceNote.device_id)
+            .group_by(
+                cls.id, cls.code, cls.dev_type, cls.dev_version, Room.number,
+                DeviceOperation.operation_type, User.name, User.surname
+            )
         )
 
         if dev_type:
@@ -132,9 +146,9 @@ class Device(Base):
             query = query.filter(Room.number == room_number)
 
         query = query.group_by(
-            Device.id, Room.number, DeviceOperation.operation_type
+            Device.id, Room.number, DeviceOperation.operation_type, User.name, User.surname
         )
-
+        print(query.all())
         numeric_part = func.regexp_replace(Room.number, r'\D+', '', 'g')
         text_part = func.regexp_replace(Room.number, r'\d+', '', 'g')
 
@@ -154,6 +168,7 @@ class Device(Base):
         if len(devices) == 0:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There are no devices that match the given criteria in the database")
+
         return devices
 
     @classmethod
@@ -212,11 +227,11 @@ class DeviceNote(Base):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There are no device notes that match given criteria")
         return notes
-    
+
     @classmethod
     def get_device_note_id(cls,
-                          db: Session,
-                          note_id: Optional[int]=None) -> "DeviceNote":
+                           db: Session,
+                           note_id: Optional[int] = None) -> "DeviceNote":
         """Retrieve all user notes."""
 
         note = db.query(DeviceNote).filter(DeviceNote.id == note_id).first()
@@ -224,7 +239,7 @@ class DeviceNote(Base):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail=f"There is no device notes with id {note_id}.")
         return note
-    
+
     @classmethod
     def create_dev_note(cls,
                         db: Session,

@@ -744,6 +744,22 @@ def test_get_all_user_devices(db: Session,
     assert response.json()[0]['operation_type'] == "pobranie"
 
 
+def test_get_all_devices_with_owner(test_device: mdevice.Device,
+                                    test_room: mdevice.Room,
+                                    test_user: muser.User,
+                                    test_device_microphone: mdevice.Device,
+                                    concierge_token: str):
+    response = client.get(f"/devices/?dev_type=key&dev_version=primary&room_number={test_room.number}",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+    assert response.json()[0]["dev_type"] == "klucz"
+    assert response.json()[0]["dev_version"] == "podstawowa"
+    assert response.json()[0]["room_number"] == test_room.number
+    assert response.json()[0]["owner_name"] == test_user.name
+    assert response.json()[0]["owner_surname"] == test_user.surname
+
+
 def test_get_all_user_devices_no_device(db: Session,
                                         test_user: muser.User,
                                         test_concierge: muser.User,

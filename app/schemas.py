@@ -55,6 +55,7 @@ class UnauthorizedUser(BaseModel):
 class UnauthorizedUserOut(UnauthorizedUser):
     id: int
 
+
 class UnauthorizedUserNote(UnauthorizedUser):
     name: str
     surname: str
@@ -112,6 +113,8 @@ class DeviceOutWithNote(BaseModel):
     room_number: str
     has_note: bool
     is_taken: bool
+    owner_name: Optional[str] = None
+    owner_surname: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
