@@ -140,6 +140,8 @@ def test_get_all_devices_type_version_room(test_device: mdevice.Device,
     assert response.json()[0]["dev_type"] == "klucz"
     assert response.json()[0]["dev_version"] == "podstawowa"
     assert response.json()[0]["room_number"] == test_room.number
+    assert response.json()[0]["owner_name"] == None
+    assert response.json()[0]["owner_surname"] == None
     assert len(response.json()) == 1
 
 
