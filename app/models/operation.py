@@ -1,16 +1,17 @@
 from sqlalchemy import ForeignKey, func
-from sqlalchemy.orm import relationship, mapped_column, Mapped
 from sqlalchemy.orm import Session
-from typing import Optional, Literal, List, TYPE_CHECKING, Sequence
-import datetime
+from sqlalchemy.orm import relationship, mapped_column, Mapped
 from zoneinfo import ZoneInfo
 from fastapi import HTTPException, status
 from app.models.base import Base, timestamp
 from app import schemas
+import datetime
+from typing import TYPE_CHECKING, List, Literal, Optional, Sequence
 
 if TYPE_CHECKING:
     from app.models.user import BaseUser, User
     from app.models.device import Device
+
 
 SessionStatus = Literal["w trakcie", "potwierdzona", "odrzucona"]
 
@@ -153,15 +154,6 @@ class UnapprovedOperation(Base):
                                     db: Session,
                                     operation_data: schemas.DevOperation,
                                     commit: bool = True) -> "DeviceOperation":
-        """
-        Creates a new operation in the database.
-
-        Args:
-            operation (DeviceOperation): The data required to create a new operation.
-
-        Returns:
-            DeviceOperation: The newly created operation.
-        """
         new_operation = cls(**operation_data.model_dump())
         new_operation.timestamp = datetime.datetime.now()
 
@@ -281,15 +273,6 @@ class DeviceOperation(Base):
                          db: Session,
                          operation_data: schemas.DevOperation,
                          commit: Optional[bool] = True) -> "DeviceOperation":
-        """
-        Creates a new operation in the database.
-
-        Args:
-            operation (DeviceOperation): The data required to create a new operation.
-
-        Returns:
-            DeviceOperation: The newly created operation.
-        """
         new_operation = DeviceOperation(**operation_data.model_dump())
         new_operation.timestamp = datetime.datetime.now()
 

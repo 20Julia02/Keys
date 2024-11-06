@@ -956,8 +956,7 @@ def test_delete_device_note(db: Session,
                           headers={"Authorization": f"Bearer {concierge_token}"})
 
     assert response.status_code == 404
-    assert response.json()["detail"] == f"There is no device notes with id {
-        test_device_note.id}."
+    assert response.json()["detail"] == f"There is no device notes with id {test_device_note.id}."
 
 
 def test_logout_with_valid_token(test_concierge: muser.User,

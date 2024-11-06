@@ -1,14 +1,13 @@
 from sqlalchemy import Integer, and_, case, ForeignKey, String, UniqueConstraint, func, TIMESTAMP
-from sqlalchemy.orm import relationship, mapped_column, Mapped
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Mapped, relationship, mapped_column, Session
 import enum
-from typing import Optional, List
 import datetime
 from fastapi import HTTPException, status
-from app import schemas
 from app.models.base import Base
+from app import schemas
 from app.models.operation import DeviceOperation, UserSession
 from app.models.user import User
+from typing import Optional, List
 
 
 class Room(Base):
@@ -24,6 +23,20 @@ class Room(Base):
     def get_rooms(cls,
                   db: Session,
                   room_number: Optional[str] = None) -> List["Room"]:
+        """
+        Retrieves a list of rooms from the database. If `room_number` is specified, 
+        only returns the room with the matching number.
+        
+        Args:
+            db (Session): The database session.
+            room_number (Optional[str]): The room number to filter by (if provided).
+
+        Returns:
+            List[Room]: A list of Room objects that match the criteria.
+
+        Raises:
+            HTTPException: If no rooms are found in the database.
+        """
         query = db.query(Room)
         if room_number:
             query = query.filter(Room.number == room_number)
@@ -37,6 +50,19 @@ class Room(Base):
     def get_room_id(cls,
                     db: Session,
                     room_id: int) -> "Room":
+        """
+        Retrieves a room by its unique ID.
+
+        Args:
+            db (Session): The database session.
+            room_id (int): The unique ID of the room.
+
+        Returns:
+            Room: The Room object with the specified ID.
+
+        Raises:
+            HTTPException: If no room with the given ID exists.
+        """
         room = db.query(Room).filter(Room.id == room_id).first()
         if not room:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -85,6 +111,22 @@ class Device(Base):
         dev_version: Optional[str] = None,
         room_number: Optional[str] = None,
     ):
+        """
+        Retrieves detailed information for devices, including fields from related tables such as Room and User.
+        This includes device type, version, room number, ownership status, and any associated notes.
+
+        Args:
+            db (Session): The database session.
+            dev_type (Optional[str]): The type of device to filter by.
+            dev_version (Optional[str]): The version of the device to filter by.
+            room_number (Optional[str]): The room number to filter by.
+
+        Returns:
+            List[dict]: A list of dictionaries containing selected fields from Device, Room, User, and related tables.
+
+        Raises:
+            HTTPException: If no records match the given criteria.
+        """
         last_operation_subq = DeviceOperation.last_operation_subquery(db=db)
 
         query = (
@@ -174,6 +216,19 @@ class Device(Base):
     def get_by_id(cls,
                   db: Session,
                   dev_id: int) -> "Device":
+        """
+        Retrieves a device by its unique ID.
+
+        Args:
+            db (Session): The database session.
+            dev_id (int): The unique ID of the device.
+
+        Returns:
+            Device: The Device object with the specified ID.
+
+        Raises:
+            HTTPException: If no device with the given ID exists.
+        """
         device = db.query(cls).filter(cls.id == dev_id).first()
         if not device:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -184,6 +239,19 @@ class Device(Base):
     def get_by_code(cls,
                     db: Session,
                     dev_code: str) -> "Device":
+        """
+        Retrieves a device by its unique code.
+
+        Args:
+            db (Session): The database session.
+            dev_code (str): The unique code of the device.
+
+        Returns:
+            Device: The Device object with the specified code.
+
+        Raises:
+            HTTPException: If no device with the given code exists.
+        """
         device = db.query(cls).filter(cls.code == dev_code).first()
         if not device:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -195,6 +263,17 @@ class Device(Base):
                db: Session,
                device_data: schemas.DeviceCreate,
                commit: bool = True) -> "Device":
+        """
+        Creates a new device in the database.
+
+        Args:
+            db (Session): The database session.
+            device_data (schemas.DeviceCreate): The data for creating the device.
+            commit (bool): Whether to commit the transaction after adding the device.
+
+        Returns:
+            Device: The created Device object.
+        """
         new_device = cls(**device_data.model_dump())
         db.add(new_device)
         if commit:
@@ -218,6 +297,19 @@ class DeviceNote(Base):
     def get_dev_notes(cls,
                       db: Session,
                       device_id: Optional[int]) -> List["DeviceNote"]:
+        """
+        Retrieves all notes associated with a specified device (if given).
+
+        Args:
+            db (Session): The database session.
+            device_id (Optional[int]): The ID of the device to filter by.
+
+        Returns:
+            List[DeviceNote]: A list of DeviceNote objects.
+
+        Raises:
+            HTTPException: If no notes match the criteria.
+        """
         notes = db.query(DeviceNote)
         if device_id:
             notes = notes.filter(DeviceNote.device_id == device_id)
@@ -230,9 +322,20 @@ class DeviceNote(Base):
     @classmethod
     def get_device_note_id(cls,
                            db: Session,
-                           note_id: Optional[int] = None) -> "DeviceNote":
-        """Retrieve all user notes."""
+                           note_id: int) -> "DeviceNote":
+        """
+        Retrieves a specific note by its ID.
 
+        Args:
+            db (Session): The database session.
+            note_id (int): The ID of the note to retrieve.
+
+        Returns:
+            DeviceNote: The DeviceNote object with the specified ID.
+
+        Raises:
+            HTTPException: If no note with the given ID exists.
+        """
         note = db.query(DeviceNote).filter(DeviceNote.id == note_id).first()
         if not note:
             raise HTTPException(
@@ -244,6 +347,17 @@ class DeviceNote(Base):
                         db: Session,
                         note_data: schemas.DeviceNote,
                         commit: bool = True) -> "DeviceNote":
+        """
+        Creates a new note for a device.
+
+        Args:
+            db (Session): The database session.
+            note_data (schemas.DeviceNote): The data for creating the note.
+            commit (bool): Whether to commit the transaction after adding the note.
+
+        Returns:
+            DeviceNote: The created DeviceNote object.
+        """
         note_data_dict = note_data.model_dump()
         note_data_dict["timestamp"] = datetime.datetime.now()
         note = DeviceNote(**note_data_dict)
@@ -263,6 +377,21 @@ class DeviceNote(Base):
                            note_id: int,
                            note_data: schemas.NoteUpdate,
                            commit: bool = True) -> "DeviceNote":
+        """
+        Updates an existing device note or deletes it if no content is provided.
+
+        Args:
+            db (Session): The database session.
+            note_id (int): The ID of the note to update.
+            note_data (schemas.NoteUpdate): The new content of the note.
+            commit (bool): Whether to commit the transaction after updating.
+
+        Returns:
+            DeviceNote: The updated DeviceNote object.
+
+        Raises:
+            HTTPException: If no note with the given ID exists, or if the note is deleted.
+        """
         note = db.query(DeviceNote).filter(DeviceNote.id == note_id).first()
         if not note:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -287,6 +416,16 @@ class DeviceNote(Base):
     def delete_device_note(cls,
                            db: Session,
                            note_id: int):
+        """
+        Deletes a device note by its ID.
+
+        Args:
+            db (Session): The database session.
+            note_id (int): The ID of the note to delete.
+
+        Raises:
+            HTTPException: If no note with the given ID exists.
+        """
         note = db.query(DeviceNote).filter(DeviceNote.id == note_id).first()
         if not note:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
