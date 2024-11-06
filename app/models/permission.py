@@ -69,12 +69,6 @@ class Permission(Base):
                            room_id: int,
                            last_operation_type: Optional[str] = None,
                            force: bool = False) -> bool:
-        """
-        Checks if a user has permission to access a specific room.
-
-        If the user doesn't have permission and the operation is not forced, it raises
-        an HTTPException with a 403 status code. If the operation is forced, it returns False.
-        """
         current_date = datetime.date.today()
         current_time = datetime.datetime.now().time()
 
@@ -99,9 +93,6 @@ class Permission(Base):
                           db: Session,
                           permission: schemas.PermissionCreate,
                           commit: bool = True) -> "Permission":
-        """
-        Creates a new permission in the database.
-        """
         new_permission = Permission(**permission.model_dump())
         db.add(new_permission)
         if commit:

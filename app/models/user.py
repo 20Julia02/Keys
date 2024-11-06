@@ -100,10 +100,6 @@ class UnauthorizedUser(BaseUser):
                                         name: str,
                                         surname: str,
                                         email: str) -> Tuple["UnauthorizedUser", bool]:
-        """
-        Creates a new unauthorized user in the database.
-        """
-
         existing_user = db.query(
             UnauthorizedUser).filter_by(email=email).first()
 
@@ -128,9 +124,6 @@ class UnauthorizedUser(BaseUser):
     @classmethod
     def get_all_unathorized_users(cls,
                                   db: Session) -> List["UnauthorizedUser"]:
-        """
-        Retrieves all unathorized users from the database.
-        """
         user = db.query(UnauthorizedUser).all()
         if (not user):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -141,9 +134,6 @@ class UnauthorizedUser(BaseUser):
     def get_unathorized_user(cls,
                              db: Session,
                              user_id: int) -> "UnauthorizedUser":
-        """
-        Retrieves an unauthorized user by their ID from the database.
-        """
         user = db.query(UnauthorizedUser).filter(
             UnauthorizedUser.id == user_id).first()
         if not user:
@@ -155,9 +145,6 @@ class UnauthorizedUser(BaseUser):
     def delete_unauthorized_user(cls,
                                  db: Session,
                                  user_id: int):
-        """
-        Deletes an unauthorized user by their ID from the database.
-        """
         user = db.query(UnauthorizedUser).filter(
             UnauthorizedUser.id == user_id).first()
 
@@ -185,7 +172,6 @@ class UserNote(Base):
     def get_user_notes_filter(cls,
                               db: Session,
                               user_id: Optional[int] = None) -> List["UserNote"]:
-        """Retrieve all user notes."""
 
         notes = db.query(UserNote)
         if user_id:
@@ -200,7 +186,6 @@ class UserNote(Base):
     def get_user_note_id(cls,
                          db: Session,
                          note_id: Optional[int] = None) -> "UserNote":
-        """Retrieve all user notes."""
 
         note = db.query(UserNote).filter(UserNote.id == note_id).first()
         if not note:
@@ -213,7 +198,6 @@ class UserNote(Base):
                          db: Session,
                          note_data: schemas.UserNoteCreate,
                          commit: bool = True) -> "UserNote":
-        """Create a new user note."""
         if not note_data.note:
             raise ValueError("Note cannot be empty")
         note_data_dict = note_data.model_dump()

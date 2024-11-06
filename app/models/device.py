@@ -5,7 +5,7 @@ import datetime
 from fastapi import HTTPException, status
 from app.models.base import Base
 from app import schemas
-from app.models.operation import DeviceOperation, UserSession
+from app.models.operation import UserSession, DeviceOperation
 from app.models.user import User
 from typing import Optional, List
 

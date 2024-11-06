@@ -107,3 +107,11 @@ def get_devs_owned_by_user(user_id: int,
                                oauth2.get_current_concierge),
                            db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
     return moperation.DeviceOperation.get_last_operation_user_id(db, user_id)
+
+
+@router.get("/operations/unapproved", response_model=Sequence[schemas.DevOperationOut])
+def get_unapproved_operations(session_id: Optional[int] = None,
+                              operation_type: Optional[str] = None,
+                              current_concierge: User = Depends(oauth2.get_current_concierge),
+                              db: Session = Depends(database.get_db)) ->Sequence[schemas.DevOperationOut]:
+    return moperation.UnapprovedOperation.get_unapproved_filtered(db, session_id, operation_type)

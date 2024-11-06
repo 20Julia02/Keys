@@ -47,8 +47,10 @@ class UserSession(Base):
         Creates a new session in the database for a given user and concierge.
 
         Args:
+            db (Session): The database session.
             user_id (int): The ID of the user associated with the session.
             concierge_id (int): The ID of the concierge managing the session.
+            commit (bool): Whether to commit the transaction after adding the device.
 
         Returns:
             int: The ID of the newly created session.
@@ -79,7 +81,10 @@ class UserSession(Base):
         (reject = False) changes the status to completed.
 
         Args:
+            db (Session): The database session.
             session_id (int): the ID of the session
+            reject (bool): if False the status changes to completed, else to rejected
+            commit (bool): Whether to commit the transaction after adding the device.
 
         Returns:
             _type_: schemas.Session. The session with completed status
@@ -106,6 +111,19 @@ class UserSession(Base):
     def get_session_id(cls,
                        db: Session,
                        session_id: int) -> "UserSession":
+        """
+        Retrieves a session by its ID.
+
+        Args:
+            db (Session): The database session.
+            session_id (int): ID of the session.
+
+        Returns:
+            UserSession: The UserSession object with the specified ID.
+
+        Raises:
+            HTTPException: If no session with the given ID exists.
+        """
         session = db.query(UserSession).filter(
             UserSession.id == session_id
         ).first()
@@ -140,6 +158,19 @@ class UnapprovedOperation(Base):
                             db: Session,
                             device_id: int,
                             session_id: int) -> bool:
+        """
+        Checks if a device has been rescanned during a session. If it has, 
+        deletes the unapproved operation and returns True. Otherwise, returns False.
+
+        Args:
+            db (Session): The database session.
+            device_id (int): ID of the device.
+            session_id (int): ID of the session.
+
+        Returns:
+            bool: True if device has been rescanned during one session 
+            and unapproved operation was deleted, False otherwise.
+        """
         operation_unapproved = db.query(UnapprovedOperation).filter(
             UnapprovedOperation.device_id == device_id,
             UnapprovedOperation.session_id == session_id).first()
@@ -154,6 +185,17 @@ class UnapprovedOperation(Base):
                                     db: Session,
                                     operation_data: schemas.DevOperation,
                                     commit: bool = True) -> "DeviceOperation":
+        """
+        Creates an unapproved operation in the database.
+
+        Args:
+            db (Session): The database session.
+            operation_data (schemas.DevOperation): Data for the unapproved operation.
+            commit (bool): Whether to commit the operation to the database.
+
+        Returns:
+            DeviceOperation: The created unapproved operation object.
+        """
         new_operation = cls(**operation_data.model_dump())
         new_operation.timestamp = datetime.datetime.now()
 
@@ -164,11 +206,31 @@ class UnapprovedOperation(Base):
         return new_operation
 
     @classmethod
-    def get_unapproved_session(cls,
+    def get_unapproved_filtered(cls,
                                db: Session,
-                               session_id: int) -> List["UnapprovedOperation"]:
-        unapproved = db.query(UnapprovedOperation).filter(
-            UnapprovedOperation.session_id == session_id).all()
+                               session_id: Optional[int] = None,
+                               operation_type: Optional[str] = None) -> List["UnapprovedOperation"]:
+        """
+        Retrieves unapproved operations. It filters results by a given session ID and operation type.
+
+        Args:
+            db (Session): The database session.
+            session_id (int): ID of the session to filter by.
+            operation_type(Optional[str]): the type of operation ("pobranie", "zwrot") to filter by.
+
+        Returns:
+            List[UnapprovedOperation]: A list of unapproved operations for the session.
+
+        Raises:
+            HTTPException: If no unapproved operations are found.
+        """
+        unapproved_query = db.query(UnapprovedOperation)
+        if session_id:
+            unapproved_query = unapproved_query.filter(
+                UnapprovedOperation.session_id == session_id)
+        if operation_type:
+            unapproved_query = unapproved_query.filter()
+        unapproved = unapproved_query.all()
         if not unapproved:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="No unapproved operations found for this session")
@@ -179,27 +241,31 @@ class UnapprovedOperation(Base):
                                          db: Session,
                                          session_id: int,
                                          commit: bool = True) -> List[schemas.DevOperationOut]:
-        unapproved_operations = cls.get_unapproved_session(db, session_id)
+        """
+        Transfers unapproved operations to the approved operations table and
+        removes them from the unapproved table.
 
+        Args:
+            db (Session): The database session.
+            session_id (int): ID of the session.
+            commit (bool): Whether to commit the operations to the database.
+
+        Returns:
+            List[schemas.DevOperationOut]: A list of approved operation objects.
+
+        Raises:
+            HTTPException: If an error occurs during operation transfer.
+        """
+        unapproved_operations = cls.get_unapproved_filtered(db, session_id=session_id)
         operation_list: List[schemas.DevOperationOut] = []
-
         for unapproved_operation in unapproved_operations:
-            new_operation = DeviceOperation(
-                device_id=unapproved_operation.device_id,
-                session_id=unapproved_operation.session_id,
-                operation_type=unapproved_operation.operation_type,
-                timestamp=unapproved_operation.timestamp,
-                entitled=unapproved_operation.entitled
-            )
-            db.add(new_operation)
+            operation_schema = schemas.DevOperation.model_validate(unapproved_operation)
+            new_operation = DeviceOperation.create_operation(db, operation_schema, False)
             db.flush()
-
             db.delete(unapproved_operation)
-
             validated_operation = schemas.DevOperationOut.model_validate(
                 new_operation)
             operation_list.append(validated_operation)
-
         if commit:
             try:
                 db.commit()
@@ -230,6 +296,15 @@ class DeviceOperation(Base):
     @classmethod
     def last_operation_subquery(cls,
                                 db: Session):
+        """
+        Generates a subquery to retrieve the latest operation timestamp for each device.
+
+        Args:
+            db (Session): The database session.
+
+        Returns:
+            sqlalchemy.sql.selectable.Subquery: Subquery for the latest device operations.
+        """
         return (
             db.query(
                 cls.device_id,
@@ -244,6 +319,20 @@ class DeviceOperation(Base):
                                    db: Session,
                                    user_id: int,
                                    operation_type: Optional[str] = "pobranie") -> Sequence["DeviceOperation"]:
+        """
+        Retrieves the last operations of a specific type (default "pobranie") for a user.
+
+        Args:
+            db (Session): The database session.
+            user_id (int): ID of the user.
+            operation_type (Optional[str]): Type of operation to filter by (default is 'pobranie').
+
+        Returns:
+            Sequence[DeviceOperation]: A sequence of the user's last device operations.
+
+        Raises:
+            HTTPException: If no operations are found for the user.
+        """
         last_operation_subquery = cls.last_operation_subquery(db)
 
         query = (
@@ -273,6 +362,17 @@ class DeviceOperation(Base):
                          db: Session,
                          operation_data: schemas.DevOperation,
                          commit: Optional[bool] = True) -> "DeviceOperation":
+        """
+        Creates a new operation for a device.
+
+        Args:
+            db (Session): The database session.
+            operation_data (schemas.DevOperation): Data for the new operation.
+            commit (Optional[bool]): Whether to commit the operation to the database.
+
+        Returns:
+            DeviceOperation: The created DeviceOperation object.
+        """
         new_operation = DeviceOperation(**operation_data.model_dump())
         new_operation.timestamp = datetime.datetime.now()
 
@@ -284,8 +384,26 @@ class DeviceOperation(Base):
 
     @classmethod
     def get_all_operations(cls,
-                           db: Session) -> List["DeviceOperation"]:
-        operations = db.query(DeviceOperation).all()
+                           db: Session,
+                           session_id: Optional[int] = None
+                           ) -> List["DeviceOperation"]:
+        """
+        Retrieves all device operations from the database and
+        it filters results by session Id if given.
+
+        Args:
+            db (Session): The database session.
+            session_id (Optional[int]): The session Id to filter by
+        Returns:
+            List[DeviceOperation]: A list of all DeviceOperation objects.
+
+        Raises:
+            HTTPException: If no operations are found.
+        """
+        operations_query = db.query(DeviceOperation)
+        if session_id:
+            operations_query.filter(DeviceOperation.session_id == session_id)
+        operations = operations_query.all()
         if not operations:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There is no operation")
@@ -295,6 +413,19 @@ class DeviceOperation(Base):
     def get_operation_id(cls,
                          db: Session,
                          operation_id: int) -> "DeviceOperation":
+        """
+        Retrieves a specific operation by its ID.
+
+        Args:
+            db (Session): The database session.
+            operation_id (int): ID of the operation.
+
+        Returns:
+            DeviceOperation: The DeviceOperation object with the specified ID.
+
+        Raises:
+            HTTPException: If the operation does not exist.
+        """
         operation = db.query(DeviceOperation).filter(
             DeviceOperation.id == operation_id).first()
         if not operation:
@@ -306,6 +437,16 @@ class DeviceOperation(Base):
     def get_last_dev_operation_or_none(cls,
                                        db: Session,
                                        device_id: int) -> "DeviceOperation|None":
+        """
+        Retrieves the last operation for a device or returns None if no operation exists.
+
+        Args:
+            db (Session): The database session.
+            device_id (int): ID of the device.
+
+        Returns:
+            DeviceOperation|None: The last DeviceOperation for the device, or None if no operations exist.
+        """
         subquery = (
             db.query(func.max(DeviceOperation.timestamp))
             .filter(DeviceOperation.device_id == device_id)
