@@ -1,4 +1,4 @@
-from fastapi import status, Depends, APIRouter
+from fastapi import HTTPException, status, Depends, APIRouter
 from typing import Optional, Sequence, List
 from app import database, oauth2, schemas
 import app.models.device as mdevice
@@ -55,7 +55,7 @@ def create_device(device: schemas.DeviceCreate,
     data. Only users with the 'admin' role are permitted to create devices.
     """
     auth_service = securityService.AuthorizationService(db)
-    auth_service.check_if_entitled("admin", current_concierge)
+    auth_service.entitled_or_error("admin", current_concierge)
     return mdevice.Device.create(db, device)
 
 
@@ -79,16 +79,15 @@ def change_status(
         return schemas.DetailMessage(detail="Operation removed.")
     last_operation = moperation.DeviceOperation.get_last_dev_operation_or_none(db,
                                                                                device.id)
-
-    force_flag = request.force if request.force is not None else False
     entitled = mpermission.Permission.check_if_permitted(
         db,
         session.user_id,
         device.room_id,
-        last_operation.operation_type if last_operation else None,
-        force_flag
     )
     operation_type = "zwrot" if last_operation and last_operation.operation_type == "pobranie" else "pobranie"
+    if entitled == False and request.force == False and operation_type == "pobranie":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail=f"User with ID {session.user_id} has no permission to perform the operation")
     operation_data = schemas.DevOperation(
         device_id=request.device_id,
         session_id=session.id,
@@ -112,6 +111,7 @@ def get_devs_owned_by_user(user_id: int,
 @router.get("/operations/unapproved", response_model=Sequence[schemas.DevOperationOut])
 def get_unapproved_operations(session_id: Optional[int] = None,
                               operation_type: Optional[str] = None,
-                              current_concierge: User = Depends(oauth2.get_current_concierge),
-                              db: Session = Depends(database.get_db)) ->Sequence[schemas.DevOperationOut]:
+                              current_concierge: User = Depends(
+                                  oauth2.get_current_concierge),
+                              db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
     return moperation.UnapprovedOperation.get_unapproved_filtered(db, session_id, operation_type)

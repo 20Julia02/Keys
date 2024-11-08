@@ -310,16 +310,6 @@ def test_permission_get_permissions_no_permissions():
     assert excinfo.value.detail == "No reservations found"
 
 
-def test_permission_check_if_permitted_not_authorized():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
-
-    with pytest.raises(HTTPException) as excinfo:
-        Permission.check_if_permitted(db, user_id=1, room_id=1)
-    assert excinfo.value.status_code == 403
-    assert excinfo.value.detail == "User with id 1 does not have permission to access room with id 1"
-
-
 def test_hash_password():
     password_service = PasswordService()
     password = "supersecret"
@@ -407,20 +397,20 @@ def test_add_token_to_blacklist():
     db.commit.assert_called_once()
 
 
-def test_check_if_entitled_user_has_role():
+def test_entitled_or_error_user_has_role():
     db = MagicMock()
     auth_service = AuthorizationService(db)
     user = User(role=UserRole.concierge)
-    auth_service.check_if_entitled("concierge", user)
+    auth_service.entitled_or_error("concierge", user)
 
 
-def test_check_if_entitled_user_no_role():
+def test_entitled_or_error_user_no_role():
     db = MagicMock()
     auth_service = AuthorizationService(db)
     user = User(role=UserRole.employee)
 
     with pytest.raises(HTTPException) as excinfo:
-        auth_service.check_if_entitled("admin", user)
+        auth_service.entitled_or_error("admin", user)
     assert excinfo.value.status_code == 403
     assert excinfo.value.detail == "You cannot perform this operation without the admin role"
 

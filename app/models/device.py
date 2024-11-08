@@ -7,7 +7,7 @@ from app.models.base import Base
 from app import schemas
 from app.models.operation import UserSession, DeviceOperation
 from app.models.user import User
-from typing import Optional, List
+from typing import Optional, List, Any
 
 
 class Room(Base):
@@ -26,7 +26,7 @@ class Room(Base):
         """
         Retrieves a list of rooms from the database. If `room_number` is specified, 
         only returns the room with the matching number.
-        
+
         Args:
             db (Session): The database session.
             room_number (Optional[str]): The room number to filter by (if provided).
@@ -110,7 +110,7 @@ class Device(Base):
         dev_type: Optional[str] = None,
         dev_version: Optional[str] = None,
         room_number: Optional[str] = None,
-    ):
+    ) -> list[dict[str, Any]]:
         """
         Retrieves detailed information for devices, including fields from related tables such as Room and User.
         This includes device type, version, room number, ownership status, and any associated notes.

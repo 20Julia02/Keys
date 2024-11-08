@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from passlib.context import CryptContext
@@ -48,9 +48,6 @@ class PasswordService:
 class TokenService:
     def __init__(self,
                  db: Session):
-        """
-        Initializes the TokenService with a given database session and token settings.
-        """
         self.db = db
         self.SECRET_KEY = settings.secret_key
         self.ALGORITHM = settings.algorithm
@@ -59,7 +56,7 @@ class TokenService:
 
     def create_token(self,
                      data: dict[str, Any],
-                     token_type: str) -> str:
+                     token_type: Literal['access', 'refresh']) -> str:
         """
         Creates a JWT token with the given data and token type (refresh or access).
 
@@ -92,7 +89,6 @@ class TokenService:
 
         Args:
             token (str): The JWT token to verify.
-            credentials_exception: The exception to raise if the token is invalid.
 
         Returns:
             TokenData: An object containing the extracted token data (user_id and user_role).
@@ -121,7 +117,6 @@ class TokenService:
         Checks if a token is in the blacklist.
 
         Args:
-            db (Session): The database session.
             token (str): The token to check.
 
         Returns:
@@ -136,9 +131,8 @@ class TokenService:
         Adds a token to the blacklist in the database.
 
         Args:
-            db (Session): The database session.
             token (str): The token to blacklist.
-
+            commit (optional[bool]): Whether to commit the transaction after updating the note. Default is `True`.
         Returns:
             bool: True after the token is successfully added to the blacklist.
         """
@@ -153,6 +147,19 @@ class TokenService:
     def generate_tokens(self,
                         user_id: int,
                         role: str) -> schemas.Token:
+        """
+        Generates a pair of JWT tokens (access and refresh) for a user, based on their user ID and role.
+
+        Args:
+            user_id (int): The ID of the user for whom tokens are generated.
+            role (str): The role of the user, which will be included in the token payload.
+
+        Returns:
+            schemas.Token: An object containing the access token, refresh token, and token type.
+
+        Raises:
+            Exception: Any exceptions related to token generation or encoding issues.
+        """
         access_token = self.create_token(
             {"user_id": user_id, "user_role": role}, "access")
         refresh_token = self.create_token(
@@ -163,21 +170,18 @@ class TokenService:
 class AuthorizationService:
     def __init__(self,
                  db: Session):
-        """
-        Initializes the AuthorizationService with a given database session.
-        """
         self.db = db
 
-    def check_if_entitled(self,
+    def entitled_or_error(self,
                           role: str,
-                          user: muser.User) -> None:
+                          user: muser.User) -> bool:
         """
         Checks if the current user has the required role or is an admin.
         Raises an HTTP 403 Forbidden exception if the user is not entitled.
 
         Args:
             role (str): The required role.
-            current_concierge: The current user object, containing the user's role.
+            user: The current user object, containing the user's role.
 
         Raises:
             HTTPException: If the user does not have the required role.
@@ -186,6 +190,7 @@ class AuthorizationService:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"You cannot perform this operation without the {role} role")
+        return True
 
     def get_current_concierge(self,
                               token: str) -> muser.User:
@@ -218,17 +223,16 @@ class AuthorizationService:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail="Could not validate credentials",
                                 headers={"Authenticate": "Bearer"})
-        self.check_if_entitled("concierge", user)
+        self.entitled_or_error("concierge", user)
         return user
 
     def get_current_concierge_token(self,
                                     token: str) -> str:
         """
-        Retrieves the current user's token after validating the user's identity.
+        Retrieves the current user's (concierge) token after validating his identity.
 
         Args:
             token (str): The JWT token.
-            db (Session): The database session.
 
         Returns:
             str: The validated JWT token.
@@ -240,24 +244,50 @@ class AuthorizationService:
                                 username: str,
                                 password: str,
                                 role: str) -> muser.User:
-        """Authenticate user by email and password."""
+        """
+        Authenticates a user using their username and password, verifying credentials and role entitlement.
+
+        Args:
+            username (str): The username (email) of the user to authenticate.
+            password (str): The plaintext password of the user.
+            role (str): The role required for authentication.
+
+        Returns:
+            muser.User: The authenticated user object if credentials and role are valid.
+
+        Raises:
+            HTTPException: Raises a 403 error if the credentials are invalid or the user does not have the required role.
+        """
         password_service = PasswordService()
         user = self.db.query(muser.User).filter_by(email=username).first()
         if not (user and password_service.verify_hashed(password, user.password)):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials")
-        self.check_if_entitled(role, user)
+        self.entitled_or_error(role, user)
         return user
 
     def authenticate_user_card(self,
                                card_id: schemas.CardId,
                                role: str) -> muser.User:
+        """
+        Authenticates a user using their card ID, checking credentials and role entitlement.
+
+        Args:
+            card_id (schemas.CardId): The card ID used for authentication.
+            role (str): The role required for authentication.
+
+        Returns:
+            muser.User: The authenticated user object if the card ID and role are valid.
+
+        Raises:
+            HTTPException: Raises a 403 error if the card ID is invalid or the user does not have the required role.
+        """
         password_service = PasswordService()
         users = self.db.query(muser.User).filter(
             muser.User.card_code.isnot(None)).all()
         for user in users:
             if password_service.verify_hashed(card_id.card_id, user.card_code):
-                self.check_if_entitled(role, user)
+                self.entitled_or_error(role, user)
                 return user
 
         raise HTTPException(

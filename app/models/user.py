@@ -64,6 +64,19 @@ class User(BaseUser):
     @classmethod
     def get_all_users(cls,
                       db: Session) -> List["User"]:
+        """
+        Retrieves all users from the database.
+        If no users are found, raises an exception.
+
+        Args:
+            db (Session): Database session used for executing the query.
+
+        Returns:
+            List[User]: List of all users in the database.
+
+        Raises:
+            HTTPException: Raises a 404 error if no users are found with the message "There is no user in database".
+        """
         user = db.query(User).all()
         if (not user):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -74,6 +87,20 @@ class User(BaseUser):
     def get_user_id(cls,
                     db: Session,
                     user_id: int) -> "User":
+        """
+        Retrieves a user by their ID from the database.
+        Raises an exception if the user is not found.
+
+        Args:
+            db (Session): Database session used for executing the query.
+            user_id (int): ID of the user to retrieve.
+
+        Returns:
+            User: The user object with the specified ID.
+
+        Raises:
+            HTTPException: Raises a 404 error if the user is not found.
+        """
         user = db.query(User).filter(User.id == user_id).first()
         if (not user):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -100,6 +127,26 @@ class UnauthorizedUser(BaseUser):
                                         name: str,
                                         surname: str,
                                         email: str) -> Tuple["UnauthorizedUser", bool]:
+        """
+        Checks whether an unauthorised user with a given email exists in the database.
+        If so and his name and surname matches those in the database it returns an existing user, 
+        if the email was not in the database it creates a new user. If the email address was registered 
+        and the user provides a different first and last name than in the database, the method raises an error.
+
+        Returns the user and a Boolean value indicating whether the user is new.
+
+        Args:
+            db (Session): Database session used for executing the query.
+            name (str): First name of the user.
+            surname (str): Last name of the user.
+            email (str): Email address of the user.
+
+        Returns:
+            Tuple[UnauthorizedUser, bool]: Tuple containing the user object and a boolean indicating if the user is newly created.
+
+        Raises:
+            HTTPException: Raises a 403 error if an email conflict occurs with different name or surname.
+        """
         existing_user = db.query(
             UnauthorizedUser).filter_by(email=email).first()
 
@@ -124,6 +171,19 @@ class UnauthorizedUser(BaseUser):
     @classmethod
     def get_all_unathorized_users(cls,
                                   db: Session) -> List["UnauthorizedUser"]:
+        """
+        Retrieves all unauthorized users from the database.
+        Raises an exception if no users are found.
+
+        Args:
+            db (Session): Database session used for executing the query.
+
+        Returns:
+            List[UnauthorizedUser]: List of all unauthorized users in the database.
+
+        Raises:
+            HTTPException: Raises a 404 error if no unauthorized users are found with a relevant message.
+        """
         user = db.query(UnauthorizedUser).all()
         if (not user):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -134,6 +194,20 @@ class UnauthorizedUser(BaseUser):
     def get_unathorized_user(cls,
                              db: Session,
                              user_id: int) -> "UnauthorizedUser":
+        """
+        Retrieves an unauthorized user by their ID.
+        Raises an exception if the user is not found.
+
+        Args:
+            db (Session): Database session used for executing the query.
+            user_id (int): ID of the unauthorized user to retrieve.
+
+        Returns:
+            UnauthorizedUser: The unauthorized user object with the specified ID.
+
+        Raises:
+            HTTPException: Raises a 404 error if the unauthorized user is not found.
+        """
         user = db.query(UnauthorizedUser).filter(
             UnauthorizedUser.id == user_id).first()
         if not user:
@@ -145,6 +219,21 @@ class UnauthorizedUser(BaseUser):
     def delete_unauthorized_user(cls,
                                  db: Session,
                                  user_id: int):
+        """
+        Deletes an unauthorized user by their ID from the database.
+        Raises an exception if the user is not found.
+
+        Args:
+            db (Session): Database session used for executing the operation.
+            user_id (int): ID of the unauthorized user to delete.
+
+        Returns:
+            bool: `True` if the user was successfully deleted.
+
+        Raises:
+            HTTPException: Raises a 404 error if the user is not found.
+        """
+
         user = db.query(UnauthorizedUser).filter(
             UnauthorizedUser.id == user_id).first()
 
@@ -172,7 +261,20 @@ class UserNote(Base):
     def get_user_notes_filter(cls,
                               db: Session,
                               user_id: Optional[int] = None) -> List["UserNote"]:
+        """
+        Retrieves user notes filtered by user ID if provided.
+        Raises an exception if no notes are found.
 
+        Args:
+            db (Session): Database session used for executing the query.
+            user_id (Optional[int]): ID of the user to filter notes. Default is `None`.
+
+        Returns:
+            List[UserNote]: List of user notes matching the filter criteria.
+
+        Raises:
+            HTTPException: Raises a 404 error if no user notes are found.
+        """
         notes = db.query(UserNote)
         if user_id:
             notes = notes.filter(UserNote.user_id == user_id)
@@ -185,8 +287,21 @@ class UserNote(Base):
     @classmethod
     def get_user_note_id(cls,
                          db: Session,
-                         note_id: Optional[int] = None) -> "UserNote":
+                         note_id: int) -> "UserNote":
+        """
+        Retrieves a user note by its ID.
+        Raises an exception if the note is not found.
 
+        Args:
+            db (Session): Database session used for executing the query.
+            note_id (intl): ID of the note to retrieve.
+
+        Returns:
+            UserNote: The user note with the specified ID.
+
+        Raises:
+            HTTPException: Raises a 404 error if the note is not found.
+        """
         note = db.query(UserNote).filter(UserNote.id == note_id).first()
         if not note:
             raise HTTPException(
@@ -198,6 +313,22 @@ class UserNote(Base):
                          db: Session,
                          note_data: schemas.UserNoteCreate,
                          commit: bool = True) -> "UserNote":
+        """
+        Creates a new user note with the specified data and saves it to the database.
+        Commits and refreshes the note if `commit` is `True`.
+
+        Args:
+            db (Session): Database session used for executing the operation.
+            note_data (schemas.UserNoteCreate): Data for creating a new user note.
+            commit (optional[bool]): Whether to commit the transaction after adding the note. Default is `True`.
+
+        Returns:
+            UserNote: The newly created user note.
+
+        Raises:
+            ValueError: If the note text is empty.
+            Exception: For any other issues during the commit.
+        """
         if not note_data.note:
             raise ValueError("Note cannot be empty")
         note_data_dict = note_data.model_dump()
@@ -219,7 +350,23 @@ class UserNote(Base):
                          note_id: int,
                          note_data: schemas.NoteUpdate,
                          commit: bool = True) -> "UserNote":
+        """
+        Updates a user note by ID with new data, or deletes it if note content is `None`.
+        Commits and refreshes the note if `commit` is `True`.
 
+        Args:
+            db (Session): Database session used for executing the operation.
+            note_id (int): ID of the note to update.
+            note_data (schemas.NoteUpdate): New data for updating the note.
+            commit (optional[bool]): Whether to commit the transaction after updating the note. Default is `True`.
+
+        Returns:
+            UserNote: The updated user note.
+
+        Raises:
+            HTTPException: Raises a 404 error if the note is not found, or 204 if the note is deleted.
+            Exception: For any issues during the commit.
+        """
         note = db.query(UserNote).filter(UserNote.id == note_id).first()
 
         if not note:
@@ -245,10 +392,33 @@ class UserNote(Base):
     @classmethod
     def delete_user_note(cls,
                          db: Session,
-                         note_id: int):
+                         note_id: int,
+                         commit: Optional[bool] = True) -> bool:
+        """
+        Deletes a user note by its ID.
+        Raises an exception if the note is not found.
+
+        Args:
+            db (Session): Database session used for executing the operation.
+            note_id (int): ID of the note to delete.
+            commit (optional[bool]): Whether to commit the transaction after updating the note. Default is `True`.
+
+        Returns:
+            bool: `True` if the note was successfully deleted.
+
+        Raises:
+            HTTPException: Raises a 404 error if the note is not found.
+            Exception: For any issues during the commit.
+        """
         note = db.query(UserNote).filter(UserNote.id == note_id).first()
         if not note:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Note with id: {note_id} doesn't exist")
         db.delete(note)
-        db.commit()
+        if commit:
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                raise e
+        return True

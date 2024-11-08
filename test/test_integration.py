@@ -308,7 +308,7 @@ def test_changeStatus_without_permission(test_concierge: muser.User,
                            json={"session_id": response1.json()["id"], "device_id": test_device_mikrofon.id})
     assert response.status_code == 403
     assert response.json()[
-        "detail"] == f"User with id {test_user.id} does not have permission to access room with id {test_room_2.id}"
+        "detail"] == f"User with ID {test_user.id} has no permission to perform the operation"
 
 
 def test_changeStatus_with_force(test_concierge: muser.User,
@@ -956,7 +956,8 @@ def test_delete_device_note(db: Session,
                           headers={"Authorization": f"Bearer {concierge_token}"})
 
     assert response.status_code == 404
-    assert response.json()["detail"] == f"There is no device notes with id {test_device_note.id}."
+    assert response.json()["detail"] == f"There is no device notes with id {
+        test_device_note.id}."
 
 
 def test_logout_with_valid_token(test_concierge: muser.User,
