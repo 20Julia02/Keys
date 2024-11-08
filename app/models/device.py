@@ -7,7 +7,7 @@ from app.models.base import Base
 from app import schemas
 from app.models.operation import UserSession, DeviceOperation
 from app.models.user import User
-from typing import Optional, List, Any
+from typing import Optional, List
 
 
 class Room(Base):
@@ -109,8 +109,8 @@ class Device(Base):
         db: Session,
         dev_type: Optional[str] = None,
         dev_version: Optional[str] = None,
-        room_number: Optional[str] = None,
-    ) -> list[dict[str, Any]]:
+        room_number: Optional[str] = None
+    ):
         """
         Retrieves detailed information for devices, including fields from related tables such as Room and User.
         This includes device type, version, room number, ownership status, and any associated notes.
