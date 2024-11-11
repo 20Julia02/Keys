@@ -7,6 +7,7 @@ from app.models.user import User
 from app.models.device import Room
 from fastapi import HTTPException, status
 from app import schemas
+from sqlalchemy.exc import IntegrityError
 
 
 class TokenBlacklist(Base):
@@ -28,6 +29,7 @@ class Permission(Base):
 
     user: Mapped["User"] = relationship(back_populates="permissions")
     room: Mapped["Room"] = relationship(back_populates="permissions")
+
 
     @classmethod
     def get_permissions(cls,
@@ -112,7 +114,7 @@ class Permission(Base):
     @classmethod
     def create_permission(cls,
                           db: Session,
-                          permission: schemas.PermissionCreate,
+                          permission_data: schemas.PermissionCreate,
                           commit: bool = True) -> "Permission":
         """
         Creates a new permission based on the data provided in `permission` and saves it to the database.
@@ -129,13 +131,94 @@ class Permission(Base):
         Raises:
             Exception: If there are issues adding or committing the permission.
         """
-        new_permission = Permission(**permission.model_dump())
+        new_permission = cls(**permission_data)
         db.add(new_permission)
         if commit:
-            db.commit()
-            db.refresh(new_permission)
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                raise ValueError("A permission already exists for the specified room and time.")
         return new_permission
+    
+    @classmethod
+    def update_permission(cls,
+                          db: Session,
+                          permission_id: int,
+                          permission_data: schemas.PermissionCreate,
+                          commit: bool = True) -> "Permission":
+        """
+        Updates an existing permission in the database.
 
+        Args:
+            db (Session): The database session.
+            permission_id (int): The ID of the permission to update.
+            permission_data (schemas.PermissionUpdate): Data for updating the permission.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
+
+        Returns:
+            Permission: The updated Permission object.
+
+        Raises:
+            HTTPException: If the permission is not found or conflicts with existing permissions.
+            Exception: For any issues during the commit.
+        """
+        permission = db.query(Permission).filter(Permission.id == permission_id).first()
+        if not permission:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Permission with id: {permission_id} doesn't exist")
+
+        permission.user_id = permission_data.user_id
+        permission.room_id = permission_data.room_id
+        permission.date = permission_data.date
+        permission.start_time = permission_data.start_time
+        permission.end_time = permission_data.end_time
+
+        if commit:
+            try:
+                db.commit()
+                db.refresh(permission)
+            except IntegrityError:
+                db.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="A permission already exists for the specified room and time."
+                )
+            except Exception as e:
+                db.rollback()
+                raise e
+
+        return permission
+
+    @classmethod
+    def delete_permission(cls, db: Session, permission_id: int, commit: bool = True) -> bool:
+        """
+        Deletes a permission by its ID from the database.
+
+        Args:
+            db (Session): The database session.
+            permission_id (int): The ID of the permission to delete.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
+
+        Returns:
+            bool: True if the permission was successfully deleted.
+
+        Raises:
+            HTTPException: If the permission with the given ID does not exist.
+            Exception: For any issues during the commit.
+        """
+        permission = db.query(Permission).filter(Permission.id == permission_id).first()
+        if not permission:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Permission with id: {permission_id} doesn't exist")
+        db.delete(permission)
+        if commit:
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                raise e
+        return True
 
 @event.listens_for(Permission.__table__, 'after_create')
 def delete_old_reservations(target: Table,
@@ -157,3 +240,39 @@ def delete_old_reservations(target: Table,
     delete_query = text(
         f"DELETE FROM {target.name} WHERE date < :one_week_ago")
     connection.execute(delete_query, {"one_week_ago": one_week_ago})
+
+@event.listens_for(Permission.__table__, 'after_create')
+def create_permission_conflict_trigger(target: Table, connection: Any, **kw: Any) -> None:
+    """
+    Creates a trigger to check for time conflicts in room permissions.
+    
+    Args:
+        target (Table): The table to which the trigger applies.
+        connection (Any): The connection to the database.
+        **kw (Any): Additional arguments.
+    """
+    connection.execute(text("""
+    CREATE OR REPLACE FUNCTION check_room_permission_conflict() 
+    RETURNS TRIGGER AS $$
+    BEGIN
+        IF EXISTS (
+            SELECT 1 
+            FROM permission
+            WHERE room_id = NEW.room_id 
+            AND date = NEW.date
+            AND start_time < NEW.end_time
+            AND end_time > NEW.start_time
+        ) THEN
+            RAISE EXCEPTION 'A permission already exists for the specified room and time.';
+        END IF;
+        
+        RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+    """))
+
+    connection.execute(text("""
+    CREATE TRIGGER room_permission_conflict_trigger
+    BEFORE INSERT OR UPDATE ON permission
+    FOR EACH ROW EXECUTE FUNCTION check_room_permission_conflict();
+    """))

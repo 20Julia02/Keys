@@ -115,3 +115,45 @@ def get_unapproved_operations(session_id: Optional[int] = None,
                                   oauth2.get_current_concierge),
                               db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
     return moperation.UnapprovedOperation.get_unapproved_filtered(db, session_id, operation_type)
+
+
+@router.put("/devices/{device_id}", response_model=schemas.DeviceOut)
+def update_device(
+    device_id: int,
+    device_data: schemas.DeviceCreate,
+    current_concierge: User = Depends(
+                                  oauth2.get_current_concierge),
+    db: Session = Depends(database.get_db)
+) -> Sequence[schemas.DevOperationOut]:
+    """
+    Aktualizuje dane urządzenia o podanym `device_id`.
+
+    Args:
+        device_id (int): ID urządzenia do zaktualizowania.
+        device_data (DeviceUpdate): Dane do zaktualizowania.
+        db (Session): Sesja bazy danych.
+
+    Returns:
+        DeviceResponse: Zaktualizowany obiekt urządzenia.
+    """
+    return mdevice.Device.update(db, device_id, device_data)
+
+
+@router.delete("/devices/{device_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_device(
+    device_id: int,
+    current_concierge: User = Depends(
+                                  oauth2.get_current_concierge),
+    db: Session = Depends(database.get_db)
+):
+    """
+    Usuwa urządzenie o podanym `device_id`.
+
+    Args:
+        device_id (int): ID urządzenia do usunięcia.
+        db (Session): Sesja bazy danych.
+
+    Returns:
+        None
+    """
+    return mdevice.Device.delete(db, device_id)

@@ -19,7 +19,7 @@ def test_get_rooms_no_rooms():
     with pytest.raises(HTTPException) as excinfo:
         mdevice.Room.get_rooms(db)
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "There is no room in database"
+    assert excinfo.value.detail == "No rooms found matching the specified number"
 
 
 def test_get_rooms_with_rooms():
@@ -180,7 +180,7 @@ def test_get_all_users_no_users():
     with pytest.raises(HTTPException) as excinfo:
         User.get_all_users(db)
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "There is no user in database"
+    assert excinfo.value.detail == "There is no user in the database"
 
 
 def test_get_user_id_not_found():
@@ -228,9 +228,10 @@ def test_create_or_get_unauthorized_user_conflict():
         UnauthorizedUser.create_or_get_unauthorized_user(
             db, name="Jane", surname="Doe", email="john@example.com"
         )
-    assert excinfo.value.status_code == 403
-    assert excinfo.value.detail == "User with this email already exists but with a different name or surname."
-
+    assert excinfo.value.status_code == 409
+    detail: dict[str, Any] = excinfo.value.detail
+    assert isinstance(detail, dict)
+    assert detail['message'] == "User with this email already exists but with a different name or surname."
 
 def test_get_user_notes_filter_no_notes():
     db = MagicMock()

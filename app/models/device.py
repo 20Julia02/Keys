@@ -43,7 +43,7 @@ class Room(Base):
         rooms = query.all()
         if not rooms:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="There is no room in database")
+                status_code=status.HTTP_404_NOT_FOUND, detail="No rooms found matching the specified number")
         return rooms
 
     @classmethod
@@ -68,7 +68,120 @@ class Room(Base):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Room with id: {room_id} doesn't exist")
         return room
+    
+    @classmethod
+    def create_room(cls, 
+                    db: Session, 
+                    room_data: schemas.Room, 
+                    commit: bool = True) -> "Room":
+        """
+        Creates a new room in the database.
 
+        Args:
+            db (Session): The database session.
+            room_data (schemas.RoomCreate): Data required to create the new room.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
+
+        Returns:
+            Room: The newly created Room object.
+
+        Raises:
+            HTTPException: If a room with the specified number already exists.
+            Exception: For any issues during the commit.
+        """
+        if db.query(Room).filter_by(number=room_data.number).first():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Room with number '{room_data.number}' already exists."
+            )
+        new_room = Room(number=room_data.number)
+        db.add(new_room)
+        if commit:
+            try:
+                db.commit()
+                db.refresh(new_room)
+            except Exception as e:
+                db.rollback()
+                raise e
+        return new_room
+    
+    @classmethod
+    def update_room(cls, 
+                    db: Session, 
+                    room_id: int, 
+                    room_data: schemas.Room, 
+                    commit: bool = True) -> "Room":
+        """
+        Updates an existing room in the database.
+
+        Args:
+            db (Session): The database session.
+            room_id (int): The ID of the room to update.
+            room_data (schemas.RoomUpdate): Data for updating the room.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
+
+        Returns:
+            Room: The updated Room object.
+
+        Raises:
+            HTTPException: If the room is not found or a room with the new number already exists.
+            Exception: For any issues during the commit.
+        """
+        room = db.query(Room).filter(Room.id == room_id).first()
+        if not room:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Room with id: {room_id} doesn't exist")
+        
+        if room_data.number != room.number:
+            if db.query(Room).filter(Room.number == room_data.number).first():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Room with number '{room_data.number}' already exists."
+                )
+            room.number = room_data.number
+
+        if commit:
+            try:
+                db.commit()
+                db.refresh(room)
+            except Exception as e:
+                db.rollback()
+                raise e
+        return room
+
+    @classmethod
+    def delete_room(cls, 
+                    db: Session, 
+                    room_id: int, 
+                    commit: bool = True) -> bool:
+        """
+        Deletes a room by its ID from the database.
+
+        Args:
+            db (Session): The database session.
+            room_id (int): The ID of the room to delete.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
+
+        Returns:
+            bool: True if the room was successfully deleted.
+
+        Raises:
+            HTTPException: If the room with the given ID does not exist.
+            Exception: For any issues during the commit.
+        """
+        room = db.query(Room).filter(Room.id == room_id).first()
+        if not room:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Room with id: {room_id} doesn't exist")
+        db.delete(room)
+        if commit:
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                raise e
+        return True
+    
 
 class DeviceVersion(enum.Enum):
     podstawowa = "podstawowa"
@@ -280,6 +393,59 @@ class Device(Base):
             db.commit()
             db.refresh(new_device)
         return new_device
+
+    @classmethod
+    def update(cls,
+               db: Session,
+               dev_id: int,
+               device_data: schemas.DeviceCreate,
+               commit: bool = True) -> "Device":
+        """
+        Updates an existing device in the database.
+
+        Args:
+            db (Session): The database session.
+            dev_id (int): The unique ID of the device to update.
+            device_data (schemas.DeviceUpdate): The data for updating the device.
+            commit (bool): Whether to commit the transaction after updating the device.
+
+        Returns:
+            Device: The updated Device object.
+
+        Raises:
+            HTTPException: If the device with the given ID does not exist.
+        """
+        device = cls.get_by_id(db, dev_id)  # Reuse the get_by_id method to fetch the device
+        for key, value in device_data.model_dump().items():
+            setattr(device, key, value)
+        
+        if commit:
+            db.commit()
+            db.refresh(device)
+        
+        return device
+
+    @classmethod
+    def delete(cls,
+               db: Session,
+               dev_id: int,
+               commit: bool = True) -> None:
+        """
+        Deletes a device from the database.
+
+        Args:
+            db (Session): The database session.
+            dev_id (int): The unique ID of the device to delete.
+            commit (bool): Whether to commit the transaction after deleting the device.
+
+        Raises:
+            HTTPException: If the device with the given ID does not exist.
+        """
+        device = cls.get_by_id(db, dev_id)  # Reuse the get_by_id method to fetch the device
+        
+        db.delete(device)
+        if commit:
+            db.commit()
 
 
 class DeviceNote(Base):

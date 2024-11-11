@@ -47,7 +47,7 @@ class User(BaseUser):
     surname: Mapped[str] = mapped_column(String(50))
     role: Mapped[UserRole]
     faculty: Mapped[Optional[Faculty]]
-    photo_url: Mapped[Optional[str]]
+    photo_url: Mapped[Optional[str]] = mapped_column(unique=True)
     email: Mapped[str] = mapped_column(String(100), unique=True)
     password: Mapped[str]
     card_code: Mapped[str] = mapped_column(unique=True)
@@ -80,7 +80,7 @@ class User(BaseUser):
         user = db.query(User).all()
         if (not user):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="There is no user in database")
+                                detail="There is no user in the database")
         return user
 
     @classmethod
@@ -106,7 +106,102 @@ class User(BaseUser):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"User with id: {user_id} doesn't exist")
         return user
+    
+    @classmethod
+    def create_user(cls,
+                    db: Session,
+                    user_data: schemas.UserCreate,
+                    commit: bool = True):
+        """
+        Creates a new user in the database.
 
+        Args:
+            db (Session): Database session used for executing the operation.
+            user_data (schemas.UserCreate): Data for creating the new user.
+            commit (bool, optional): Whether to commit the transaction after adding the user. Default is True.
+
+        Returns:
+            User: The newly created user object.
+        """
+        new_user = cls(**user_data.model_dump())
+        db.add(new_user)
+        if commit:
+            db.commit()
+            db.refresh(new_user)
+        return new_user
+    
+    @classmethod
+    def delete_user(cls,
+                    db: Session,
+                    user_id: int):
+        """
+        Deletes a user by their ID from the database.
+        Raises an exception if the user is not found.
+
+        Args:
+            db (Session): Database session used for executing the operation.
+            user_id (int): ID of the user to delete.
+
+        Returns:
+            bool: True if the user was successfully deleted.
+
+        Raises:
+            HTTPException: Raises a 404 error if the user is not found.
+        """
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"User with id: {user_id} doesn't exist")
+        db.delete(user)
+        db.commit()
+        return True
+    
+    @classmethod
+    def update_user(cls,
+                    db: Session,
+                    user_id: int,
+                    user_data: schemas.UserCreate,
+                    commit: bool = True)->"User":
+        """
+        Updates a user's information in the database.
+
+        Args:
+            db (Session): Database session used for executing the operation.
+            user_id (int): ID of the user to update.
+            user_data (schemas.UserCreate): Updated data for the user.
+            commit (bool, optional): Whether to commit the transaction after updating the user. Default is True.
+
+        Returns:
+            User: The updated user object.
+
+        Raises:
+            HTTPException: Raises a 404 error if the user is not found.
+            Exception: For any other issues during the commit.
+        """
+        user = db.query(User).filter(User.id == user_id).first()
+
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"User with id {user_id} not found")
+        user.name = user_data.name
+        user.surname = user_data.surname
+        user.email = user_data.email
+        user.card_code = user_data.card_code
+        user.role = UserRole(user_data.role)
+        user.faculty = Faculty(user_data.faculty)
+        user.photo_url = user_data.photo_url
+        user.password = user_data.password
+
+        if commit:
+            try:
+                db.commit()
+                db.refresh(user)
+            except Exception as e:
+                db.rollback()
+                raise e
+
+        return user
+        
 
 class UnauthorizedUser(BaseUser):
     __tablename__ = "unauthorized_user"
@@ -153,8 +248,16 @@ class UnauthorizedUser(BaseUser):
         if existing_user:
             if existing_user.name != name or existing_user.surname != surname:
                 raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="User with this email already exists but with a different name or surname."
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "message": "User with this email already exists but with a different name or surname.",
+                        "user": {
+                            "id": existing_user.id,
+                            "name": existing_user.name,
+                            "surname": existing_user.surname,
+                            "email": existing_user.email
+                        }
+                    }
                 )
             return existing_user, False
 
@@ -214,6 +317,48 @@ class UnauthorizedUser(BaseUser):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Unauthorized user with id: {user_id} doesn't exist")
         return user
+    
+    @classmethod
+    def update_unauthorized_user(cls,
+                                 db: Session,
+                                 user_id: int,
+                                 user_data: schemas.UnauthorizedUser,
+                                 commit: bool = True) -> "UnauthorizedUser":
+        """
+        Updates an unauthorized user's information in the database.
+
+        Args:
+            db (Session): Database session used for executing the operation.
+            user_id (int): ID of the unauthorized user to update.
+            user_data (schemas.UnauthorizedUser): New data for updating the user.
+            commit (Optional[bool]): Whether to commit the transaction after updating the user. Default is True.
+
+        Returns:
+            UnauthorizedUser: The updated unauthorized user object.
+
+        Raises:
+            HTTPException: Raises a 404 error if the unauthorized user is not found.
+            Exception: For any other issues during the commit.
+        """
+        user = db.query(UnauthorizedUser).filter(UnauthorizedUser.id == user_id).first()
+
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Unauthorized user with id {user_id} not found")
+
+        user.name = user_data.name
+        user.surname = user_data.surname
+        user.email = user_data.email
+
+        if commit:
+            try:
+                db.commit()
+                db.refresh(user)
+            except Exception as e:
+                db.rollback()
+                raise e
+
+        return user
 
     @classmethod
     def delete_unauthorized_user(cls,
@@ -243,7 +388,6 @@ class UnauthorizedUser(BaseUser):
 
         db.delete(user)
         db.commit()
-
         return True
 
 

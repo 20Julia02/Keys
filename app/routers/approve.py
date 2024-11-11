@@ -79,7 +79,7 @@ router = APIRouter(
                      }
                  },
                  422: {
-                     "description": "Validation Error: Invalid input or malformed data.",
+                     "description": "Validation Error:  Session ID must be an integer.",
                      "content": {
                          "application/json": {
                              "example": {
@@ -195,7 +195,7 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
                      }
                  },
                  422: {
-                     "description": "Validation Error: Invalid input or malformed data.",
+                     "description": "Validation Error: Session ID must be an integer.",
                      "content": {
                          "application/json": {
                              "example": {

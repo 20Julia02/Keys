@@ -511,9 +511,9 @@ def test_create_unauthorized_user_duplicated_invalid(test_concierge: muser.User,
     }
     response = client.post("/unauthorized-users", json=user_data,
                            headers={"Authorization": f"Bearer {concierge_token}"})
-    assert response.status_code == 403
+    assert response.status_code == 409
     assert response.json()[
-        "detail"] == "User with this email already exists but with a different name or surname."
+        "detail"]["message"] == "User with this email already exists but with a different name or surname."
 
 
 def test_create_unauthorized_user_with_missing_data(test_concierge: muser.User,
@@ -956,8 +956,7 @@ def test_delete_device_note(db: Session,
                           headers={"Authorization": f"Bearer {concierge_token}"})
 
     assert response.status_code == 404
-    assert response.json()["detail"] == f"There is no device notes with id {
-        test_device_note.id}."
+    assert response.json()["detail"] == f"There is no device notes with id {test_device_note.id}."
 
 
 def test_logout_with_valid_token(test_concierge: muser.User,

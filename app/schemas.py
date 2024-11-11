@@ -62,6 +62,10 @@ class UnauthorizedUserNote(UnauthorizedUser):
     email: str
     note: Optional[str] = None
 
+class Room(BaseModel):
+    number: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 class RoomOut(BaseModel):
     id: int
@@ -137,8 +141,9 @@ class DeviceNoteOut(BaseModel):
 class PermissionCreate(BaseModel):
     user_id: int
     room_id: int
-    start_reservation: datetime.datetime
-    end_reservation: datetime.datetime
+    date: datetime.date
+    start_time: datetime.time
+    end_time: datetime.time
 
 
 class PermissionOut(BaseModel):
