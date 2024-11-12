@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from typing import Sequence, Optional
 import app.models.permission as mpermission
 from app.models.user import User
+from app.services import securityService
 
 router = APIRouter(
     prefix="/permissions",
@@ -73,6 +74,8 @@ def create_permission(permission_data: PermissionCreate,
     """
     Creates a new permission in the database.
     """
+    auth_service = securityService.AuthorizationService(db)
+    auth_service.entitled_or_error("admin", current_concierge)
     return mpermission.Permission.create_permission(db, permission_data)
     
 @router.post("/update/{permission_id}", 
@@ -131,6 +134,8 @@ def update_permission(permission_id: int,
     """
     Updates an existing permission in the database.
     """
+    auth_service = securityService.AuthorizationService(db)
+    auth_service.entitled_or_error("admin", current_concierge)
     return mpermission.Permission.update_permission(db, permission_id, permission_data)
 
 
@@ -167,4 +172,6 @@ def delete_permission(permission_id: int,
     """
     Deletes a permission by its ID from the database.
     """
+    auth_service = securityService.AuthorizationService(db)
+    auth_service.entitled_or_error("admin", current_concierge)
     return mpermission.Permission.delete_permission(db, permission_id)

@@ -156,4 +156,6 @@ def delete_device(
     Returns:
         None
     """
+    auth_service = securityService.AuthorizationService(db)
+    auth_service.entitled_or_error("admin", current_concierge)
     return mdevice.Device.delete(db, device_id)

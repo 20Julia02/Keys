@@ -5,6 +5,7 @@ from app import database, oauth2
 from sqlalchemy.orm import Session
 import app.models.device as mdevice
 from app.models.user import User
+from app.services import securityService
 
 router = APIRouter(
     prefix="/rooms",
@@ -161,6 +162,8 @@ def create_room(room_data: Room,
     """
     Creates a new room in the database.
     """
+    auth_service = securityService.AuthorizationService(db)
+    auth_service.entitled_or_error("admin", current_concierge)
     return mdevice.Room.create_room(db, room_data)
 
 
@@ -232,6 +235,8 @@ def update_room(room_id: int,
     """
     Updates an existing room in the database.
     """
+    auth_service = securityService.AuthorizationService(db)
+    auth_service.entitled_or_error("admin", current_concierge)
     return mdevice.Room.update_room(db, room_id, room_data)
 
 
@@ -284,4 +289,6 @@ def delete_room(room_id: int,
     """
     Deletes a room by its ID from the database.
     """
+    auth_service = securityService.AuthorizationService(db)
+    auth_service.entitled_or_error("admin", current_concierge)
     return mdevice.Room.delete_room(db, room_id)

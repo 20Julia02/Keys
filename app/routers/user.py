@@ -1,4 +1,4 @@
-from fastapi import Depends, APIRouter, status, HTTPException
+from fastapi import Depends, APIRouter, status
 from typing import Sequence
 from app.schemas import UserOut, UserCreate
 from app import database, oauth2
@@ -225,11 +225,7 @@ def delete_user(user_id: int,
     """
     Deletes a user by their ID from the database.
     """
-    success = muser.User.delete_user(db, user_id)
-    if not success:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"User with id: {user_id} doesn't exist")
-    return None
+    return muser.User.delete_user(db, user_id)
 
 
 @router.put("/{user_id}", 
