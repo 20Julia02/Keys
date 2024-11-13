@@ -6,6 +6,7 @@ import datetime
 from fastapi import HTTPException, status
 from app import schemas
 from app.models.base import Base, timestamp
+from app.config import logger
 
 
 if TYPE_CHECKING:
@@ -106,12 +107,12 @@ class User(BaseUser):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"User with id: {user_id} doesn't exist")
         return user
-    
+
     @classmethod
     def create_user(cls,
                     db: Session,
                     user_data: schemas.UserCreate,
-                    commit: bool = True)-> "User":
+                    commit: bool = True) -> "User":
         """
         Creates a new user in the database.
 
@@ -131,14 +132,15 @@ class User(BaseUser):
                 db.refresh(new_user)
             except Exception as e:
                 db.rollback()
-                raise e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
         return new_user
-    
+
     @classmethod
     def delete_user(cls,
                     db: Session,
                     user_id: int,
-                    commit: bool = True)-> bool:
+                    commit: bool = True) -> bool:
         """
         Deletes a user by their ID from the database.
         Raises an exception if the user is not found.
@@ -164,15 +166,16 @@ class User(BaseUser):
                 db.commit()
             except Exception as e:
                 db.rollback()
-                raise e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
         return True
-    
+
     @classmethod
     def update_user(cls,
                     db: Session,
                     user_id: int,
                     user_data: schemas.UserCreate,
-                    commit: bool = True)->"User":
+                    commit: bool = True) -> "User":
         """
         Updates a user's information in the database.
 
@@ -209,10 +212,11 @@ class User(BaseUser):
                 db.refresh(user)
             except Exception as e:
                 db.rollback()
-                raise e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
 
         return user
-        
+
 
 class UnauthorizedUser(BaseUser):
     __tablename__ = "unauthorized_user"
@@ -286,7 +290,8 @@ class UnauthorizedUser(BaseUser):
                 db.refresh(new_user)
             except Exception as e:
                 db.rollback()
-                raise e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
         return new_user, True
 
     @classmethod
@@ -335,7 +340,7 @@ class UnauthorizedUser(BaseUser):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Unauthorized user with id: {user_id} doesn't exist")
         return user
-    
+
     @classmethod
     def update_unauthorized_user(cls,
                                  db: Session,
@@ -358,7 +363,8 @@ class UnauthorizedUser(BaseUser):
             HTTPException: Raises a 404 error if the unauthorized user is not found.
             Exception: For any other issues during the commit.
         """
-        user = db.query(UnauthorizedUser).filter(UnauthorizedUser.id == user_id).first()
+        user = db.query(UnauthorizedUser).filter(
+            UnauthorizedUser.id == user_id).first()
 
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -374,7 +380,8 @@ class UnauthorizedUser(BaseUser):
                 db.refresh(user)
             except Exception as e:
                 db.rollback()
-                raise e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
 
         return user
 
@@ -382,7 +389,7 @@ class UnauthorizedUser(BaseUser):
     def delete_unauthorized_user(cls,
                                  db: Session,
                                  user_id: int,
-                                 commit: bool = True)-> bool:
+                                 commit: bool = True) -> bool:
         """
         Deletes an unauthorized user by their ID from the database.
         Raises an exception if the user is not found.
@@ -412,7 +419,8 @@ class UnauthorizedUser(BaseUser):
                 db.commit()
             except Exception as e:
                 db.rollback()
-                raise e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
         return True
 
 
@@ -510,7 +518,8 @@ class UserNote(Base):
                 db.refresh(note)
             except Exception as e:
                 db.rollback()
-                raise e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
         return note
 
     @classmethod
@@ -554,7 +563,8 @@ class UserNote(Base):
                 db.refresh(note)
             except Exception as e:
                 db.rollback()
-                raise e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
 
         return note
 
@@ -589,5 +599,6 @@ class UserNote(Base):
                 db.commit()
             except Exception as e:
                 db.rollback()
-                raise e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
         return True

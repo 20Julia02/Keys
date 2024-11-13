@@ -7,6 +7,7 @@ from app.models.base import Base
 from app import schemas
 import datetime
 from typing import TYPE_CHECKING, List, Literal, Optional, Sequence
+from app.config import logger
 
 if TYPE_CHECKING:
     from app.models.user import BaseUser, User
@@ -70,7 +71,8 @@ class UserSession(Base):
                 db.refresh(new_session)
             except Exception as e:
                 db.rollback()
-                raise e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
         return new_session
 
     @classmethod
@@ -111,7 +113,8 @@ class UserSession(Base):
                 db.commit()
             except Exception as e:
                 db.rollback()
-                raise e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
         return session
 
     @classmethod
@@ -187,7 +190,8 @@ class UnapprovedOperation(Base):
                 db.commit()
             except Exception as e:
                 db.rollback()
-                raise e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
             return True
         return False
 
@@ -216,14 +220,15 @@ class UnapprovedOperation(Base):
                 db.commit()
             except Exception as e:
                 db.rollback()
-                raise e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
         return new_operation
 
     @classmethod
     def get_unapproved_filtered(cls,
-                               db: Session,
-                               session_id: Optional[int] = None,
-                               operation_type: Literal["pobranie", "zwrot", None] = None) -> List["UnapprovedOperation"]:
+                                db: Session,
+                                session_id: Optional[int] = None,
+                                operation_type: Literal["pobranie", "zwrot", None] = None) -> List["UnapprovedOperation"]:
         """
         Retrieves unapproved operations. It filters results by a given session ID and operation type.
 
@@ -270,11 +275,14 @@ class UnapprovedOperation(Base):
         Raises:
             HTTPException: If an error occurs during operation transfer.
         """
-        unapproved_operations = cls.get_unapproved_filtered(db, session_id=session_id)
+        unapproved_operations = cls.get_unapproved_filtered(
+            db, session_id=session_id)
         operation_list: List[schemas.DevOperationOut] = []
         for unapproved_operation in unapproved_operations:
-            operation_schema = schemas.DevOperation.model_validate(unapproved_operation)
-            new_operation = DeviceOperation.create_operation(db, operation_schema, False)
+            operation_schema = schemas.DevOperation.model_validate(
+                unapproved_operation)
+            new_operation = DeviceOperation.create_operation(
+                db, operation_schema, False)
             db.flush()
             db.delete(unapproved_operation)
             validated_operation = schemas.DevOperationOut.model_validate(
@@ -396,7 +404,8 @@ class DeviceOperation(Base):
                 db.commit()
             except Exception as e:
                 db.rollback()
-                raise e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
         return new_operation
 
     @classmethod

@@ -1,5 +1,7 @@
 from pydantic_settings import BaseSettings
 from pydantic import ConfigDict
+import logging
+from logging.handlers import RotatingFileHandler
 
 
 class Settings(BaseSettings):
@@ -17,3 +19,18 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+handler = RotatingFileHandler(
+    "app.log",
+    maxBytes=5 * 1024 * 1024,
+    backupCount=2
+)
+
+formatter = logging.Formatter(
+    "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+
+logger = logging.getLogger("app_logger")
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)

@@ -16,38 +16,6 @@ router = APIRouter(
 @router.post("/approve/login/session/{session_id}",
              response_model=Sequence[schemas.DevOperationOut],
              responses={
-                 200: {
-                     "description": "Session successfully approved.",
-                     "content": {
-                         "application/json": {
-                             "example": [
-                                 {
-                                     "id": 1,
-                                     "device": {
-                                         "id": 1,
-                                         "code": "ABC123",
-                                         "dev_type": "Tablet",
-                                         "dev_version": "v2.0",
-                                         "room": {
-                                             "id": 101,
-                                             "number": "42A"
-                                         }
-                                     },
-                                     "session": {
-                                         "id": 1,
-                                         "user_id": 5,
-                                         "concierge_id": 2,
-                                         "start_time": "2023-10-12T13:18:04.071Z",
-                                         "status": "w trakcie"
-                                     },
-                                     "operation_type": "activate_device",
-                                     "entitled": True,
-                                     "timestamp": "2023-10-12T13:18:04.071Z"
-                                 }
-                             ]
-                         }
-                     },
-                 },
                  403: {
                      "description": "Authentication failed due to incorrect login credentials.",
                      "content": {
@@ -74,22 +42,6 @@ router = APIRouter(
                                  "no_operations_found": {
                                      "detail": "No unapproved operations found for this session"
                                  }
-                             }
-                         }
-                     }
-                 },
-                 422: {
-                     "description": "Validation Error:  Session ID must be an integer.",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                 "detail": [
-                                     {
-                                         "loc": ["path", "session_id"],
-                                         "msg": "Session ID must be an integer",
-                                         "type": "type_error.integer"
-                                     }
-                                 ]
                              }
                          }
                      }
@@ -129,38 +81,6 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
 @router.post("/approve/card/session/{session_id}",
              response_model=Sequence[schemas.DevOperationOut],
              responses={
-                 200: {
-                     "description": "Session successfully approved.",
-                     "content": {
-                         "application/json": {
-                             "example": [
-                                 {
-                                     "id": 1,
-                                     "device": {
-                                         "id": 1,
-                                         "code": "ABC123",
-                                         "dev_type": "Tablet",
-                                         "dev_version": "v2.0",
-                                         "room": {
-                                             "id": 101,
-                                             "number": "42A"
-                                         }
-                                     },
-                                     "session": {
-                                         "id": 1,
-                                         "user_id": 5,
-                                         "concierge_id": 2,
-                                         "start_time": "2023-10-12T13:18:04.071Z",
-                                         "status": "w trakcie"
-                                     },
-                                     "operation_type": "activate_device",
-                                     "entitled": True,
-                                     "timestamp": "2023-10-12T13:18:04.071Z"
-                                 }
-                             ]
-                         }
-                     },
-                 },
                  403: {
                      "description": "Authentication failed due to incorrect login credentials.",
                      "content": {
@@ -190,22 +110,6 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
                                  "no_operations_found": {
                                      "detail": "No unapproved operations found for this session"
                                  }
-                             }
-                         }
-                     }
-                 },
-                 422: {
-                     "description": "Validation Error: Session ID must be an integer.",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                 "detail": [
-                                     {
-                                         "loc": ["path", "session_id"],
-                                         "msg": "Session ID must be an integer",
-                                         "type": "type_error.integer"
-                                     }
-                                 ]
                              }
                          }
                      }

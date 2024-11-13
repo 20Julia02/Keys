@@ -9,6 +9,7 @@ from app.config import settings
 from app import schemas
 import app.models.permission as mpermission
 import app.models.user as muser
+from app.config import logger
 
 
 class PasswordService:
@@ -128,21 +129,28 @@ class TokenService:
                                token: str,
                                commit: bool = True) -> bool:
         """
-        Adds a token to the blacklist in the database.
+        Checks whether the token is blacklisted, if not 
+        adds the token to the blacklist in the database.
 
         Args:
             token (str): The token to blacklist.
             commit (optional[bool]): Whether to commit the transaction after updating the note. Default is `True`.
         Returns:
-            bool: True after the token is successfully added to the blacklist.
+            bool: True if the token was successfully added to the blacklist.
+            False if token was already blacklisted
         """
         if not self.is_token_blacklisted(token):
             db_token = mpermission.TokenBlacklist(token=token)
             self.db.add(db_token)
             if commit:
-                self.db.commit()
-                self.db.refresh(db_token)
-        return True
+                try:
+                    self.db.commit()
+                except Exception as e:
+                    self.db.rollback()
+                    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                        detail=f"An internal error occurred")
+            return True
+        return False
 
     def generate_tokens(self,
                         user_id: int,

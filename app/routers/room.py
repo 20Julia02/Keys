@@ -12,7 +12,8 @@ router = APIRouter(
     tags=['Rooms']
 )
 
-@router.get("/", 
+
+@router.get("/",
             response_model=Sequence[RoomOut],
             responses={
                 200: {
@@ -33,7 +34,7 @@ router = APIRouter(
                     "content": {
                         "application/json": {
                             "example": {
-                                "detail": "No rooms found matching the specified number"
+                                "detail": "No rooms found"
                             }
                         }
                     }
@@ -59,7 +60,7 @@ def get_rooms(current_concierge: User = Depends(oauth2.get_current_concierge),
     return mdevice.Room.get_rooms(db, number)
 
 
-@router.get("/{room_id}", 
+@router.get("/{room_id}",
             response_model=RoomOut,
             responses={
                 200: {
@@ -120,7 +121,7 @@ def get_room_id(room_id: int,
     return mdevice.Room.get_room_id(db, room_id)
 
 
-@router.post("/", 
+@router.post("/",
              response_model=RoomOut,
              status_code=status.HTTP_201_CREATED,
              responses={
@@ -157,7 +158,8 @@ def get_room_id(room_id: int,
                  }
              })
 def create_room(room_data: Room,
-                current_concierge: User = Depends(oauth2.get_current_concierge),
+                current_concierge: User = Depends(
+                    oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)) -> RoomOut:
     """
     Creates a new room in the database.
@@ -167,70 +169,71 @@ def create_room(room_data: Room,
     return mdevice.Room.create_room(db, room_data)
 
 
-@router.post("/{room_id}", 
-            response_model=RoomOut,
-            responses={
-                200: {
-                    "description": "Room updated successfully.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "id": 1,
-                                "number": "101"
-                            }
-                        }
-                    }
-                },
-                400: {
-                    "description": "Room with the specified number already exists.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "detail": "Room with number '101' already exists."
-                            }
-                        }
-                    }
-                },
-                404: {
-                    "description": "Room with the specified ID not found.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "detail": "Room with id: {room_id} doesn't exist"
-                            }
-                        }
-                    }
-                },
-                422: {
-                    "description": "Validation error: Room ID must be an integer.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "detail": [
+@router.post("/{room_id}",
+             response_model=RoomOut,
+             responses={
+                 200: {
+                     "description": "Room updated successfully.",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                 "id": 1,
+                                 "number": "101"
+                             }
+                         }
+                     }
+                 },
+                 400: {
+                     "description": "Room with the specified number already exists.",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                 "detail": "Room with number '101' already exists."
+                             }
+                         }
+                     }
+                 },
+                 404: {
+                     "description": "Room with the specified ID not found.",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                 "detail": "Room with id: {room_id} doesn't exist"
+                             }
+                         }
+                     }
+                 },
+                 422: {
+                     "description": "Validation error: Room ID must be an integer.",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                 "detail": [
                                     {
                                         "loc": ["path", "room_id"],
                                         "msg": "Room ID must be an integer",
                                         "type": "type_error.integer"
                                     }
-                                ]
-                            }
-                        }
-                    }
-                },
-                500: {
-                    "description": "An internal server error occurred.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "detail": "Internal server error"
-                            }
-                        }
-                    }
-                }
-            })
+                                 ]
+                             }
+                         }
+                     }
+                 },
+                 500: {
+                     "description": "An internal server error occurred.",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                 "detail": "Internal server error"
+                             }
+                         }
+                     }
+                 }
+             })
 def update_room(room_id: int,
                 room_data: Room,
-                current_concierge: User = Depends(oauth2.get_current_concierge),
+                current_concierge: User = Depends(
+                    oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)) -> RoomOut:
     """
     Updates an existing room in the database.
@@ -240,7 +243,7 @@ def update_room(room_id: int,
     return mdevice.Room.update_room(db, room_id, room_data)
 
 
-@router.delete("/{room_id}", 
+@router.delete("/{room_id}",
                status_code=status.HTTP_204_NO_CONTENT,
                responses={
                    204: {
@@ -284,7 +287,8 @@ def update_room(room_id: int,
                    }
                })
 def delete_room(room_id: int,
-                current_concierge: User = Depends(oauth2.get_current_concierge),
+                current_concierge: User = Depends(
+                    oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)):
     """
     Deletes a room by its ID from the database.

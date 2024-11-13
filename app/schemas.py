@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional, Union
+from typing import Optional, Union, Literal
 from pydantic import BaseModel, ConfigDict
 
 # todo uporządkować to
@@ -23,13 +23,14 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     id: Optional[int] = None
-    role: Optional[str] = None
+    role: Optional[Literal["admin", "concierge",
+                           "employee", "student", "guest"]] = None
 
 
 class UserCreate(BaseModel):
     name: str
     surname: str
-    role: str
+    role: Literal["admin", "concierge", "employee", "student", "guest"]
     email: str
     password: str
     card_code: str
@@ -62,10 +63,12 @@ class UnauthorizedUserNote(UnauthorizedUser):
     email: str
     note: Optional[str] = None
 
+
 class Room(BaseModel):
     number: str
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class RoomOut(BaseModel):
     id: int
@@ -76,8 +79,8 @@ class RoomOut(BaseModel):
 
 class DeviceCreate(BaseModel):
     code: str
-    dev_version: str
-    dev_type: str
+    dev_version: Literal["podstawowa", "zapasowa"]
+    dev_type: Literal["klucz", "mikrofon", "pilot"]
     room_id: int
 
 
@@ -94,7 +97,7 @@ class DeviceOut(BaseModel):
 class DevOperation(BaseModel):
     device_id: int
     session_id: int
-    operation_type: str
+    operation_type: Literal["pobranie", "zwrot"]
     entitled: bool
 
     model_config = ConfigDict(from_attributes=True)
@@ -104,7 +107,7 @@ class UnapprovedOperation(BaseModel):
     id: int
     device_id: int
     session_id: int
-    operation_type: str
+    operation_type: Literal["pobranie", "zwrot"]
     timestamp: datetime.datetime
     entitled: bool
 

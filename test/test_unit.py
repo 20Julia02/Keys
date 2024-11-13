@@ -19,7 +19,7 @@ def test_get_rooms_no_rooms():
     with pytest.raises(HTTPException) as excinfo:
         mdevice.Room.get_rooms(db)
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "No rooms found matching the specified number"
+    assert excinfo.value.detail == "No rooms found"
 
 
 def test_get_rooms_with_rooms():
@@ -71,7 +71,7 @@ def test_get_device_with_details_no_devices():
         mdevice.Device.get_dev_with_details(db)
 
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "There are no devices that match the given criteria in the database"
+    assert excinfo.value.detail == "No devices found"
 
 
 def test_get_device_with_details_with_criteria():
@@ -92,25 +92,6 @@ def test_get_device_with_details_with_criteria():
 
     assert len(devices) > 0
     assert "device_key_101" in [d.code for d in devices]
-
-
-def test_get_device_with_invalid_type():
-    db = MagicMock()
-
-    with pytest.raises(HTTPException) as excinfo:
-        mdevice.Device.get_dev_with_details(db, dev_type="InvalidType")
-    assert excinfo.value.status_code == 400
-    assert excinfo.value.detail == "Invalid device type: InvalidType"
-
-
-def test_get_device_with_invalid_version():
-    db = MagicMock()
-
-    with pytest.raises(HTTPException) as excinfo:
-        mdevice.Device.get_dev_with_details(
-            db, dev_version="InvalidVersion")
-    assert excinfo.value.status_code == 400
-    assert excinfo.value.detail == "Invalid device version: InvalidVersion"
 
 
 def test_get_by_id_not_found():
@@ -148,7 +129,8 @@ def test_get_by_code_found():
     mock_device = MagicMock(code="device_key_101")
     db.query.return_value.filter.return_value.first.return_value = mock_device
 
-    found_device = mdevice.Device.get_dev_by_code(db, dev_code="device_key_101")
+    found_device = mdevice.Device.get_dev_by_code(
+        db, dev_code="device_key_101")
     assert found_device.code == "device_key_101"
 
 
@@ -232,6 +214,7 @@ def test_create_or_get_unauthorized_user_conflict():
     detail: dict[str, Any] = excinfo.value.detail
     assert isinstance(detail, dict)
     assert detail['message'] == "User with this email already exists but with a different name or surname."
+
 
 def test_get_user_notes_filter_no_notes():
     db = MagicMock()

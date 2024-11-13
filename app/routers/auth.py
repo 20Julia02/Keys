@@ -13,30 +13,16 @@ router = APIRouter(
 
 
 @router.post("/login", response_model=schemas.Token, responses={
-    200: {
-        "description": "Concierge authorized and tokens generated.",
-        "content": {
-            "application/json": {
-                "example":
-                {
-                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
-                    "token_type": "bearer",
-                    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
-                }
-
-            }
-        },
-    },
     403: {
         "description": "Authentication failed due to incorrect login credentials.",
         "content": {
             "application/json": {
                 "example": {
                     "invalid_card_code": {
-                        "detail": "Invalid credential"
+                        "detail": "Invalid credentials"
                     },
                     "not_entitled": {
-                        "detail": "You cannot perform this operation without the concierge role"
+                        "detail": "You cannot perform this operation without the employee role"
                     }
                 }
             }
@@ -62,27 +48,13 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
 
 
 @router.post("/login/card", response_model=schemas.Token, responses={
-    200: {
-        "description": "Concierge authorized and tokens generated.",
-        "content": {
-            "application/json": {
-                "example":
-                {
-                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
-                    "token_type": "bearer",
-                    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
-                }
-
-            }
-        },
-    },
     403: {
         "description": "Authentication failed due to incorrect login credentials.",
         "content": {
             "application/json": {
                 "example": {
                     "invalid_card_code": {
-                        "detail": "Invalid credential"
+                        "detail": "Invalid credentials"
                     },
                     "not_entitled": {
                         "detail": "You cannot perform this operation without the concierge role"
@@ -109,7 +81,23 @@ def card_login(card_id: schemas.CardId,
     return token_service.generate_tokens(concierge.id, concierge.role.value)
 
 
-@router.post("/start-session/login", response_model=schemas.Session)
+@router.post("/start-session/login", response_model=schemas.Session, responses={
+    403: {
+        "description": "Authentication failed due to incorrect login credentials.",
+        "content": {
+            "application/json": {
+                "example": {
+                    "invalid_card_code": {
+                        "detail": "Invalid credentials"
+                    },
+                    "not_entitled": {
+                        "detail": "You cannot perform this operation without the employee role"
+                    }
+                }
+            }
+        }
+    },
+})
 def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
                         current_concierge: muser.User = Depends(
                             oauth2.get_current_concierge),
@@ -128,7 +116,23 @@ def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
     return moperation.UserSession.create_session(db, user.id, current_concierge.id)
 
 
-@router.post("/start-session/card", response_model=schemas.Session)
+@router.post("/start-session/card", response_model=schemas.Session, responses={
+    403: {
+        "description": "Authentication failed due to incorrect login credentials.",
+        "content": {
+            "application/json": {
+                "example": {
+                    "invalid_card_code": {
+                        "detail": "Invalid credentials"
+                    },
+                    "not_entitled": {
+                        "detail": "You cannot perform this operation without the employee role"
+                    }
+                }
+            }
+        }
+    },
+})
 def start_card_session(card_id: schemas.CardId,
                        current_concierge: muser.User = Depends(
                            oauth2.get_current_concierge),
@@ -145,12 +149,31 @@ def start_card_session(card_id: schemas.CardId,
     return moperation.UserSession.create_session(db, user.id, current_concierge.id)
 
 
-@router.post("/start-session/unauthorized/{unauthorized_id}", response_model=schemas.Session)
+@router.post("/start-session/unauthorized/{unauthorized_id}", response_model=schemas.Session, responses={
+    404: {
+        "description": "Unauthorized user not found.",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Unauthorized user with id 123 not found"
+                }
+            }
+        }
+    },
+})
 def start_unauthorized_session(unauthorized_id: int,
                                current_concierge: muser.User = Depends(
                                    oauth2.get_current_concierge),
                                db: Session = Depends(database.get_db)) -> schemas.Session:
-    user = db.query(muser.UnauthorizedUser).filter_by(id=unauthorized_id).first()
+    """
+    Start a session for an unauthorized user by their ID.
+
+    This endpoint allows a concierge to initiate a session for an unauthorized user.
+    The unauthorized user is identified by their unique ID, and the session is assigned
+    to the current concierge if the user exists in the system.
+    """
+    user = db.query(muser.UnauthorizedUser).filter_by(
+        id=unauthorized_id).first()
     if not user:
         raise HTTPException(
             status_code=404,
@@ -159,7 +182,18 @@ def start_unauthorized_session(unauthorized_id: int,
     return moperation.UserSession.create_session(db, unauthorized_id, current_concierge.id)
 
 
-@router.post("/refresh", response_model=schemas.Token)
+@router.post("/refresh", response_model=schemas.Token, responses={
+    401: {
+        "description": "Invalid or expired refresh token.",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Invalid token"
+                }
+            }
+        }
+    },
+})
 def refresh_token(refresh_token: schemas.RefreshToken, db: Session = Depends(database.get_db)) -> schemas.Token:
     """
     Refresh the access token using a valid refresh token.
@@ -179,7 +213,28 @@ def refresh_token(refresh_token: schemas.RefreshToken, db: Session = Depends(dat
     return token_service.generate_tokens(user.id, user.role.value)
 
 
-@router.post("/logout")
+@router.post("/logout", responses={
+    401: {
+        "description": "Invalid or expired refresh token.",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Invalid token"
+                }
+            }
+        }
+    },
+    403: {
+        "description": "User is already logged out.",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "You are logged out"
+                }
+            }
+        }
+    },
+})
 def logout(token: str = Depends(oauth2.get_current_concierge_token),
            db: Session = Depends(database.get_db)) -> JSONResponse:
     """

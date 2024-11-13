@@ -7,7 +7,7 @@ from app.models.user import User
 from app.models.device import Room
 from fastapi import HTTPException, status
 from app import schemas
-from sqlalchemy.exc import IntegrityError
+from app.config import logger
 
 
 class TokenBlacklist(Base):
@@ -29,7 +29,6 @@ class Permission(Base):
 
     user: Mapped["User"] = relationship(back_populates="permissions")
     room: Mapped["Room"] = relationship(back_populates="permissions")
-
 
     @classmethod
     def get_permissions(cls,
@@ -136,11 +135,12 @@ class Permission(Base):
         if commit:
             try:
                 db.commit()
-            except IntegrityError:
+            except Exception as e:
                 db.rollback()
-                raise ValueError("A permission already exists for the specified room and time.")
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
         return new_permission
-    
+
     @classmethod
     def update_permission(cls,
                           db: Session,
@@ -163,7 +163,8 @@ class Permission(Base):
             HTTPException: If the permission is not found or conflicts with existing permissions.
             Exception: For any issues during the commit.
         """
-        permission = db.query(Permission).filter(Permission.id == permission_id).first()
+        permission = db.query(Permission).filter(
+            Permission.id == permission_id).first()
         if not permission:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Permission with id: {permission_id} doesn't exist")
@@ -177,22 +178,17 @@ class Permission(Base):
         if commit:
             try:
                 db.commit()
-            except IntegrityError:
-                db.rollback()
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="A permission already exists for the specified room and time."
-                )
             except Exception as e:
                 db.rollback()
-                raise e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
 
         return permission
 
     @classmethod
-    def delete_permission(cls, 
-                          db: Session, 
-                          permission_id: int, 
+    def delete_permission(cls,
+                          db: Session,
+                          permission_id: int,
                           commit: Optional[bool] = True) -> bool:
         """
         Deletes a permission by its ID from the database.
@@ -209,7 +205,8 @@ class Permission(Base):
             HTTPException: If the permission with the given ID does not exist.
             Exception: For any issues during the commit.
         """
-        permission = db.query(Permission).filter(Permission.id == permission_id).first()
+        permission = db.query(Permission).filter(
+            Permission.id == permission_id).first()
         if not permission:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Permission with id: {permission_id} doesn't exist")
@@ -219,8 +216,10 @@ class Permission(Base):
                 db.commit()
             except Exception as e:
                 db.rollback()
-                raise e
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail=f"An internal error occurred")
         return True
+
 
 @event.listens_for(Permission.__table__, 'after_create')
 def delete_old_reservations(target: Table,
@@ -245,12 +244,12 @@ def delete_old_reservations(target: Table,
 
 
 @event.listens_for(Permission.__table__, 'after_create')
-def create_permission_conflict_trigger(target: Table, 
-                                       connection: Any, 
+def create_permission_conflict_trigger(target: Table,
+                                       connection: Any,
                                        **kw: Any) -> None:
     """
     Creates a trigger to check for time conflicts in room permissions.
-    
+
     Args:
         target (Table): The table to which the trigger applies.
         connection (Any): The connection to the database.
