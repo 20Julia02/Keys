@@ -45,10 +45,10 @@ class Permission(Base):
 
         Args:
             db (Session): Database session used to execute the query.
-            user_id (Optional[int], optional): ID of the user whose permissions are being queried. Default is `None`.
-            room_id (Optional[int], optional): ID of the room for which permissions are being queried. Default is `None`.
-            date (Optional[datetime.date], optional): Date of permissions to retrieve. Default is `None`.
-            start_time (Optional[datetime.time], optional): Start time of permissions to retrieve. Default is `None`.
+            user_id (int, optional): ID of the user whose permissions are being queried. Default is `None`.
+            room_id (int, optional): ID of the room for which permissions are being queried. Default is `None`.
+            date (datetime.date, optional): Date of permissions to retrieve. Default is `None`.
+            start_time (datetime.time, optional): Start time of permissions to retrieve. Default is `None`.
 
         Returns:
             List[Permission]: A list of permissions that match the specified criteria.
@@ -115,7 +115,7 @@ class Permission(Base):
     def create_permission(cls,
                           db: Session,
                           permission_data: schemas.PermissionCreate,
-                          commit: bool = True) -> "Permission":
+                          commit: Optional[bool] = True) -> "Permission":
         """
         Creates a new permission based on the data provided in `permission` and saves it to the database.
         Commits and refreshes the object depending on the value of `commit`.
@@ -123,7 +123,7 @@ class Permission(Base):
         Args:
             db (Session): Database session used to execute the operation.
             permission (schemas.PermissionCreate): Schema containing data for creating a new permission.
-            commit (bool, optional): Indicates whether to commit changes to the database after adding the new permission. Default is `True`.
+            commit (bool, optional): Whether to commit changes to the database after adding the new permission. Default is `True`.
 
         Returns:
             Permission: The newly created permission.
@@ -146,7 +146,7 @@ class Permission(Base):
                           db: Session,
                           permission_id: int,
                           permission_data: schemas.PermissionCreate,
-                          commit: bool = True) -> "Permission":
+                          commit: Optional[bool] = True) -> "Permission":
         """
         Updates an existing permission in the database.
 
@@ -177,7 +177,6 @@ class Permission(Base):
         if commit:
             try:
                 db.commit()
-                db.refresh(permission)
             except IntegrityError:
                 db.rollback()
                 raise HTTPException(
@@ -191,7 +190,10 @@ class Permission(Base):
         return permission
 
     @classmethod
-    def delete_permission(cls, db: Session, permission_id: int, commit: bool = True) -> bool:
+    def delete_permission(cls, 
+                          db: Session, 
+                          permission_id: int, 
+                          commit: Optional[bool] = True) -> bool:
         """
         Deletes a permission by its ID from the database.
 
@@ -241,8 +243,11 @@ def delete_old_reservations(target: Table,
         f"DELETE FROM {target.name} WHERE date < :one_week_ago")
     connection.execute(delete_query, {"one_week_ago": one_week_ago})
 
+
 @event.listens_for(Permission.__table__, 'after_create')
-def create_permission_conflict_trigger(target: Table, connection: Any, **kw: Any) -> None:
+def create_permission_conflict_trigger(target: Table, 
+                                       connection: Any, 
+                                       **kw: Any) -> None:
     """
     Creates a trigger to check for time conflicts in room permissions.
     

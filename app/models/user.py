@@ -111,7 +111,7 @@ class User(BaseUser):
     def create_user(cls,
                     db: Session,
                     user_data: schemas.UserCreate,
-                    commit: bool = True):
+                    commit: bool = True)-> "User":
         """
         Creates a new user in the database.
 
@@ -126,14 +126,19 @@ class User(BaseUser):
         new_user = cls(**user_data.model_dump())
         db.add(new_user)
         if commit:
-            db.commit()
-            db.refresh(new_user)
+            try:
+                db.commit()
+                db.refresh(new_user)
+            except Exception as e:
+                db.rollback()
+                raise e
         return new_user
     
     @classmethod
     def delete_user(cls,
                     db: Session,
-                    user_id: int):
+                    user_id: int,
+                    commit: bool = True)-> bool:
         """
         Deletes a user by their ID from the database.
         Raises an exception if the user is not found.
@@ -141,6 +146,7 @@ class User(BaseUser):
         Args:
             db (Session): Database session used for executing the operation.
             user_id (int): ID of the user to delete.
+            commit (bool, optional): Whether to commit the transaction after adding the user. Default is True.
 
         Returns:
             bool: True if the user was successfully deleted.
@@ -153,7 +159,12 @@ class User(BaseUser):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"User with id: {user_id} doesn't exist")
         db.delete(user)
-        db.commit()
+        if commit:
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                raise e
         return True
     
     @classmethod
@@ -221,7 +232,8 @@ class UnauthorizedUser(BaseUser):
                                         db: Session,
                                         name: str,
                                         surname: str,
-                                        email: str) -> Tuple["UnauthorizedUser", bool]:
+                                        email: str,
+                                        commit: bool = True) -> Tuple["UnauthorizedUser", bool]:
         """
         Checks whether an unauthorised user with a given email exists in the database.
         If so and his name and surname matches those in the database it returns an existing user, 
@@ -235,6 +247,7 @@ class UnauthorizedUser(BaseUser):
             name (str): First name of the user.
             surname (str): Last name of the user.
             email (str): Email address of the user.
+            commit (bool, optional): Whether to commit the transaction after adding the user. Default is True.
 
         Returns:
             Tuple[UnauthorizedUser, bool]: Tuple containing the user object and a boolean indicating if the user is newly created.
@@ -267,8 +280,13 @@ class UnauthorizedUser(BaseUser):
             email=email
         )
         db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
+        if commit:
+            try:
+                db.commit()
+                db.refresh(new_user)
+            except Exception as e:
+                db.rollback()
+                raise e
         return new_user, True
 
     @classmethod
@@ -363,7 +381,8 @@ class UnauthorizedUser(BaseUser):
     @classmethod
     def delete_unauthorized_user(cls,
                                  db: Session,
-                                 user_id: int):
+                                 user_id: int,
+                                 commit: bool = True)-> bool:
         """
         Deletes an unauthorized user by their ID from the database.
         Raises an exception if the user is not found.
@@ -371,6 +390,7 @@ class UnauthorizedUser(BaseUser):
         Args:
             db (Session): Database session used for executing the operation.
             user_id (int): ID of the unauthorized user to delete.
+            commit (Optional[bool]): Whether to commit the transaction after deleting the user. Default is True.
 
         Returns:
             bool: `True` if the user was successfully deleted.
@@ -387,7 +407,12 @@ class UnauthorizedUser(BaseUser):
                                 detail=f"Unauthorized user with id: {user_id} doesn't exist")
 
         db.delete(user)
-        db.commit()
+        if commit:
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                raise e
         return True
 
 
@@ -545,7 +570,7 @@ class UserNote(Base):
         Args:
             db (Session): Database session used for executing the operation.
             note_id (int): ID of the note to delete.
-            commit (optional[bool]): Whether to commit the transaction after updating the note. Default is `True`.
+            commit (optional[bool]): Whether to commit the transaction after deleting the note. Default is `True`.
 
         Returns:
             bool: `True` if the note was successfully deleted.

@@ -68,7 +68,7 @@ def test_get_device_with_details_no_devices():
     db.query.return_value.all.return_value = []
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Device.get_device_with_details(db)
+        mdevice.Device.get_dev_with_details(db)
 
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "There are no devices that match the given criteria in the database"
@@ -88,7 +88,7 @@ def test_get_device_with_details_with_criteria():
     query_mock.order_by.return_value = query_mock
     query_mock.all.return_value = [mock_device]
 
-    devices = mdevice.Device.get_device_with_details(db, dev_type="klucz")
+    devices = mdevice.Device.get_dev_with_details(db, dev_type="klucz")
 
     assert len(devices) > 0
     assert "device_key_101" in [d.code for d in devices]
@@ -98,7 +98,7 @@ def test_get_device_with_invalid_type():
     db = MagicMock()
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Device.get_device_with_details(db, dev_type="InvalidType")
+        mdevice.Device.get_dev_with_details(db, dev_type="InvalidType")
     assert excinfo.value.status_code == 400
     assert excinfo.value.detail == "Invalid device type: InvalidType"
 
@@ -107,7 +107,7 @@ def test_get_device_with_invalid_version():
     db = MagicMock()
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Device.get_device_with_details(
+        mdevice.Device.get_dev_with_details(
             db, dev_version="InvalidVersion")
     assert excinfo.value.status_code == 400
     assert excinfo.value.detail == "Invalid device version: InvalidVersion"
@@ -118,7 +118,7 @@ def test_get_by_id_not_found():
     db.query.return_value.filter.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Device.get_by_id(db, dev_id=-1)
+        mdevice.Device.get_dev_by_id(db, dev_id=-1)
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "Device with id: -1 doesn't exist"
 
@@ -128,7 +128,7 @@ def test_get_by_id_found():
     mock_device = MagicMock(id=1, code="device_key_101")
     db.query.return_value.filter.return_value.first.return_value = mock_device
 
-    found_device = mdevice.Device.get_by_id(db, dev_id=1)
+    found_device = mdevice.Device.get_dev_by_id(db, dev_id=1)
     assert found_device.id == 1
     assert found_device.code == "device_key_101"
 
@@ -138,7 +138,7 @@ def test_get_by_code_not_found():
     db.query.return_value.filter.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Device.get_by_code(db, dev_code="InvalidCode")
+        mdevice.Device.get_dev_by_code(db, dev_code="InvalidCode")
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "Device with code: InvalidCode doesn't exist"
 
@@ -148,7 +148,7 @@ def test_get_by_code_found():
     mock_device = MagicMock(code="device_key_101")
     db.query.return_value.filter.return_value.first.return_value = mock_device
 
-    found_device = mdevice.Device.get_by_code(db, dev_code="device_key_101")
+    found_device = mdevice.Device.get_dev_by_code(db, dev_code="device_key_101")
     assert found_device.code == "device_key_101"
 
 

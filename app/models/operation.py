@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm import relationship, mapped_column, Mapped
 from zoneinfo import ZoneInfo
 from fastapi import HTTPException, status
-from app.models.base import Base, timestamp
+from app.models.base import Base
 from app import schemas
 import datetime
 from typing import TYPE_CHECKING, List, Literal, Optional, Sequence
@@ -24,9 +24,9 @@ class UserSession(Base):
         "base_user.id", onupdate="RESTRICT", ondelete="SET NULL"))
     concierge_id: Mapped[int] = mapped_column(ForeignKey(
         "user.id", onupdate="RESTRICT", ondelete="SET NULL"))
-    start_time: Mapped[datetime.datetime]
+    start_time: Mapped[datetime.datetime] = mapped_column(index=True)
     end_time: Mapped[Optional[datetime.datetime]]
-    status: Mapped[SessionStatus]
+    status: Mapped[SessionStatus] = mapped_column(index=True)
 
     device_operations: Mapped[List["DeviceOperation"]
                               ] = relationship(back_populates="session")
@@ -42,7 +42,7 @@ class UserSession(Base):
                        db: Session,
                        user_id: int,
                        concierge_id: int,
-                       commit: bool = True) -> "UserSession":
+                       commit: Optional[bool] = True) -> "UserSession":
         """
         Creates a new session in the database for a given user and concierge.
 
@@ -50,7 +50,7 @@ class UserSession(Base):
             db (Session): The database session.
             user_id (int): The ID of the user associated with the session.
             concierge_id (int): The ID of the concierge managing the session.
-            commit (bool): Whether to commit the transaction after adding the device.
+            commit (bool, optional): Whether to commit the transaction after adding the device.
 
         Returns:
             int: The ID of the newly created session.
@@ -65,16 +65,20 @@ class UserSession(Base):
         )
         db.add(new_session)
         if commit:
-            db.commit()
-            db.refresh(new_session)
+            try:
+                db.commit()
+                db.refresh(new_session)
+            except Exception as e:
+                db.rollback()
+                raise e
         return new_session
 
     @classmethod
     def end_session(cls,
                     db: Session,
                     session_id: int,
-                    reject: bool = False,
-                    commit: bool = True) -> "UserSession":
+                    reject: Optional[bool] = False,
+                    commit: Optional[bool] = True) -> "UserSession":
         """
         Changes the status of the session to rejected or completed
         depending on the given value of the reject argument. The default
@@ -83,8 +87,8 @@ class UserSession(Base):
         Args:
             db (Session): The database session.
             session_id (int): the ID of the session
-            reject (bool): if False the status changes to completed, else to rejected
-            commit (bool): Whether to commit the transaction after adding the device.
+            reject (bool, optional): if False the status changes to completed, else to rejected
+            commit (bool, optional): Whether to commit the transaction after adding the device.
 
         Returns:
             _type_: schemas.Session. The session with completed status
@@ -103,8 +107,11 @@ class UserSession(Base):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                 detail=f"Session has been allready approved with status {session.status}")
         if commit:
-            db.commit()
-            db.refresh(session)
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                raise e
         return session
 
     @classmethod
@@ -146,7 +153,7 @@ class UnapprovedOperation(Base):
         "session.id", onupdate="CASCADE", ondelete="CASCADE"), index=True)
     operation_type: Mapped[OperationType]
     entitled: Mapped[bool]
-    timestamp: Mapped[timestamp]
+    timestamp: Mapped[datetime.datetime]
 
     session: Mapped["UserSession"] = relationship(
         back_populates="unapproved_operations")
@@ -176,7 +183,11 @@ class UnapprovedOperation(Base):
             UnapprovedOperation.session_id == session_id).first()
         if operation_unapproved:
             db.delete(operation_unapproved)
-            db.commit()
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                raise e
             return True
         return False
 
@@ -184,14 +195,14 @@ class UnapprovedOperation(Base):
     def create_unapproved_operation(cls,
                                     db: Session,
                                     operation_data: schemas.DevOperation,
-                                    commit: bool = True) -> "DeviceOperation":
+                                    commit: Optional[bool] = True) -> "DeviceOperation":
         """
         Creates an unapproved operation in the database.
 
         Args:
             db (Session): The database session.
             operation_data (schemas.DevOperation): Data for the unapproved operation.
-            commit (bool): Whether to commit the operation to the database.
+            commit (bool, optional): Whether to commit the operation to the database.
 
         Returns:
             DeviceOperation: The created unapproved operation object.
@@ -201,22 +212,25 @@ class UnapprovedOperation(Base):
 
         db.add(new_operation)
         if commit:
-            db.commit()
-            db.refresh(new_operation)
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                raise e
         return new_operation
 
     @classmethod
     def get_unapproved_filtered(cls,
                                db: Session,
                                session_id: Optional[int] = None,
-                               operation_type: Optional[str] = None) -> List["UnapprovedOperation"]:
+                               operation_type: Literal["pobranie", "zwrot", None] = None) -> List["UnapprovedOperation"]:
         """
         Retrieves unapproved operations. It filters results by a given session ID and operation type.
 
         Args:
             db (Session): The database session.
             session_id (int): ID of the session to filter by.
-            operation_type(Optional[str]): the type of operation ("pobranie", "zwrot") to filter by.
+            operation_type(Optional[Literal["pobranie", "zwrot"]]): the type of operation to filter by.
 
         Returns:
             List[UnapprovedOperation]: A list of unapproved operations for the session.
@@ -240,7 +254,7 @@ class UnapprovedOperation(Base):
     def create_operation_from_unapproved(cls,
                                          db: Session,
                                          session_id: int,
-                                         commit: bool = True) -> List[schemas.DevOperationOut]:
+                                         commit: Optional[bool] = True) -> List[schemas.DevOperationOut]:
         """
         Transfers unapproved operations to the approved operations table and
         removes them from the unapproved table.
@@ -248,7 +262,7 @@ class UnapprovedOperation(Base):
         Args:
             db (Session): The database session.
             session_id (int): ID of the session.
-            commit (bool): Whether to commit the operations to the database.
+            commit (bool, optional): Whether to commit the operations to the database.
 
         Returns:
             List[schemas.DevOperationOut]: A list of approved operation objects.
@@ -287,7 +301,7 @@ class DeviceOperation(Base):
         ForeignKey("session.id", onupdate="CASCADE", ondelete="SET NULL"))
     operation_type: Mapped[OperationType] = mapped_column(index=True)
     entitled: Mapped[bool]
-    timestamp: Mapped[timestamp]
+    timestamp: Mapped[datetime.datetime]
 
     device: Mapped["Device"] = relationship(back_populates="device_operations")
     session: Mapped[Optional["UserSession"]] = relationship(
@@ -318,14 +332,14 @@ class DeviceOperation(Base):
     def get_last_operation_user_id(cls,
                                    db: Session,
                                    user_id: int,
-                                   operation_type: Optional[str] = "pobranie") -> Sequence["DeviceOperation"]:
+                                   operation_type: Optional[Literal["pobranie", "zwrot"]] = "pobranie") -> Sequence["DeviceOperation"]:
         """
         Retrieves the last operations of a specific type (default "pobranie") for a user.
 
         Args:
             db (Session): The database session.
             user_id (int): ID of the user.
-            operation_type (Optional[str]): Type of operation to filter by (default is 'pobranie').
+            operation_type (Literal["pobranie", "zwrot"], optional): Type of operation to filter by (default is 'pobranie').
 
         Returns:
             Sequence[DeviceOperation]: A sequence of the user's last device operations.
@@ -368,7 +382,7 @@ class DeviceOperation(Base):
         Args:
             db (Session): The database session.
             operation_data (schemas.DevOperation): Data for the new operation.
-            commit (Optional[bool]): Whether to commit the operation to the database.
+            commit (bool, optional): Whether to commit the operation to the database.
 
         Returns:
             DeviceOperation: The created DeviceOperation object.
@@ -378,8 +392,11 @@ class DeviceOperation(Base):
 
         db.add(new_operation)
         if commit:
-            db.commit()
-            db.refresh(new_operation)
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                raise e
         return new_operation
 
     @classmethod

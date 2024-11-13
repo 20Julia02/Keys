@@ -26,7 +26,7 @@ def get_devices_filtered(current_concierge: User = Depends(oauth2.get_current_co
     This endpoint retrieves a list of devices from the database. Optionally,
     the list can be filtered by device type and dev_version if these parameters are provided.
     """
-    devices = mdevice.Device.get_device_with_details(
+    devices = mdevice.Device.get_dev_with_details(
         db, dev_type, dev_version, room_number)
     return [schemas.DeviceOutWithNote.model_validate(device) for device in devices]
 
@@ -41,7 +41,7 @@ def get_dev_code(dev_code: str,
 
     This endpoint retrieves a device from the database using the device's unique code.
     """
-    return mdevice.Device.get_by_code(db, dev_code)
+    return mdevice.Device.get_dev_by_code(db, dev_code)
 
 
 @router.post("/", response_model=schemas.DeviceOut, status_code=status.HTTP_201_CREATED)
@@ -56,7 +56,7 @@ def create_device(device: schemas.DeviceCreate,
     """
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error("admin", current_concierge)
-    return mdevice.Device.create(db, device)
+    return mdevice.Device.create_dev(db, device)
 
 
 @router.post("/change-status", response_model=schemas.DevOperationOrDetailResponse)
@@ -72,7 +72,7 @@ def change_status(
     - Otherwise, check user permissions and create a new unapproved operation (issue or return).
     """
 
-    device = mdevice.Device.get_by_id(db, request.device_id)
+    device = mdevice.Device.get_dev_by_id(db, request.device_id)
     session = moperation.UserSession.get_session_id(db, request.session_id)
 
     if moperation.UnapprovedOperation.delete_if_rescanned(db, request.device_id, request.session_id):
@@ -136,7 +136,7 @@ def update_device(
     Returns:
         DeviceResponse: Zaktualizowany obiekt urządzenia.
     """
-    return mdevice.Device.update(db, device_id, device_data)
+    return mdevice.Device.update_dev(db, device_id, device_data)
 
 
 @router.delete("/devices/{device_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -158,4 +158,4 @@ def delete_device(
     """
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error("admin", current_concierge)
-    return mdevice.Device.delete(db, device_id)
+    return mdevice.Device.delete_dev(db, device_id)

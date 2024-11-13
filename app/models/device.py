@@ -29,7 +29,7 @@ class Room(Base):
 
         Args:
             db (Session): The database session.
-            room_number (Optional[str]): The room number to filter by (if provided).
+            room_number (str, optional): The room number to filter by (if provided).
 
         Returns:
             List[Room]: A list of Room objects that match the criteria.
@@ -73,7 +73,7 @@ class Room(Base):
     def create_room(cls, 
                     db: Session, 
                     room_data: schemas.Room, 
-                    commit: bool = True) -> "Room":
+                    commit: Optional[bool] = True) -> "Room":
         """
         Creates a new room in the database.
 
@@ -99,7 +99,6 @@ class Room(Base):
         if commit:
             try:
                 db.commit()
-                db.refresh(new_room)
             except Exception as e:
                 db.rollback()
                 raise e
@@ -110,7 +109,7 @@ class Room(Base):
                     db: Session, 
                     room_id: int, 
                     room_data: schemas.Room, 
-                    commit: bool = True) -> "Room":
+                    commit: Optional[bool] = True) -> "Room":
         """
         Updates an existing room in the database.
 
@@ -143,7 +142,6 @@ class Room(Base):
         if commit:
             try:
                 db.commit()
-                db.refresh(room)
             except Exception as e:
                 db.rollback()
                 raise e
@@ -153,7 +151,7 @@ class Room(Base):
     def delete_room(cls, 
                     db: Session, 
                     room_id: int, 
-                    commit: bool = True) -> bool:
+                    commit: Optional[bool] = True) -> bool:
         """
         Deletes a room by its ID from the database.
 
@@ -198,10 +196,10 @@ class Device(Base):
     __tablename__ = "device"
     id: Mapped[int] = mapped_column(primary_key=True)
     code: Mapped[str] = mapped_column(String(50), unique=True, index=True)
-    dev_type: Mapped[DeviceType] = mapped_column()
+    dev_type: Mapped[DeviceType]
     room_id: Mapped[int] = mapped_column(ForeignKey(
         "room.id", ondelete="RESTRICT", onupdate="RESTRICT"), index=True)
-    dev_version: Mapped[DeviceVersion] = mapped_column()
+    dev_version: Mapped[DeviceVersion]
 
     room = relationship("Room", back_populates="devices")
     notes = relationship(
@@ -212,12 +210,12 @@ class Device(Base):
         "UnapprovedOperation", back_populates="device")
 
     __table_args__ = (
-        UniqueConstraint("dev_type", "room_id",
-                         "dev_version", name="uix_device"),
+        UniqueConstraint("dev_type",
+                         "dev_version", name="uix_type_version"),
     )
 
     @classmethod
-    def get_device_with_details(
+    def get_dev_with_details(
         cls,
         db: Session,
         dev_type: Optional[str] = None,
@@ -230,9 +228,9 @@ class Device(Base):
 
         Args:
             db (Session): The database session.
-            dev_type (Optional[str]): The type of device to filter by.
-            dev_version (Optional[str]): The version of the device to filter by.
-            room_number (Optional[str]): The room number to filter by.
+            dev_type (str, optional): The type of device to filter by.
+            dev_version (str, optional): The version of the device to filter by.
+            room_number (str, optional): The room number to filter by.
 
         Returns:
             List[dict]: A list of dictionaries containing selected fields from Device, Room, User, and related tables.
@@ -326,7 +324,7 @@ class Device(Base):
         return devices
 
     @classmethod
-    def get_by_id(cls,
+    def get_dev_by_id(cls,
                   db: Session,
                   dev_id: int) -> "Device":
         """
@@ -349,7 +347,7 @@ class Device(Base):
         return device
 
     @classmethod
-    def get_by_code(cls,
+    def get_dev_by_code(cls,
                     db: Session,
                     dev_code: str) -> "Device":
         """
@@ -372,17 +370,17 @@ class Device(Base):
         return device
 
     @classmethod
-    def create(cls,
+    def create_dev(cls,
                db: Session,
                device_data: schemas.DeviceCreate,
-               commit: bool = True) -> "Device":
+               commit: Optional[bool] = True) -> "Device":
         """
         Creates a new device in the database.
 
         Args:
             db (Session): The database session.
             device_data (schemas.DeviceCreate): The data for creating the device.
-            commit (bool): Whether to commit the transaction after adding the device.
+            commit (bool, optional): Whether to commit the transaction after adding the device.
 
         Returns:
             Device: The created Device object.
@@ -390,16 +388,19 @@ class Device(Base):
         new_device = cls(**device_data.model_dump())
         db.add(new_device)
         if commit:
-            db.commit()
-            db.refresh(new_device)
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                raise e
         return new_device
 
     @classmethod
-    def update(cls,
+    def update_dev(cls,
                db: Session,
                dev_id: int,
                device_data: schemas.DeviceCreate,
-               commit: bool = True) -> "Device":
+               commit: Optional[bool] = True) -> "Device":
         """
         Updates an existing device in the database.
 
@@ -407,7 +408,7 @@ class Device(Base):
             db (Session): The database session.
             dev_id (int): The unique ID of the device to update.
             device_data (schemas.DeviceUpdate): The data for updating the device.
-            commit (bool): Whether to commit the transaction after updating the device.
+            commit (bool, optional): Whether to commit the transaction after updating the device.
 
         Returns:
             Device: The updated Device object.
@@ -415,37 +416,45 @@ class Device(Base):
         Raises:
             HTTPException: If the device with the given ID does not exist.
         """
-        device = cls.get_by_id(db, dev_id)  # Reuse the get_by_id method to fetch the device
+        device = cls.get_dev_by_id(db, dev_id)
         for key, value in device_data.model_dump().items():
             setattr(device, key, value)
         
         if commit:
-            db.commit()
-            db.refresh(device)
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                raise e
         
         return device
 
     @classmethod
-    def delete(cls,
+    def delete_dev(cls,
                db: Session,
                dev_id: int,
-               commit: bool = True) -> None:
+               commit: Optional[bool] = True) -> bool:
         """
         Deletes a device from the database.
 
         Args:
             db (Session): The database session.
             dev_id (int): The unique ID of the device to delete.
-            commit (bool): Whether to commit the transaction after deleting the device.
+            commit (bool, optional): Whether to commit the transaction after deleting the device.
 
         Raises:
             HTTPException: If the device with the given ID does not exist.
         """
-        device = cls.get_by_id(db, dev_id)  # Reuse the get_by_id method to fetch the device
+        device = cls.get_dev_by_id(db, dev_id)
         
         db.delete(device)
         if commit:
-            db.commit()
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                raise e
+        return True
 
 
 class DeviceNote(Base):
@@ -468,7 +477,7 @@ class DeviceNote(Base):
 
         Args:
             db (Session): The database session.
-            device_id (Optional[int]): The ID of the device to filter by.
+            device_id (int, optional): The ID of the device to filter by.
 
         Returns:
             List[DeviceNote]: A list of DeviceNote objects.
@@ -512,14 +521,14 @@ class DeviceNote(Base):
     def create_dev_note(cls,
                         db: Session,
                         note_data: schemas.DeviceNote,
-                        commit: bool = True) -> "DeviceNote":
+                        commit: Optional[bool] = True) -> "DeviceNote":
         """
         Creates a new note for a device.
 
         Args:
             db (Session): The database session.
             note_data (schemas.DeviceNote): The data for creating the note.
-            commit (bool): Whether to commit the transaction after adding the note.
+            commit (bool, optional): Whether to commit the transaction after adding the note.
 
         Returns:
             DeviceNote: The created DeviceNote object.
@@ -531,18 +540,17 @@ class DeviceNote(Base):
         if commit:
             try:
                 db.commit()
-                db.refresh(note)
             except Exception as e:
                 db.rollback()
                 raise e
         return note
 
     @classmethod
-    def update_device_note(cls,
+    def update_dev_note(cls,
                            db: Session,
                            note_id: int,
                            note_data: schemas.NoteUpdate,
-                           commit: bool = True) -> "DeviceNote":
+                           commit: Optional[bool] = True) -> "DeviceNote":
         """
         Updates an existing device note or deletes it if no content is provided.
 
@@ -550,7 +558,7 @@ class DeviceNote(Base):
             db (Session): The database session.
             note_id (int): The ID of the note to update.
             note_data (schemas.NoteUpdate): The new content of the note.
-            commit (bool): Whether to commit the transaction after updating.
+            commit (bool, optional): Whether to commit the transaction after updating.
 
         Returns:
             DeviceNote: The updated DeviceNote object.
@@ -572,22 +580,23 @@ class DeviceNote(Base):
         if commit:
             try:
                 db.commit()
-                db.refresh(note)
             except Exception as e:
                 db.rollback()
                 raise e
         return note
 
     @classmethod
-    def delete_device_note(cls,
+    def delete_dev_note(cls,
                            db: Session,
-                           note_id: int):
+                           note_id: int,
+                           commit: Optional[bool] = True) -> bool:
         """
         Deletes a device note by its ID.
 
         Args:
             db (Session): The database session.
             note_id (int): The ID of the note to delete.
+            commit (bool, optional): Whether to commit the transaction after deleting the note. Default is `True`.
 
         Raises:
             HTTPException: If no note with the given ID exists.
@@ -597,4 +606,10 @@ class DeviceNote(Base):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Note with id: {note_id} doesn't exist")
         db.delete(note)
-        db.commit()
+        if commit:
+            try:
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                raise e
+        return True

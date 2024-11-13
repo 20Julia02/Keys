@@ -102,7 +102,7 @@ def edit_device_note(note_id: int,
     """
     Edits a note with the specified ID for a device.
     """
-    return mdevice.DeviceNote.update_device_note(db, note_id, note_data)
+    return mdevice.DeviceNote.update_dev_note(db, note_id, note_data)
 
 
 @router.delete("/devices/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -110,4 +110,4 @@ def delete_device_note(note_id: int,
                        db: Session = Depends(database.get_db),
                        current_concierge: muser.User = Depends(oauth2.get_current_concierge)):
 
-    return mdevice.DeviceNote.delete_device_note(db, note_id)
+    return mdevice.DeviceNote.delete_dev_note(db, note_id)
