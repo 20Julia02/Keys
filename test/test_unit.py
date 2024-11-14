@@ -49,7 +49,7 @@ def test_get_room_id_not_found():
     with pytest.raises(HTTPException) as excinfo:
         mdevice.Room.get_room_id(db, room_id=-1)
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "Room with id: -1 doesn't exist"
+    assert excinfo.value.detail == "Room with id: -1 not found"
 
 
 def test_get_room_id_found():
@@ -71,7 +71,7 @@ def test_get_device_with_details_no_devices():
         mdevice.Device.get_dev_with_details(db)
 
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "No devices found"
+    assert excinfo.value.detail == "No devices found matching criteria"
 
 
 def test_get_device_with_details_with_criteria():
@@ -101,7 +101,7 @@ def test_get_by_id_not_found():
     with pytest.raises(HTTPException) as excinfo:
         mdevice.Device.get_dev_by_id(db, dev_id=-1)
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "Device with id: -1 doesn't exist"
+    assert excinfo.value.detail == "Device with id: -1 not found"
 
 
 def test_get_by_id_found():
@@ -121,7 +121,7 @@ def test_get_by_code_not_found():
     with pytest.raises(HTTPException) as excinfo:
         mdevice.Device.get_dev_by_code(db, dev_code="InvalidCode")
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "Device with code: InvalidCode doesn't exist"
+    assert excinfo.value.detail == "Device with code: InvalidCode not found"
 
 
 def test_get_by_code_found():
