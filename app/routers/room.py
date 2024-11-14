@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 import app.models.device as mdevice
 from app.models.user import User
 from app.services import securityService
+from app.config import logger
 
 router = APIRouter(
     prefix="/rooms",
@@ -57,6 +58,8 @@ def get_rooms(current_concierge: User = Depends(oauth2.get_current_concierge),
     Retrieves a list of rooms from the database. If `room_number` is specified, 
     only returns the room with the matching number.
     """
+    logger.info("GET request to retrieve rooms.")
+
     return mdevice.Room.get_rooms(db, number)
 
 
@@ -118,6 +121,8 @@ def get_room_id(room_id: int,
     """
     Retrieves a room by its ID from the database.
     """
+    logger.info(f"GET request to retrieve room by ID: {room_id}")
+
     return mdevice.Room.get_room_id(db, room_id)
 
 
@@ -164,6 +169,7 @@ def create_room(room_data: Room,
     """
     Creates a new room in the database.
     """
+    logger.info(f"POST request to create room with number: {room_data.number}")
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error("admin", current_concierge)
     return mdevice.Room.create_room(db, room_data)
@@ -238,6 +244,8 @@ def update_room(room_id: int,
     """
     Updates an existing room in the database.
     """
+    logger.info(f"POST request to update room with ID: {room_id}")
+
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error("admin", current_concierge)
     return mdevice.Room.update_room(db, room_id, room_data)
@@ -293,6 +301,8 @@ def delete_room(room_id: int,
     """
     Deletes a room by its ID from the database.
     """
+    logger.info(f"DELETE request to delete room with ID: {room_id}")
+
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error("admin", current_concierge)
     return mdevice.Room.delete_room(db, room_id)

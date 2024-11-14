@@ -9,8 +9,6 @@ import app.models.permission as mpermission
 import app.models.operation as moperation
 from app.services import securityService
 from datetime import datetime
-from sqlalchemy.exc import DataError
-import pytest
 
 client = TestClient(app)
 
@@ -150,22 +148,19 @@ def test_get_all_devices_type_version_room(test_device: mdevice.Device,
 def test_get_all_devices_invalid_type(test_device: mdevice.Device,
                                       test_device_mikrofon: mdevice.Device,
                                       concierge_token: str):
-    with pytest.raises(DataError) as exc_info:
-        client.get("/devices/?dev_type=computer",
-                   headers={"Authorization": f"Bearer {concierge_token}"})
 
-    error_message = str(exc_info.value)
-    assert "InvalidTextRepresentation" in error_message
+    response = client.get("/devices/?dev_type=computer",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+
+    assert response.status_code == 422
 
 
 def test_get_all_devices_invalid_version(test_device: mdevice.Device,
                                          test_device_mikrofon: mdevice.Device,
                                          concierge_token: str):
-    with pytest.raises(DataError) as exc_info:
-        client.get("/devices/?dev_version=first",
-                   headers={"Authorization": f"Bearer {concierge_token}"})
-    error_message = str(exc_info.value)
-    assert "InvalidTextRepresentation" in error_message
+    response = client.get("/devices/?dev_version=first",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 422
 
 
 def test_get_all_devices_type_version_invalid(test_device: mdevice.Device,

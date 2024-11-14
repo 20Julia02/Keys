@@ -512,8 +512,12 @@ class Device(Base):
             dev_id (int): The unique ID of the device to delete.
             commit (bool, optional): Whether to commit the transaction after deleting the device.
 
+        Returns:
+            bool: True if device was deleted successfully
+
         Raises:
             HTTPException: If the device with the given ID does not exist.
+
         """
         logger.info(f"Attempting to delete device with ID: {dev_id}")
 
