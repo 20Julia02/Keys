@@ -167,8 +167,7 @@ class Room(Base):
                     f"Attempted to update room with duplicate number '{room_data.number}'.")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Room with number '{
-                        room_data.number}' already exists."
+                    detail=f"Room with number '{room_data.number}' already exists."
                 )
             room.number = room_data.number
             logger.debug(f"Room number updated to '{room_data.number}'")

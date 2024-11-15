@@ -262,9 +262,6 @@ def update_unauthorized_user(user_id: int,
 @router.delete("/{user_id}", 
                status_code=status.HTTP_204_NO_CONTENT,
                responses={
-                   204: {
-                       "description": "The unauthorized user has been deleted."
-                   },
                    404: {
                        "description": "Unauthorized user with the specified ID not found.",
                        "content": {

@@ -7,7 +7,6 @@ from app.models.base import Base
 from app import schemas
 import datetime
 from typing import TYPE_CHECKING, List, Literal, Optional, Sequence
-from app.config import logger
 
 if TYPE_CHECKING:
     from app.models.user import BaseUser, User

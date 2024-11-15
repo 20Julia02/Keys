@@ -17,19 +17,6 @@ router = APIRouter(
 @router.get("/",
             response_model=Sequence[RoomOut],
             responses={
-                200: {
-                    "description": "List of all rooms matching the specified number.",
-                    "content": {
-                        "application/json": {
-                            "example": [
-                                {
-                                    "id": 1,
-                                    "number": "101",
-                                }
-                            ]
-                        }
-                    }
-                },
                 404: {
                     "description": "No rooms found that match the specified number.",
                     "content": {
@@ -66,17 +53,6 @@ def get_rooms(current_concierge: User = Depends(oauth2.get_current_concierge),
 @router.get("/{room_id}",
             response_model=RoomOut,
             responses={
-                200: {
-                    "description": "Details of the room with the specified ID.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "id": 1,
-                                "number": "101"
-                            }
-                        }
-                    }
-                },
                 404: {
                     "description": "Room with the specified ID not found.",
                     "content": {
@@ -130,17 +106,6 @@ def get_room_id(room_id: int,
              response_model=RoomOut,
              status_code=status.HTTP_201_CREATED,
              responses={
-                 201: {
-                     "description": "Room created successfully.",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                 "id": 1,
-                                 "number": "101"
-                             }
-                         }
-                     }
-                 },
                  400: {
                      "description": "Room with the specified number already exists.",
                      "content": {
@@ -178,17 +143,6 @@ def create_room(room_data: Room,
 @router.post("/{room_id}",
              response_model=RoomOut,
              responses={
-                 200: {
-                     "description": "Room updated successfully.",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                 "id": 1,
-                                 "number": "101"
-                             }
-                         }
-                     }
-                 },
                  400: {
                      "description": "Room with the specified number already exists.",
                      "content": {
@@ -254,9 +208,6 @@ def update_room(room_id: int,
 @router.delete("/{room_id}",
                status_code=status.HTTP_204_NO_CONTENT,
                responses={
-                   204: {
-                       "description": "Room deleted successfully."
-                   },
                    404: {
                        "description": "Room with the specified ID not found.",
                        "content": {

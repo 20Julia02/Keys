@@ -256,7 +256,7 @@ def test_start_session_invalid_card(test_user: muser.User,
 def test_changeStatus_invalid_session(test_device: mdevice.Device,
                                       test_concierge: muser.User,
                                       concierge_token: str):
-    response = client.post("/devices/change-status",
+    response = client.post("/operations/change-status",
                            headers={
                                "Authorization": f"Bearer {concierge_token}"},
                            json={"session_id": 0, "device_id": test_device.id})
@@ -277,7 +277,7 @@ def test_changeStatus_with_valid_id_taking(test_concierge: muser.User,
     response1 = client.post("/start-session/login",
                             headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
     assert response1.status_code == 200
-    response = client.post("/devices/change-status",
+    response = client.post("/operations/change-status",
                            headers={
                                "Authorization": f"Bearer {concierge_token}"},
                            json={"session_id": response1.json()["id"], "device_id": test_device.id})
@@ -302,7 +302,7 @@ def test_changeStatus_without_permission(test_concierge: muser.User,
     response1 = client.post("/start-session/login",
                             headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
     assert response1.status_code == 200
-    response = client.post("/devices/change-status",
+    response = client.post("/operations/change-status",
                            headers={
                                "Authorization": f"Bearer {concierge_token}"},
                            json={"session_id": response1.json()["id"], "device_id": test_device_mikrofon.id})
@@ -323,7 +323,7 @@ def test_changeStatus_with_force(test_concierge: muser.User,
     response1 = client.post("/start-session/login",
                             headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
     assert response1.status_code == 200
-    response = client.post("/devices/change-status",
+    response = client.post("/operations/change-status",
                            headers={
                                "Authorization": f"Bearer {concierge_token}"},
                            json={"session_id": response1.json()["id"],
@@ -348,12 +348,12 @@ def test_changeStatus_again(test_concierge: muser.User,
                             headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
     assert response1.status_code == 200
 
-    client.post("/devices/change-status",
+    client.post("/operations/change-status",
                 headers={"Authorization": f"Bearer {concierge_token}"},
                 json={"session_id": response1.json()["id"],
                       "device_id": test_device.id})
 
-    response = client.post("/devices/change-status",
+    response = client.post("/operations/change-status",
                            headers={
                                "Authorization": f"Bearer {concierge_token}"},
                            json={"session_id": response1.json()["id"],
@@ -704,7 +704,7 @@ def test_all_change_status(test_user: muser.User,
     response1 = client.post("/start-session/login",
                             headers={"Authorization": f"Bearer {concierge_token}"}, data=login_data)
     assert response1.status_code == 200
-    response = client.post("/devices/change-status",
+    response = client.post("/operations/change-status",
                            headers={
                                "Authorization": f"Bearer {concierge_token}"},
                            json={"session_id": response1.json()["id"],
@@ -736,7 +736,7 @@ def test_get_all_user_devices(db: Session,
                                     operation_type="pobranie",
                                     entitled=False)
     moperation.DeviceOperation.create_operation(db, new_data)
-    response = client.get(f"/devices/users/{test_user.id}",
+    response = client.get(f"/operations/users/{test_user.id}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
     assert response.json()[0]['session']['user_id'] == test_user.id
@@ -771,7 +771,7 @@ def test_get_all_user_devices_no_device(db: Session,
                                     operation_type="pobranie",
                                     entitled=False)
     moperation.DeviceOperation.create_operation(db, new_data)
-    response = client.get(f"/devices/users/{test_concierge.id}",
+    response = client.get(f"/operations/users/{test_concierge.id}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
     assert response.json()[

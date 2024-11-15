@@ -228,7 +228,7 @@ def delete_user(user_id: int,
     return muser.User.delete_user(db, user_id)
 
 
-@router.put("/{user_id}", 
+@router.post("/{user_id}", 
             response_model=UserOut,
             responses={
                 200: {
