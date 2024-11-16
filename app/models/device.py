@@ -321,8 +321,7 @@ class Device(Base):
             .outerjoin(User, User.id == UserSession.user_id)
             .outerjoin(DeviceNote, Device.id == DeviceNote.device_id)
             .group_by(
-                cls.id, cls.code, cls.dev_type, cls.dev_version, Room.number,
-                DeviceOperation.operation_type, User.name, User.surname
+                cls.id, Room.number, DeviceOperation.operation_type
             )
         )
 
