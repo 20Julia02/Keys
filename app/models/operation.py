@@ -282,19 +282,21 @@ class UnapprovedOperation(Base):
             HTTPException: If no unapproved operations are found.
         """
         logger.info(f"Attempting to retrieve unapproved operations")
-        logger.debug(
-            f"Filtering unapproved operations by type: {operation_type} adn session with ID: {session_id}")
 
         unapproved_query = db.query(UnapprovedOperation)
         if session_id:
+            logger.debug(
+                f"Filtering unapproved operations by session with ID: {session_id}")
             unapproved_query = unapproved_query.filter(
                 UnapprovedOperation.session_id == session_id)
         if operation_type:
+            logger.debug(
+                f"Filtering unapproved operations by operation type: {operation_type}")
             unapproved_query = unapproved_query.filter()
         unapproved = unapproved_query.all()
         if not unapproved:
             logger.warning(
-                f"No unapproved operations found that match given criteria.")
+                f"No unapproved operations found that match given criteria")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="No unapproved operations found for this session")
 
@@ -497,10 +499,10 @@ class DeviceOperation(Base):
             HTTPException: If no operations are found.
         """
         logger.info("Attempting to retrieve operations.")
-        logger.debug(f"Filtering operations by session ID: {session_id}")
 
         operations_query = db.query(DeviceOperation)
         if session_id:
+            logger.debug(f"Filtering operations by session ID: {session_id}")
             operations_query.filter(DeviceOperation.session_id == session_id)
         operations = operations_query.all()
         if not operations:
@@ -528,9 +530,12 @@ class DeviceOperation(Base):
         Raises:
             HTTPException: If the operation does not exist.
         """
+        logger.info(
+            f"Attempting to retrieve operation with ID: {operation_id}")
         operation = db.query(DeviceOperation).filter(
             DeviceOperation.id == operation_id).first()
         if not operation:
+            logger.warning(f"Operationwith ID {operation_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Operation with id: {operation_id} doesn't exist")
         return operation
@@ -549,6 +554,8 @@ class DeviceOperation(Base):
         Returns:
             DeviceOperation|None: The last DeviceOperation for the device, or None if no operations exist.
         """
+        logger.info(
+            f"Attempting to retrieve last operation for device with ID: {device_id}")
         subquery = (
             db.query(func.max(DeviceOperation.timestamp))
             .filter(DeviceOperation.device_id == device_id)
@@ -562,4 +569,6 @@ class DeviceOperation(Base):
             )
             .first()
         )
+        if not operation:
+            logger.info(f"Operation for device with ID: {device_id} not found")
         return operation

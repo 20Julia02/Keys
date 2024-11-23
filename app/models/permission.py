@@ -7,6 +7,7 @@ from app.models.user import User
 from app.models.device import Room
 from fastapi import HTTPException, status
 from app import schemas
+from app.config import logger
 
 
 class TokenBlacklist(Base):
@@ -52,31 +53,44 @@ class Permission(Base):
             List[Permission]: A list of permissions that match the specified criteria.
 
         Raises:
-            HTTPException: Raises a 404 error if no permissions are found, with the message "No reservations found".
+            HTTPException: Raises a 404 error if no permissions are found, with the message "No permissions found that match given criteria".
         """
+        logger.info(f"Attempting to retrieve permissions")
         query = db.query(Permission).filter(
             Permission.date >= datetime.date.today())
 
         if user_id is not None:
+            logger.debug(
+                f"Filtering permissions by user with ID: {user_id}")
             query = query.filter(Permission.user_id == user_id)
 
         if room_id is not None:
+            logger.debug(
+                f"Filtering permissions by room with ID: {room_id}")
             query = query.filter(Permission.room_id == room_id)
 
         if date is not None:
+            logger.debug(
+                f"Filtering permissions by date: {date}")
             query = query.filter(Permission.date == date)
 
         if start_time is not None:
+            logger.debug(
+                f"Filtering permissions by start_time: {start_time}")
             query = query.filter(Permission.start_time == start_time)
 
         permissions = query.order_by(
             Permission.date, Permission.start_time).all()
 
         if not permissions:
+            logger.warning(
+                f"No permissions found that match given criteria")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="No reservations found"
+                detail="No permissions found that match given criteria"
             )
+        logger.debug(
+            f"Retrieved {len(permissions)} permissions that match given criteria.")
         return permissions
 
     @classmethod

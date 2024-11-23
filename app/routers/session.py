@@ -8,6 +8,7 @@ from app.models.user import User
 import app.models.user as muser
 from typing import Sequence
 from fastapi import Path
+from app.config import logger
 
 
 router = APIRouter(
@@ -181,6 +182,7 @@ def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
     their login credentials. Once authenticated, the system creates an session for
     the user and assigns it to the current concierge.
     """
+    logger.info(f"Starting new session")
     auth_service = securityService.AuthorizationService(db)
 
     user = auth_service.authenticate_user_login(

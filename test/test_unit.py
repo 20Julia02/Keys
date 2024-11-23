@@ -291,7 +291,7 @@ def test_permission_get_permissions_no_permissions():
     with pytest.raises(HTTPException) as excinfo:
         Permission.get_permissions(db)
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "No reservations found"
+    assert excinfo.value.detail == "No permissions found that match given criteria"
 
 
 def test_hash_password():

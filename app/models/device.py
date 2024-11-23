@@ -386,7 +386,7 @@ class Device(Base):
         logger.info(f"Attempting to retrieve device with ID: {dev_id}")
         device = db.query(cls).filter(cls.id == dev_id).first()
         if not device:
-            logger.warning(f"Device with ID {dev_id} not found.")
+            logger.warning(f"Device with ID {dev_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Device with id: {dev_id} not found")
         logger.debug(f"Device retrieved: {device}")

@@ -9,6 +9,7 @@ from app.config import settings
 from app import schemas
 import app.models.permission as mpermission
 import app.models.user as muser
+from app.config import logger
 
 
 class PasswordService:
@@ -193,7 +194,11 @@ class AuthorizationService:
         Raises:
             HTTPException: If the user does not have the required role.
         """
+        logger.info(
+            f"Checking if user with email: {user.email} has at least role: {role}")
         if not (user.role.value == role or user.role.value == "admin"):
+            logger.warning(
+                f"The user: {user.email} with role: {user.role} cannot perform this operation without the {role} role")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"You cannot perform this operation without the {role} role")
@@ -265,9 +270,12 @@ class AuthorizationService:
         Raises:
             HTTPException: Raises a 403 error if the credentials are invalid or the user does not have the required role.
         """
+        logger.info("Authenticating user by login and password")
         password_service = PasswordService()
         user = self.db.query(muser.User).filter_by(email=username).first()
         if not (user and password_service.verify_hashed(password, user.password)):
+            logger.warning(
+                "User with provided username doesn't exist" if not user else "Invalid password provided for user")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials")
         self.entitled_or_error(role, user)

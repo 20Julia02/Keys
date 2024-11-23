@@ -380,7 +380,7 @@ def test_get_permission_with_invalid_user_id(test_concierge: muser.User,
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
     assert response.json()[
-        "detail"] == "No reservations found"
+        "detail"] == "No permissions found that match given criteria"
 
 
 def test_get_permission_with_valid_room_id(db: Session,
@@ -401,7 +401,7 @@ def test_get_permission_with_invalid_room_id(test_concierge: muser.User,
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
     assert response.json()[
-        "detail"] == "No reservations found"
+        "detail"] == "No permissions found that match given criteria"
 
 
 def test_get_permission_with_room_user_id(test_concierge: muser.User,
