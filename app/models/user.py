@@ -50,6 +50,9 @@ class UserRole(enum.Enum):
         }
         return display_names[self.value]
 
+    def __str__(self):
+        return self.display_name
+
 
 class Faculty(enum.Enum):
     geodesy = "Geodezji i Kartografii"
