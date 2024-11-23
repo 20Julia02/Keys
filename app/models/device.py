@@ -8,6 +8,7 @@ from app import schemas
 from app.models.operation import UserSession, DeviceOperation
 from app.models.user import User
 from typing import Optional, List, Literal
+from sqlalchemy import Enum as SAEnum
 from app.config import logger
 
 
@@ -226,24 +227,26 @@ class Room(Base):
 
 
 class DeviceVersion(enum.Enum):
-    podstawowa = "podstawowa"
-    zapasowa = "zapasowa"
+    primary = "podstawowa"
+    backup = "zapasowa"
 
 
 class DeviceType(enum.Enum):
-    klucz = "klucz"
-    mikrofon = "mikrofon"
-    pilot = "pilot"
+    key = "klucz"
+    microphone = "mikrofon"
+    remote_controler = "pilot"
 
 
 class Device(Base):
     __tablename__ = "device"
     id: Mapped[int] = mapped_column(primary_key=True)
     code: Mapped[str] = mapped_column(String(50), unique=True, index=True)
-    dev_type: Mapped[DeviceType]
+    dev_type: Mapped[DeviceType] = mapped_column(SAEnum(
+        DeviceType, values_callable=lambda e: [x.value for x in e]))
     room_id: Mapped[int] = mapped_column(ForeignKey(
         "room.id", ondelete="RESTRICT", onupdate="RESTRICT"), index=True)
-    dev_version: Mapped[DeviceVersion]
+    dev_version: Mapped[DeviceVersion] = mapped_column(SAEnum(
+        DeviceVersion, values_callable=lambda e: [x.value for x in e]))
 
     room = relationship("Room", back_populates="devices")
     notes = relationship(

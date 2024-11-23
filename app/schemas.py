@@ -23,14 +23,14 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     id: Optional[int] = None
-    role: Optional[Literal["admin", "concierge",
-                           "employee", "student", "guest"]] = None
+    role: Optional[Literal["administrator", "portier",
+                           "pracownik", "student", "gość"]] = None
 
 
 class UserCreate(BaseModel):
     name: str
     surname: str
-    role: Literal["admin", "concierge", "employee", "student", "guest"]
+    role: Literal["administrator", "portier", "pracownik", "student", "gość"]
     email: str
     password: str
     card_code: str

@@ -335,13 +335,13 @@ def test_create_token_with_special_characters():
 
 @patch("jose.jwt.decode")
 def test_verify_concierge_token_valid(mock_jwt_decode: Any):
-    mock_jwt_decode.return_value = {"user_id": 1, "user_role": "concierge"}
+    mock_jwt_decode.return_value = {"user_id": 1, "user_role": "portier"}
     db = MagicMock()
     token_service = TokenService(db)
     token = "sometoken"
     token_data = token_service.verify_concierge_token(token)
     assert token_data.id == 1
-    assert token_data.role == "concierge"
+    assert token_data.role == "portier"
 
 
 @patch("jose.jwt.decode", side_effect=JWTError)
@@ -396,7 +396,7 @@ def test_entitled_or_error_user_no_role():
     with pytest.raises(HTTPException) as excinfo:
         auth_service.entitled_or_error(UserRole.admin, user)
     assert excinfo.value.status_code == 403
-    assert excinfo.value.detail == "You cannot perform this operation without the admin role"
+    assert excinfo.value.detail == "You cannot perform this operation without the administrator role"
 
 
 @patch.object(TokenService, "is_token_blacklisted", return_value=True)
@@ -414,7 +414,7 @@ def test_get_current_concierge_blacklisted_token(mock_is_blacklisted: Any):
 @patch.object(TokenService, "is_token_blacklisted", return_value=False)
 @patch.object(TokenService, "verify_concierge_token")
 def test_get_current_concierge_user_not_found(mock_verify_token: Any, mock_is_token_blacklisted: Any):
-    mock_verify_token.return_value = schemas.TokenData(id=1, role="concierge")
+    mock_verify_token.return_value = schemas.TokenData(id=1, role="portier")
     db = MagicMock()
     db.query.return_value.filter.return_value.first.return_value = None
     auth_service = AuthorizationService(db)

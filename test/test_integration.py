@@ -639,7 +639,7 @@ def test_approve_session_login_no_permission(test_user: muser.User,
     )
     assert response.status_code == 403
     assert response.json() == {
-        "detail": "You cannot perform this operation without the concierge role"}
+        "detail": "You cannot perform this operation without the portier role"}
 
 
 def test_approve_session_card_no_devices(test_session: moperation.UserSession,

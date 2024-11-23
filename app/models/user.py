@@ -6,6 +6,7 @@ import datetime
 from fastapi import HTTPException, status
 from app import schemas
 from app.models.base import Base, timestamp
+from sqlalchemy import Enum as SAEnum
 from app.config import logger
 
 
@@ -29,29 +30,15 @@ class BaseUser(Base):
 
 
 class UserRole(enum.Enum):
-    admin = ("admin", 1)
-    concierge = ("concierge", 2)
-    employee = ("employee", 3)
+    admin = ("administrator", 1)
+    concierge = ("portier", 2)
+    employee = ("pracownik", 3)
     student = ("student", 4)
-    guest = ("guest", 5)
+    guest = ("gość", 5)
 
     def __init__(self, value: str, weight: int):
         self._value_ = value
         self.weight = weight
-
-    @property
-    def display_name(self) -> str:
-        display_names = {
-            "admin": "Administrator",
-            "concierge": "Portier",
-            "employee": "Pracownik",
-            "student": "Student",
-            "guest": "Gość"
-        }
-        return display_names[self.value]
-
-    def __str__(self):
-        return self.display_name
 
 
 class Faculty(enum.Enum):
@@ -64,7 +51,8 @@ class User(BaseUser):
         'base_user.id'), primary_key=True)
     name: Mapped[str] = mapped_column(String(50))
     surname: Mapped[str] = mapped_column(String(50))
-    role: Mapped[UserRole]
+    role: Mapped[UserRole] = mapped_column(SAEnum(
+        UserRole, values_callable=lambda e: [x.value for x in e]))
     faculty: Mapped[Optional[Faculty]]
     photo_url: Mapped[Optional[str]] = mapped_column(unique=True)
     email: Mapped[str] = mapped_column(String(100), unique=True)

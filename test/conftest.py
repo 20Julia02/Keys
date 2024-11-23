@@ -33,7 +33,7 @@ def test_concierge(db: Session) -> muser.User:
         email="testconcierge@example.com",
         password="password123",
         card_code="123456",
-        role="admin",
+        role="administrator",
         name="Test",
         surname="Concierge",
         faculty="geodesy"
@@ -55,7 +55,7 @@ def test_user(db: Session) -> muser.User:
         email="testuser@example.com",
         password="password456",
         card_code="7890",
-        role="employee",
+        role="pracownik",
         name="Test",
         surname="User",
         faculty="geodesy"
