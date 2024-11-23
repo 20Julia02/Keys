@@ -6,6 +6,7 @@ from app.services import securityService
 from sqlalchemy.orm import Session
 from app.models.user import User
 from app.config import logger
+import app.models.user as muser
 
 router = APIRouter(
     prefix="/devices",
@@ -78,8 +79,9 @@ def create_device(device: schemas.DeviceCreate,
     logger.info(f"POST request to create device with data {device}")
 
     auth_service = securityService.AuthorizationService(db)
-    auth_service.entitled_or_error("admin", current_concierge)
+    auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mdevice.Device.create_dev(db, device)
+
 
 @router.put("/{device_id}", response_model=schemas.DeviceOut)
 def update_device(
@@ -118,5 +120,5 @@ def delete_device(
         db (Session): Sesja bazy danych.
     """
     auth_service = securityService.AuthorizationService(db)
-    auth_service.entitled_or_error("admin", current_concierge)
+    auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mdevice.Device.delete_dev(db, device_id)

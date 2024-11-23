@@ -7,6 +7,7 @@ import app.models.device as mdevice
 from app.models.user import User
 from app.services import securityService
 from app.config import logger
+import app.models.user as muser
 
 router = APIRouter(
     prefix="/rooms",
@@ -136,7 +137,7 @@ def create_room(room_data: Room,
     """
     logger.info(f"POST request to create room with number: {room_data.number}")
     auth_service = securityService.AuthorizationService(db)
-    auth_service.entitled_or_error("admin", current_concierge)
+    auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mdevice.Room.create_room(db, room_data)
 
 
@@ -201,7 +202,7 @@ def update_room(room_id: int,
     logger.info(f"POST request to update room with ID: {room_id}")
 
     auth_service = securityService.AuthorizationService(db)
-    auth_service.entitled_or_error("admin", current_concierge)
+    auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mdevice.Room.update_room(db, room_id, room_data)
 
 
@@ -255,5 +256,5 @@ def delete_room(room_id: int,
     logger.info(f"DELETE request to delete room with ID: {room_id}")
 
     auth_service = securityService.AuthorizationService(db)
-    auth_service.entitled_or_error("admin", current_concierge)
+    auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mdevice.Room.delete_room(db, room_id)

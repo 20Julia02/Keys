@@ -385,7 +385,7 @@ def test_entitled_or_error_user_has_role():
     db = MagicMock()
     auth_service = AuthorizationService(db)
     user = User(role=UserRole.concierge)
-    auth_service.entitled_or_error("concierge", user)
+    auth_service.entitled_or_error(UserRole.concierge, user)
 
 
 def test_entitled_or_error_user_no_role():
@@ -394,7 +394,7 @@ def test_entitled_or_error_user_no_role():
     user = User(role=UserRole.employee)
 
     with pytest.raises(HTTPException) as excinfo:
-        auth_service.entitled_or_error("admin", user)
+        auth_service.entitled_or_error(UserRole.admin, user)
     assert excinfo.value.status_code == 403
     assert excinfo.value.detail == "You cannot perform this operation without the admin role"
 

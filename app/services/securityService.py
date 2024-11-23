@@ -180,8 +180,8 @@ class AuthorizationService:
                  db: Session):
         self.db = db
 
-    def entitled_or_error(self,
-                          role: str,
+    @staticmethod
+    def entitled_or_error(role: muser.UserRole,
                           user: muser.User) -> bool:
         """
         Checks if the current user has the required role or is an admin.
@@ -195,13 +195,17 @@ class AuthorizationService:
             HTTPException: If the user does not have the required role.
         """
         logger.info(
-            f"Checking if user with email: {user.email} has at least role: {role}")
-        if not (user.role.value == role or user.role.value == "admin"):
+            f"Checking if user with email: {user.email} has at least role: {role.value}")
+
+        user_role = muser.UserRole[user.role] if isinstance(
+            user.role, str) else user.role
+
+        if user_role.weight > role.weight:
             logger.warning(
-                f"The user: {user.email} with role: {user.role} cannot perform this operation without the {role} role")
+                f"The user: {user.email} with role: {user_role.value} cannot perform this operation without the {role.value} role")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"You cannot perform this operation without the {role} role")
+                detail=f"You cannot perform this operation without the {role.value} role")
         return True
 
     def get_current_concierge(self,
@@ -235,7 +239,7 @@ class AuthorizationService:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail="Could not validate credentials",
                                 headers={"Authenticate": "Bearer"})
-        self.entitled_or_error("concierge", user)
+        self.entitled_or_error(muser.UserRole.concierge, user)
         return user
 
     def get_current_concierge_token(self,
@@ -278,7 +282,16 @@ class AuthorizationService:
                 "User with provided username doesn't exist" if not user else "Invalid password provided for user")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials")
-        self.entitled_or_error(role, user)
+
+        try:
+            required_role = muser.UserRole[role]
+        except KeyError:
+            logger.error(f"Invalid role: {role}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid role: {role}"
+            )
+        self.entitled_or_error(required_role, user)
         return user
 
     def authenticate_user_card(self,
@@ -302,7 +315,15 @@ class AuthorizationService:
             muser.User.card_code.isnot(None)).all()
         for user in users:
             if password_service.verify_hashed(card_id.card_id, user.card_code):
-                self.entitled_or_error(role, user)
+                try:
+                    required_role = muser.UserRole[role]
+                except KeyError:
+                    logger.error(f"Invalid role: {role}")
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Invalid role: {role}"
+                    )
+                self.entitled_or_error(required_role, user)
                 return user
 
         raise HTTPException(

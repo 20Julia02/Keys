@@ -29,11 +29,26 @@ class BaseUser(Base):
 
 
 class UserRole(enum.Enum):
-    admin = "admin"
-    concierge = "concierge"
-    employee = "employee"
-    student = "student"
-    guest = "guest"
+    admin = ("admin", 1)
+    concierge = ("concierge", 2)
+    employee = ("employee", 3)
+    student = ("student", 4)
+    guest = ("guest", 5)
+
+    def __init__(self, value: str, weight: int):
+        self._value_ = value
+        self.weight = weight
+
+    @property
+    def display_name(self) -> str:
+        display_names = {
+            "admin": "Administrator",
+            "concierge": "Portier",
+            "employee": "Pracownik",
+            "student": "Student",
+            "guest": "Gość"
+        }
+        return display_names[self.value]
 
 
 class Faculty(enum.Enum):

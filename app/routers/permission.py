@@ -7,6 +7,7 @@ from typing import Sequence, Optional
 import app.models.permission as mpermission
 from app.models.user import User
 from app.services import securityService
+import app.models.user as muser
 
 router = APIRouter(
     prefix="/permissions",
@@ -27,6 +28,7 @@ def get_permissions(
     db: Session = Depends(database.get_db)
 ) -> Sequence[PermissionOut]:
     return mpermission.Permission.get_permissions(db, user_id, room_id, date, start_time)
+
 
 @router.post("/",
              response_model=PermissionOut,
@@ -75,10 +77,11 @@ def create_permission(permission_data: PermissionCreate,
     Creates a new permission in the database.
     """
     auth_service = securityService.AuthorizationService(db)
-    auth_service.entitled_or_error("admin", current_concierge)
+    auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mpermission.Permission.create_permission(db, permission_data)
-    
-@router.post("/update/{permission_id}", 
+
+
+@router.post("/update/{permission_id}",
              response_model=PermissionOut,
              responses={
                  200: {
@@ -135,11 +138,11 @@ def update_permission(permission_id: int,
     Updates an existing permission in the database.
     """
     auth_service = securityService.AuthorizationService(db)
-    auth_service.entitled_or_error("admin", current_concierge)
+    auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mpermission.Permission.update_permission(db, permission_id, permission_data)
 
 
-@router.delete("/{permission_id}", 
+@router.delete("/{permission_id}",
                status_code=status.HTTP_204_NO_CONTENT,
                responses={
                    204: {
@@ -173,5 +176,5 @@ def delete_permission(permission_id: int,
     Deletes a permission by its ID from the database.
     """
     auth_service = securityService.AuthorizationService(db)
-    auth_service.entitled_or_error("admin", current_concierge)
+    auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mpermission.Permission.delete_permission(db, permission_id)
