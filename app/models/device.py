@@ -285,7 +285,7 @@ class Device(Base):
         Raises:
             HTTPException: If no records match the given criteria.
         """
-        logger.info("Retrieving devices with detailed information.")
+        logger.info("Retrieving devices with detailed information")
         logger.debug(
             f"Filter parameters - dev_type: {dev_type}, dev_version: {dev_version}, room_number: {room_number}")
 
@@ -439,7 +439,7 @@ class Device(Base):
         Returns:
             Device: The created Device object.
         """
-        logger.info("Creating a new device.")
+        logger.info("Creating a new device")
         logger.debug(f"Device data provided: {device_data}")
 
         new_device = cls(**device_data.model_dump())

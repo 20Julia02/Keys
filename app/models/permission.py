@@ -110,6 +110,8 @@ class Permission(Base):
         Returns:
             bool: `True` if the user has permission, `False` otherwise.
         """
+        logger.info(
+            f"Checking if user with ID: {user_id} has permission to access room with ID: {room_id}")
         current_date = datetime.date.today()
         current_time = datetime.datetime.now().time()
 
@@ -121,6 +123,9 @@ class Permission(Base):
             Permission.end_time >= current_time
         ).first()
 
+        logger.debug(
+            f"User has permission with ID {has_permission.id}"
+            if has_permission else "User doesn't have permission")
         return bool(has_permission)
 
     @classmethod
@@ -143,15 +148,21 @@ class Permission(Base):
         Raises:
             Exception: If there are issues adding or committing the permission.
         """
+        logger.info("Creating a new permission")
         new_permission = cls(**permission_data)
         db.add(new_permission)
         if commit:
             try:
                 db.commit()
+                logger.info(
+                    "Permission created and committed to the database.")
             except Exception as e:
                 db.rollback()
+                logger.error(
+                    f"Error while creating permission: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
+                                    detail=f"An internal error occurred while creating permission")
+        logger.debug(f"New permission added to the database: {new_permission}")
         return new_permission
 
     @classmethod
@@ -176,9 +187,14 @@ class Permission(Base):
             HTTPException: If the permission is not found or conflicts with existing permissions.
             Exception: For any issues during the commit.
         """
+        logger.info(
+            f"Attempting to update permission with ID: {permission_id}")
+        logger.debug(
+            f"New permission data: {permission_data}")
         permission = db.query(Permission).filter(
             Permission.id == permission_id).first()
         if not permission:
+            logger.warning(f"Permission with ID {permission_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Permission with id: {permission_id} doesn't exist")
 
@@ -191,11 +207,15 @@ class Permission(Base):
         if commit:
             try:
                 db.commit()
+                logger.info(
+                    f"Permission with ID {permission_id} updated successfully.")
             except Exception as e:
+                logger.error(
+                    f"Error while updating permission with ID {permission_id}: {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
-
+                                    detail=f"An internal error occurred while updating permission")
+        logger.debug(f"Updated permission in the database: {permission}")
         return permission
 
     @classmethod
@@ -218,19 +238,26 @@ class Permission(Base):
             HTTPException: If the permission with the given ID does not exist.
             Exception: For any issues during the commit.
         """
+        logger.info(
+            f"Attempting to delete permission with ID: {permission_id}")
         permission = db.query(Permission).filter(
             Permission.id == permission_id).first()
         if not permission:
+            logger.warning(f"Permission with ID {permission_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Permission with id: {permission_id} doesn't exist")
         db.delete(permission)
         if commit:
             try:
+                logger.info(
+                    f"Permission with ID {permission_id} deleted successfully.")
                 db.commit()
             except Exception as e:
+                logger.error(
+                    f"Error while deleting permission with ID {permission_id}: {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
+                                    detail=f"An internal error occurred while deleting permission")
         return True
 
 
