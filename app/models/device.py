@@ -167,7 +167,8 @@ class Room(Base):
                     f"Attempted to update room with duplicate number '{room_data.number}'.")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Room with number '{room_data.number}' already exists."
+                    detail=f"Room with number '{
+                        room_data.number}' already exists."
                 )
             room.number = room_data.number
             logger.debug(f"Room number updated to '{room_data.number}'")
@@ -570,12 +571,12 @@ class DeviceNote(Base):
             notes = notes.filter(DeviceNote.device_id == dev_id)
         notes = notes.all()
         if not notes:
-            logger.warning(f"No device notes found with device ID: '{dev_id}'"
-                           if dev_id else "No device notes found.")
+            logger.warning(f"No device notes found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="No device notes that match given criteria found")
 
-        logger.debug(f"Retrieved {len(notes)} notes for device ID: {dev_id}")
+        logger.debug(
+            f"Retrieved {len(notes)} notes that match given criteria.")
         return notes
 
     @classmethod

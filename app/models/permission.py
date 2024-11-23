@@ -7,7 +7,6 @@ from app.models.user import User
 from app.models.device import Room
 from fastapi import HTTPException, status
 from app import schemas
-from app.config import logger
 
 
 class TokenBlacklist(Base):

@@ -7,6 +7,7 @@ from app.models.base import Base
 from app import schemas
 import datetime
 from typing import TYPE_CHECKING, List, Literal, Optional, Sequence
+from app.config import logger
 
 if TYPE_CHECKING:
     from app.models.user import BaseUser, User
@@ -53,8 +54,11 @@ class UserSession(Base):
             commit (bool, optional): Whether to commit the transaction after adding the device.
 
         Returns:
-            int: The ID of the newly created session.
+            UserSession: The UserSession object with the specified ID.
         """
+        logger.info("Starting session creation process.")
+        logger.debug(
+            f"Input parameters - user_id: {user_id}, concierge_id: {concierge_id}")
 
         start_time = datetime.datetime.now(ZoneInfo("Europe/Warsaw"))
         new_session = UserSession(
@@ -68,10 +72,12 @@ class UserSession(Base):
             try:
                 db.commit()
                 db.refresh(new_session)
+                logger.info("Session created successfully.")
             except Exception as e:
+                logger.error(f"Error while creating session: {str(e)}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
+                                    detail=f"An internal error occurred while creating session")
         return new_session
 
     @classmethod
@@ -97,23 +103,37 @@ class UserSession(Base):
         Raises:
             HTTPException: If the session with given ID doesn't exist
         """
+
+        logger.info("Attempting to end session.")
+        logger.debug(
+            f"Input parameters - session_id: {session_id}, reject: {reject}")
+
         session = db.query(UserSession).filter_by(id=session_id).first()
         if not session:
+            logger.warning(
+                f"Session with id {session_id} not found for update")
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Session with id {session_id}not found")
         if session.status == "w trakcie" and session.end_time is None:
             session.status = "odrzucona" if reject else "potwierdzona"
             session.end_time = datetime.datetime.now(ZoneInfo("Europe/Warsaw"))
         else:
+            logger.error(
+                f"Session with id {session_id} has been allready ended with status {session.status}")
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                detail=f"Session has been allready approved with status {session.status}")
+                                detail=f"Session has been allready ended.")
         if commit:
             try:
                 db.commit()
+                logger.info(
+                    f"Session with ID {session_id} ended successfully.")
             except Exception as e:
+                logger.error(
+                    f"Error while updating session status with ID {session_id}: {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
+                                    detail=f"An internal error occurred while updating session status")
+        logger.debug(f"Session with ID {session_id} ended.")
         return session
 
     @classmethod
@@ -133,11 +153,13 @@ class UserSession(Base):
         Raises:
             HTTPException: If no session with the given ID exists.
         """
+        logger.info(f"Attempting to retrieve session with ID: {session_id}")
         session = db.query(UserSession).filter(
             UserSession.id == session_id
         ).first()
 
         if not session:
+            logger.warning(f"Session with ID {session_id} not found.")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="Session doesn't exist")
         return session
@@ -180,17 +202,25 @@ class UnapprovedOperation(Base):
             bool: True if device has been rescanned during one session 
             and unapproved operation was deleted, False otherwise.
         """
+        logger.info(
+            f"Attempting to check if device with ID: {device_id} has been rescanned during session with id: {session_id}")
         operation_unapproved = db.query(UnapprovedOperation).filter(
             UnapprovedOperation.device_id == device_id,
             UnapprovedOperation.session_id == session_id).first()
         if operation_unapproved:
+            logger.info(
+                f"Device with ID: {device_id} has been rescanned during session with ID: {session_id}.")
             db.delete(operation_unapproved)
             try:
                 db.commit()
+                logger.info(
+                    f"Unapproved operation with ID {operation_unapproved.id} deleted successfully.")
             except Exception as e:
                 db.rollback()
+                logger.error(
+                    f"Error while deleting operation with ID {operation_unapproved.id}: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
+                                    detail=f"An internal error occurred while deleting operation")
             return True
         return False
 
@@ -210,6 +240,9 @@ class UnapprovedOperation(Base):
         Returns:
             DeviceOperation: The created unapproved operation object.
         """
+        logger.info("Creating a new unnapproved operation.")
+        logger.debug(f"Uapproved peration data provided: {operation_data}")
+
         new_operation = cls(**operation_data.model_dump())
         new_operation.timestamp = datetime.datetime.now()
 
@@ -217,10 +250,16 @@ class UnapprovedOperation(Base):
         if commit:
             try:
                 db.commit()
+                logger.info(
+                    "Unapproved operation created and committed to the database.")
             except Exception as e:
+                logger.error(
+                    f"Error while creating unapproved operation': {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
+                                    detail=f"An internal error occurred while creating unapproved operation")
+        logger.debug(
+            f"New unapproved operation added to the database: {new_operation}")
         return new_operation
 
     @classmethod
@@ -242,6 +281,10 @@ class UnapprovedOperation(Base):
         Raises:
             HTTPException: If no unapproved operations are found.
         """
+        logger.info(f"Attempting to retrieve unapproved operations")
+        logger.debug(
+            f"Filtering unapproved operations by type: {operation_type} adn session with ID: {session_id}")
+
         unapproved_query = db.query(UnapprovedOperation)
         if session_id:
             unapproved_query = unapproved_query.filter(
@@ -250,8 +293,13 @@ class UnapprovedOperation(Base):
             unapproved_query = unapproved_query.filter()
         unapproved = unapproved_query.all()
         if not unapproved:
+            logger.warning(
+                f"No unapproved operations found that match given criteria.")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="No unapproved operations found for this session")
+
+        logger.debug(
+            f"Retrieved {len(unapproved)} unapproved operations that match given criteria.")
         return unapproved
 
     @classmethod
@@ -274,6 +322,10 @@ class UnapprovedOperation(Base):
         Raises:
             HTTPException: If an error occurs during operation transfer.
         """
+        logger.info(
+            "Transfering unapproved operations to the approved ones.")
+        logger.debug(f"Session ID provided:{session_id}")
+
         unapproved_operations = cls.get_unapproved_filtered(
             db, session_id=session_id)
         operation_list: List[schemas.DevOperationOut] = []
@@ -290,11 +342,15 @@ class UnapprovedOperation(Base):
         if commit:
             try:
                 db.commit()
+                logger.info(
+                    "Operations removed from unapproved and new upproved operations created")
             except Exception as e:
                 db.rollback()
+                logger.error(
+                    f"Error while removing operations from unapproved and creating new upproved ones': {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"Error during operation transfer: {str(e)}")
-
+                                    detail=f"An internal error occurred during operation transfer")
+        logger.debug(f"Operations moved to upproved ones")
         return operation_list
 
 
@@ -326,6 +382,8 @@ class DeviceOperation(Base):
         Returns:
             sqlalchemy.sql.selectable.Subquery: Subquery for the latest device operations.
         """
+        logger.debug(
+            f"Generating a subquery to retrieve latest operation timestamp")
         return (
             db.query(
                 cls.device_id,
@@ -354,6 +412,10 @@ class DeviceOperation(Base):
         Raises:
             HTTPException: If no operations are found for the user.
         """
+        logger.info("Attempting to retrieve last user operation.")
+        logger.debug(
+            f"Filtering operations by user ID: {user_id} and operation type: {operation_type}")
+
         last_operation_subquery = cls.last_operation_subquery(db)
 
         query = (
@@ -371,11 +433,12 @@ class DeviceOperation(Base):
         operations = query.all()
 
         if not operations:
+            logger.warning(
+                f"Operations for user with ID {user_id} and type: {operation_type} not found.")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"User with id {user_id} doesn't have any devices"
             )
-
         return operations
 
     @classmethod
@@ -394,6 +457,9 @@ class DeviceOperation(Base):
         Returns:
             DeviceOperation: The created DeviceOperation object.
         """
+        logger.info("Creating a new operation.")
+        logger.debug(f"Operation data provided: {operation_data}")
+
         new_operation = DeviceOperation(**operation_data.model_dump())
         new_operation.timestamp = datetime.datetime.now()
 
@@ -401,10 +467,15 @@ class DeviceOperation(Base):
         if commit:
             try:
                 db.commit()
+                logger.info(
+                    "Operation created and committed to the database.")
             except Exception as e:
                 db.rollback()
+                logger.error(
+                    f"Error while creating operation': {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail=f"An internal error occurred")
+        logger.debug(f"New operation added to the database: {new_operation}")
         return new_operation
 
     @classmethod
@@ -425,13 +496,19 @@ class DeviceOperation(Base):
         Raises:
             HTTPException: If no operations are found.
         """
+        logger.info("Attempting to retrieve operations.")
+        logger.debug(f"Filtering operations by session ID: {session_id}")
+
         operations_query = db.query(DeviceOperation)
         if session_id:
             operations_query.filter(DeviceOperation.session_id == session_id)
         operations = operations_query.all()
         if not operations:
+            logger.warning(f"No operations found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There is no operation")
+        logger.debug(
+            f"Retrieved {len(operations)} operations that match given criteria.")
         return operations
 
     @classmethod

@@ -9,7 +9,6 @@ from app.config import settings
 from app import schemas
 import app.models.permission as mpermission
 import app.models.user as muser
-from app.config import logger
 
 
 class PasswordService:

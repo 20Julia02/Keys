@@ -167,6 +167,16 @@ class Session(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class SessionOut(BaseModel):
+    id: int
+    user: UserOut
+    concierge_id: int
+    start_time: datetime.datetime
+    status: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserNote(BaseModel):
     id: int
     user: UserOut

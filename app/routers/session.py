@@ -153,8 +153,7 @@ def approve_session_card(
     return operations
 
 
-
-@router.post("/start-session/login", response_model=schemas.Session, responses={
+@router.post("/start-session/login", response_model=schemas.SessionOut, responses={
     403: {
         "description": "Authentication failed due to incorrect login credentials.",
         "content": {
@@ -174,7 +173,7 @@ def approve_session_card(
 def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
                         current_concierge: muser.User = Depends(
                             oauth2.get_current_concierge),
-                        db: Session = Depends(database.get_db)) -> schemas.Session:
+                        db: Session = Depends(database.get_db)) -> schemas.SessionOut:
     """
     Start an session by authenticating a user with credentials (username and password).
 
@@ -189,7 +188,7 @@ def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
     return moperation.UserSession.create_session(db, user.id, current_concierge.id)
 
 
-@router.post("/start-session/card", response_model=schemas.Session, responses={
+@router.post("/start-session/card", response_model=schemas.SessionOut, responses={
     403: {
         "description": "Authentication failed due to incorrect login credentials.",
         "content": {
@@ -209,7 +208,7 @@ def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
 def start_card_session(card_id: schemas.CardId,
                        current_concierge: muser.User = Depends(
                            oauth2.get_current_concierge),
-                       db: Session = Depends(database.get_db)) -> schemas.Session:
+                       db: Session = Depends(database.get_db)) -> schemas.SessionOut:
     """
     Start an session by authenticating a user with a card ID.
 
@@ -258,7 +257,6 @@ def start_unauthorized_session(unauthorized_id: int,
 @router.get("/session/{session_id}", response_model=schemas.Session)
 def get_session_id(session_id: int,
                    current_concierge: muser.User = Depends(
-                                   oauth2.get_current_concierge),
+                       oauth2.get_current_concierge),
                    db: Session = Depends(database.get_db)) -> schemas.Session:
     return moperation.UserSession.get_session_id(db, session_id)
-
