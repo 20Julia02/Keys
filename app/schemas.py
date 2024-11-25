@@ -197,7 +197,7 @@ class NoteUpdate(BaseModel):
 
 
 class ChangeStatus(BaseModel):
-    device_id: int
+    device_code: str
     session_id: int
     force: Optional[bool] = False
 

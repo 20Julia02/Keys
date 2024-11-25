@@ -259,7 +259,7 @@ def test_changeStatus_invalid_session(test_device: mdevice.Device,
     response = client.post("/operations/change-status",
                            headers={
                                "Authorization": f"Bearer {concierge_token}"},
-                           json={"session_id": 0, "device_id": test_device.id})
+                           json={"session_id": 0, "device_code": test_device.code})
     assert response.status_code == 404
     assert response.json()["detail"] == "Session doesn't exist"
 
@@ -280,7 +280,7 @@ def test_changeStatus_with_valid_id_taking(test_concierge: muser.User,
     response = client.post("/operations/change-status",
                            headers={
                                "Authorization": f"Bearer {concierge_token}"},
-                           json={"session_id": response1.json()["id"], "device_id": test_device.id})
+                           json={"session_id": response1.json()["id"], "device_code": test_device.code})
     assert response.status_code == 200
     assert response.json()["device"]["code"] == test_device.code
     assert response.json()["session"]["status"] == "w trakcie"
@@ -305,7 +305,7 @@ def test_changeStatus_without_permission(test_concierge: muser.User,
     response = client.post("/operations/change-status",
                            headers={
                                "Authorization": f"Bearer {concierge_token}"},
-                           json={"session_id": response1.json()["id"], "device_id": test_device_mikrofon.id})
+                           json={"session_id": response1.json()["id"], "device_code": test_device_mikrofon.code})
     assert response.status_code == 403
     assert response.json()[
         "detail"] == f"User with ID {test_user.id} has no permission to perform the operation"
@@ -328,7 +328,7 @@ def test_changeStatus_with_force(test_concierge: muser.User,
                                "Authorization": f"Bearer {concierge_token}"},
                            json={"session_id": response1.json()["id"],
                                  "force": True,
-                                 "device_id": test_device_mikrofon.id})
+                                 "device_code": test_device_mikrofon.code})
     assert response.status_code == 200
     assert response.json()["entitled"] is False
     assert response.json()["operation_type"] == "pobranie"
@@ -351,13 +351,13 @@ def test_changeStatus_again(test_concierge: muser.User,
     client.post("/operations/change-status",
                 headers={"Authorization": f"Bearer {concierge_token}"},
                 json={"session_id": response1.json()["id"],
-                      "device_id": test_device.id})
+                      "device_code": test_device.code})
 
     response = client.post("/operations/change-status",
                            headers={
                                "Authorization": f"Bearer {concierge_token}"},
                            json={"session_id": response1.json()["id"],
-                                 "device_id": test_device.id})
+                                 "device_code": test_device.code})
     assert response.json()["detail"] == "Operation removed."
 
 
@@ -708,7 +708,7 @@ def test_all_change_status(test_user: muser.User,
                            headers={
                                "Authorization": f"Bearer {concierge_token}"},
                            json={"session_id": response1.json()["id"],
-                                 "device_id": test_device.id})
+                                 "device_code": test_device.code})
     assert response.status_code == 200
     assert response.json()["device"]["code"] == test_device.code
     assert response.json()["session"]["status"] == "w trakcie"

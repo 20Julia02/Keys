@@ -36,7 +36,7 @@ def test_concierge(db: Session) -> muser.User:
         role="administrator",
         name="Test",
         surname="Concierge",
-        faculty="geodesy"
+        faculty="Geodezji i Kartografii"
     )
     password_service = securityService.PasswordService()
     user_data.password = password_service.hash_password(user_data.password)
@@ -58,7 +58,7 @@ def test_user(db: Session) -> muser.User:
         role="pracownik",
         name="Test",
         surname="User",
-        faculty="geodesy"
+        faculty="Geodezji i Kartografii"
     )
     password_service = securityService.PasswordService()
     user_data.password = password_service.hash_password(user_data.password)

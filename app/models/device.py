@@ -258,7 +258,7 @@ class Device(Base):
 
     __table_args__ = (
         UniqueConstraint("dev_type",
-                         "dev_version", name="uix_type_version"),
+                         "dev_version", "room_id", name="uix_type_version"),
     )
 
     @classmethod

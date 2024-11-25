@@ -14,6 +14,7 @@ router = APIRouter(
     tags=['Operaions']
 )
 
+
 @router.post("/change-status", response_model=schemas.DevOperationOrDetailResponse)
 def change_status(
     request: schemas.ChangeStatus,
@@ -28,10 +29,10 @@ def change_status(
     """
     logger.info(f"POST request to change device status: {request}")
 
-    device = mdevice.Device.get_dev_by_id(db, request.device_id)
+    device = mdevice.Device.get_dev_by_code(db, request.device_code)
     session = moperation.UserSession.get_session_id(db, request.session_id)
 
-    if moperation.UnapprovedOperation.delete_if_rescanned(db, request.device_id, request.session_id):
+    if moperation.UnapprovedOperation.delete_if_rescanned(db, device.id, request.session_id):
         return schemas.DetailMessage(detail="Operation removed.")
     last_operation = moperation.DeviceOperation.get_last_dev_operation_or_none(db,
                                                                                device.id)
@@ -45,7 +46,7 @@ def change_status(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail=f"User with ID {session.user_id} has no permission to perform the operation")
     operation_data = schemas.DevOperation(
-        device_id=request.device_id,
+        device_id=device.id,
         session_id=session.id,
         entitled=entitled,
         operation_type=operation_type
@@ -80,28 +81,25 @@ def get_unapproved_operations(session_id: Optional[int] = None,
 @router.get("/", response_model=Sequence[schemas.DevOperationOut])
 def get_operations_filtered(session_id: Optional[int] = None,
                             current_concierge: User = Depends(
-                                  oauth2.get_current_concierge),
-                            db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
-    
+        oauth2.get_current_concierge),
+        db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
+
     return moperation.DeviceOperation.get_all_operations(db, session_id)
 
 
 @router.get("/{operation_id}", response_model=schemas.DevOperationOut)
 def get_operation_id(operation_id: int,
                      current_concierge: User = Depends(
-                                  oauth2.get_current_concierge),
+                         oauth2.get_current_concierge),
                      db: Session = Depends(database.get_db)) -> schemas.DevOperationOut:
-    
+
     return moperation.DeviceOperation.get_operation_id(db, operation_id)
 
 
-@router.get("/device/{device_id}", response_model=schemas.DevOperationOut|None)
+@router.get("/device/{device_id}", response_model=schemas.DevOperationOut | None)
 def get_last_dev_operation_or_none(device_id: int,
-                    current_concierge: User = Depends(
-                                  oauth2.get_current_concierge),
-                    db: Session = Depends(database.get_db)) -> schemas.DevOperationOut|None:
-    
+                                   current_concierge: User = Depends(
+                                       oauth2.get_current_concierge),
+                                   db: Session = Depends(database.get_db)) -> schemas.DevOperationOut | None:
+
     return moperation.DeviceOperation.get_last_dev_operation_or_none(db, device_id)
-
-
-

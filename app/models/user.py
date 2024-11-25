@@ -53,7 +53,8 @@ class User(BaseUser):
     surname: Mapped[str] = mapped_column(String(50))
     role: Mapped[UserRole] = mapped_column(SAEnum(
         UserRole, values_callable=lambda e: [x.value for x in e]))
-    faculty: Mapped[Optional[Faculty]]
+    faculty: Mapped[Optional[Faculty]] = mapped_column(SAEnum(
+        Faculty, values_callable=lambda e: [x.value for x in e]))
     photo_url: Mapped[Optional[str]] = mapped_column(unique=True)
     email: Mapped[str] = mapped_column(String(100), unique=True)
     password: Mapped[str]
