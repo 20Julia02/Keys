@@ -260,6 +260,45 @@ class Permission(Base):
                                     detail=f"An internal error occurred while deleting permission")
         return True
 
+    @classmethod
+    def get_active_permissions(cls,
+                               db: Session,
+                               user_id: int,
+                               date: Optional[datetime.date] = None,
+                               time: Optional[datetime.time] = None) -> List["Permission"]:
+        """
+        Retrieves all active permissions for a user at a specified date and time.
+
+        Args:
+            db (Session): Database session.
+            user_id (int): The ID of the user whose permissions are being checked.
+            date (datetime.date, optional): The date to check for permissions. Defaults to the current date.
+            time (datetime.time, optional): The time to check for permissions. Defaults to the current time.
+
+        Returns:
+            List[Permission]: A list of permissions for the specified user at the given time.
+        """
+        logger.info(f"Checking active permissions for user with ID {user_id}")
+
+        if date is None:
+            date = datetime.datetime.now().date()
+        if time is None:
+            time = datetime.datetime.now().time()
+
+        logger.debug(
+            f"Filtering permissions for date: {date} and time: {time}")
+
+        permissions = db.query(Permission).filter(
+            Permission.user_id == user_id,
+            Permission.date == date,
+            Permission.start_time <= time,
+            Permission.end_time >= time
+        ).order_by(Permission.start_time).all()
+
+        logger.debug(
+            f"Found {len(permissions)} permissions for user with ID {user_id} at the specified time")
+        return permissions
+
 
 @event.listens_for(Permission.__table__, 'after_create')
 def delete_old_reservations(target: Table,

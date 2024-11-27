@@ -8,6 +8,7 @@ import app.models.permission as mpermission
 from app.models.user import User
 from app.services import securityService
 import app.models.user as muser
+from app.config import logger
 
 router = APIRouter(
     prefix="/permissions",
@@ -178,3 +179,16 @@ def delete_permission(permission_id: int,
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mpermission.Permission.delete_permission(db, permission_id)
+
+
+@router.get("/active", response_model=Sequence[PermissionOut])
+def get_active_permissions(
+    user_id: int,
+    date: Optional[datetime.date] = None,
+    time: Optional[datetime.time] = None,
+    db: Session = Depends(database.get_db),
+    current_concierge: User = Depends(oauth2.get_current_concierge)
+) -> Sequence[PermissionOut]:
+    logger.info(
+        f"Fetching active permissions for user ID {user_id} at date: {date} and time: {time}")
+    return mpermission.Permission.get_active_permissions(db, user_id, date, time)

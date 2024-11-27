@@ -120,6 +120,7 @@ class DeviceOutWithNote(BaseModel):
     room_number: str
     has_note: bool
     is_taken: bool
+    issue_time: Optional[datetime.datetime] = None
     owner_name: Optional[str] = None
     owner_surname: Optional[str] = None
 

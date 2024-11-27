@@ -307,6 +307,11 @@ class Device(Base):
                     else_=False
                 ).label('is_taken'),
                 case(
+                    (DeviceOperation.operation_type ==
+                     "pobranie", DeviceOperation.timestamp),
+                    else_=None
+                ).label("issue_time"),
+                case(
                     (DeviceOperation.operation_type == "pobranie", User.name),
                     else_=None
                 ).label("owner_name"),
@@ -342,7 +347,7 @@ class Device(Base):
             query = query.filter(Room.number == room_number)
 
         query = query.group_by(
-            Device.id, Room.number, DeviceOperation.operation_type, User.name, User.surname
+            Device.id, Room.number, DeviceOperation.operation_type, User.name, User.surname, DeviceOperation.timestamp
         )
 
         numeric_part = func.regexp_replace(Room.number, r'\D+', '', 'g')
