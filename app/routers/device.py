@@ -61,7 +61,7 @@ def get_dev_id(dev_id: int,
 
     This endpoint retrieves a device from the database using the device's unique code.
     """
-    logger.info(f"GET request to retrieve device by Id {dev_id}.")
+    logger.info(f"GET request to retrieve device with Id {dev_id}.")
 
     return mdevice.Device.get_dev_by_id(db, dev_id)
 
@@ -76,7 +76,7 @@ def create_device(device: schemas.DeviceCreate,
     This endpoint allows concierge to create a new device by providing the necessary
     data. Only users with the 'admin' role are permitted to create devices.
     """
-    logger.info(f"POST request to create device with data {device}")
+    logger.info(f"POST request to create device")
 
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
@@ -92,16 +92,8 @@ def update_device(
     db: Session = Depends(database.get_db)
 ) -> Sequence[schemas.DeviceOut]:
     """
-    Aktualizuje dane urządzenia o podanym `device_id`.
-
-    Args:
-        device_id (int): ID urządzenia do zaktualizowania.
-        device_data (DeviceUpdate): Dane do zaktualizowania.
-        db (Session): Sesja bazy danych.
-
-    Returns:
-        DeviceResponse: Zaktualizowany obiekt urządzenia.
     """
+    logger.info(f"PUT request to update device")
     return mdevice.Device.update_dev(db, device_id, device_data)
 
 
@@ -113,12 +105,8 @@ def delete_device(
     db: Session = Depends(database.get_db)
 ):
     """
-    Usuwa urządzenie o podanym `device_id`.
-
-    Args:
-        device_id (int): ID urządzenia do usunięcia.
-        db (Session): Sesja bazy danych.
     """
+    logger.info(f"DELETE request to delete device with ID {device_id}")
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mdevice.Device.delete_dev(db, device_id)

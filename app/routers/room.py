@@ -46,7 +46,7 @@ def get_rooms(current_concierge: User = Depends(oauth2.get_current_concierge),
     Retrieves a list of rooms from the database. If `room_number` is specified, 
     only returns the room with the matching number.
     """
-    logger.info("GET request to retrieve rooms.")
+    logger.info(f"GET request to retrieve rooms filtered by number {number}")
 
     return mdevice.Room.get_rooms(db, number)
 
@@ -199,7 +199,8 @@ def update_room(room_id: int,
     """
     Updates an existing room in the database.
     """
-    logger.info(f"POST request to update room with ID: {room_id}")
+    logger.info(
+        f"POST request to update room with ID: {room_id}")
 
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)

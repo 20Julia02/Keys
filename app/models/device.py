@@ -39,7 +39,7 @@ class Room(Base):
         Raises:
             HTTPException: If no rooms are found in the database.
         """
-        logger.info("Fetching rooms from the database.")
+        logger.info("Fetching rooms from the database")
         logger.debug(f"Room filter applied: room_number={room_number}")
 
         query = db.query(Room)
@@ -52,7 +52,8 @@ class Room(Base):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="No rooms found")
 
-        logger.debug(f"Rooms found: {rooms}")
+        logger.debug(
+            f"Retrieved {len(rooms)} rooms that match given criteria")
         return rooms
 
     @classmethod
@@ -223,6 +224,7 @@ class Room(Base):
                 logger.error(f"Error deleting room ID {room_id}: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail=f"An internal error occurred while deleting room")
+        logger.debug(f"Device removed from database")
         return True
 
 
@@ -367,7 +369,7 @@ class Device(Base):
 
         devices = query.all()
         if len(devices) == 0:
-            logger.warning("No devices found matching the specified criteria.")
+            logger.warning("No devices found matching the specified criteria")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="No devices found matching criteria")
 
@@ -503,7 +505,6 @@ class Device(Base):
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail=f"An internal error occurred while updating device")
 
-        logger.debug(f"Updated device in the database: {device}")
         return device
 
     @classmethod
@@ -584,7 +585,7 @@ class DeviceNote(Base):
                                 detail="No device notes that match given criteria found")
 
         logger.debug(
-            f"Retrieved {len(notes)} notes that match given criteria.")
+            f"Retrieved {len(notes)} device notes that match given criteria")
         return notes
 
     @classmethod
@@ -650,7 +651,6 @@ class DeviceNote(Base):
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail=f"An internal error occurred while creating note")
 
-        logger.debug(f"New device note added to the database: {note}")
         return note
 
     @classmethod
@@ -674,7 +674,7 @@ class DeviceNote(Base):
         Raises:
             HTTPException: If no note with the given ID exists, or if the note is deleted.
         """
-        logger.info(f"Attempting to update note with ID: {note_id}")
+        logger.info(f"Attempting to update device note with ID: {note_id}")
 
         note = db.query(DeviceNote).filter(DeviceNote.id == note_id).first()
         if not note:
@@ -683,27 +683,26 @@ class DeviceNote(Base):
                                 detail=f"Note with id {note_id} not found")
         if note_data.note is None:
             logger.info(
-                f"Deleting note with ID: {note_id} as new content is None.")
+                f"Deleting device note with ID: {note_id} as new content is None.")
             cls.delete_device_note(db, note_id)
             raise HTTPException(
                 status_code=status.HTTP_204_NO_CONTENT, detail="Note deleted")
 
-        logger.debug(f"Updating note content to: {note_data.note}")
+        logger.debug(f"Updating device note content to: {note_data.note}")
         note.note = note_data.note
         note.timestamp = datetime.datetime.now()
 
         if commit:
             try:
                 db.commit()
-                logger.info(f"Note with ID {note_id} updated successfully.")
+                logger.info(
+                    f"Device note with ID {note_id} updated successfully.")
             except Exception as e:
                 db.rollback()
                 logger.error(
-                    f"Error while updating note with ID {note_id}: {e}")
+                    f"Error while updating device note with ID {note_id}: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while updating the note")
-
-        logger.debug(f"Updated note in the database: {note}")
+                                    detail=f"An internal error occurred while updating device note")
         return note
 
     @classmethod
@@ -722,11 +721,12 @@ class DeviceNote(Base):
         Raises:
             HTTPException: If no note with the given ID exists.
         """
-        logger.info(f"Attempting to delete note with ID: {note_id}")
+        logger.info(f"Attempting to delete device note with ID: {note_id}")
 
         note = db.query(DeviceNote).filter(DeviceNote.id == note_id).first()
         if not note:
-            logger.warning(f"Note with ID {note_id} not found for deletion.")
+            logger.warning(
+                f"Device note with ID {note_id} not found for deletion")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Note with id: {note_id} not found")
         db.delete(note)
@@ -739,7 +739,5 @@ class DeviceNote(Base):
                 logger.error(
                     f"Error while deleting note with ID {note_id}: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while deleting the note")
-
-        logger.debug(f"Deleted note with ID {note_id} from the database.")
+                                    detail=f"An internal error occurred while deleting device note")
         return True

@@ -72,6 +72,7 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
     which modifies devices during the session. The concierge must authenticate via login credentials before approval.
     Once approved, the operations are transferred from the unapproved state to the approved operations data.
     """
+    logger.info(f"POST request to approve session by login and password")
     auth_service = securityService.AuthorizationService(db)
     auth_service.authenticate_user_login(
         concierge_credentials.username, concierge_credentials.password, "concierge")
@@ -143,6 +144,8 @@ def approve_session_card(
     which modifies devices during the session. The concierge must authenticate via card before approval.
     Once approved, the operations are transferred from the unapproved state to the approved operations data.
     """
+    logger.info(f"POST request to approve session by card")
+
     auth_service = securityService.AuthorizationService(db)
     auth_service.authenticate_user_card(card_data, "concierge")
 
@@ -151,6 +154,19 @@ def approve_session_card(
     operations = moperation.UnapprovedOperation.create_operation_from_unapproved(
         db, session_id)
 
+    return operations
+
+
+@router.post("reject/session", response_model=schemas.SessionOut)
+def reject_session(session_id: int = Path(description="Unique identifier of the session"),
+                   db: Session = Depends(database.get_db),
+                   current_concierge: User = Depends(oauth2.get_current_concierge)):
+    """
+    """
+    logger.info(f"POST request to reject session by login and password")
+    moperation.UserSession.end_session(db, session_id, reject=True)
+    operations = moperation.UnapprovedOperation.delete_all_for_session(
+        db, session_id)
     return operations
 
 
@@ -182,7 +198,8 @@ def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
     their login credentials. Once authenticated, the system creates an session for
     the user and assigns it to the current concierge.
     """
-    logger.info(f"Starting new session")
+    logger.info(
+        f"POST request to start new session by user using login and password")
     auth_service = securityService.AuthorizationService(db)
 
     user = auth_service.authenticate_user_login(
@@ -218,6 +235,7 @@ def start_card_session(card_id: schemas.CardId,
     by verifying their card ID. Once authenticated, the system creates an session
     for the user and assigns it to the current concierge.
     """
+    logger.info(f"POST request to start new session by user using card")
     auth_service = securityService.AuthorizationService(db)
     user = auth_service.authenticate_user_card(card_id, "employee")
     return moperation.UserSession.create_session(db, user.id, current_concierge.id)
@@ -246,6 +264,8 @@ def start_unauthorized_session(unauthorized_id: int,
     The unauthorized user is identified by their unique ID, and the session is assigned
     to the current concierge if the user exists in the system.
     """
+    logger.info(
+        f"POST request to start new session by unauthorized user with ID {unauthorized_id}")
     user = db.query(muser.UnauthorizedUser).filter_by(
         id=unauthorized_id).first()
     if not user:
@@ -261,4 +281,6 @@ def get_session_id(session_id: int,
                    current_concierge: muser.User = Depends(
                        oauth2.get_current_concierge),
                    db: Session = Depends(database.get_db)) -> schemas.Session:
+    logger.info(
+        f"GET request to retrieve session with ID {session_id}.")
     return moperation.UserSession.get_session_id(db, session_id)

@@ -15,9 +15,6 @@ router = APIRouter(
     tags=['Permissions']
 )
 
-# todo dane o pozwoleniach brac z systemu pw
-# todo sprawdzac date i godzine
-
 
 @router.get("/", response_model=Sequence[PermissionOut])
 def get_permissions(
@@ -28,6 +25,8 @@ def get_permissions(
     current_concierge: User = Depends(oauth2.get_current_concierge),
     db: Session = Depends(database.get_db)
 ) -> Sequence[PermissionOut]:
+    logger.info(
+        f"GET request to retrieve permissions by user_id: {user_id}, room_id: {room_id}, date: {date}, start_time: {start_time}")
     return mpermission.Permission.get_permissions(db, user_id, room_id, date, start_time)
 
 
@@ -77,6 +76,8 @@ def create_permission(permission_data: PermissionCreate,
     """
     Creates a new permission in the database.
     """
+    logger.info(
+        f"POST request to create permission")
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mpermission.Permission.create_permission(db, permission_data)
@@ -138,6 +139,8 @@ def update_permission(permission_id: int,
     """
     Updates an existing permission in the database.
     """
+    logger.info(
+        f"POST request to update permission with ID {permission_id}")
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mpermission.Permission.update_permission(db, permission_id, permission_data)
@@ -176,6 +179,7 @@ def delete_permission(permission_id: int,
     """
     Deletes a permission by its ID from the database.
     """
+    logger.info(f"DELETE request to delete permission with ID {permission_id}")
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mpermission.Permission.delete_permission(db, permission_id)
@@ -190,5 +194,5 @@ def get_active_permissions(
     current_concierge: User = Depends(oauth2.get_current_concierge)
 ) -> Sequence[PermissionOut]:
     logger.info(
-        f"Fetching active permissions for user ID {user_id} at date: {date} and time: {time}")
+        f"GET request to retrieve active permissions for user ID {user_id} at date: {date} and time: {time}")
     return mpermission.Permission.get_active_permissions(db, user_id, date, time)

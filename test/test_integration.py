@@ -32,7 +32,7 @@ def test_get_user_by_invalid_id(concierge_token: str):
     response = client.get(f"/users/{-1}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
-    assert response.json()["detail"] == "User with id: -1 doesn't exist"
+    assert response.json()["detail"] == "User doesn't exist"
 
 
 def test_login_with_correct_credentials(test_concierge: muser.User):
@@ -308,7 +308,7 @@ def test_changeStatus_without_permission(test_concierge: muser.User,
                            json={"session_id": response1.json()["id"], "device_code": test_device_mikrofon.code})
     assert response.status_code == 403
     assert response.json()[
-        "detail"] == f"User with ID {test_user.id} has no permission to perform the operation"
+        "detail"] == f"User has no permission to perform the operation"
 
 
 def test_changeStatus_with_force(test_concierge: muser.User,
@@ -775,7 +775,7 @@ def test_get_all_user_devices_no_device(db: Session,
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
     assert response.json()[
-        'detail'] == f"User with id {test_concierge.id} doesn't have any devices"
+        'detail'] == f"No operations that match given criteria found"
 
 
 def test_get_all_user_notes(concierge_token: str,
@@ -817,7 +817,7 @@ def test_get_user_notes_not_found(concierge_token: str):
     response = client.get("/notes/users/?user_id=-2",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
-    assert response.json()["detail"] == "No user notes found."
+    assert response.json()["detail"] == "No user notes found"
 
 
 def test_add_user_note(test_user: muser.User,

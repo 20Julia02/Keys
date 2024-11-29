@@ -4,6 +4,7 @@ from app.schemas import UserOut, UserCreate
 from app import database, oauth2
 from sqlalchemy.orm import Session
 import app.models.user as muser
+from app.config import logger
 
 router = APIRouter(
     prefix="/users",
@@ -58,6 +59,8 @@ def get_all_users(current_concierge: muser.User = Depends(oauth2.get_current_con
     Retrieves all users from the database.
     If no users are found, raises an exception.
     """
+    logger.info(
+        f"GET request to retrieve users")
     return muser.User.get_all_users(db)
 
 
@@ -124,6 +127,8 @@ def get_user(user_id: int,
     Retrieves a user by their ID from the database.
     Raises an exception if the user is not found.
     """
+    logger.info(
+        f"GET request to retrieve user with ID: {user_id}")
     return muser.User.get_user_id(db, user_id)
 
 
@@ -174,6 +179,7 @@ def create_user(user_data: UserCreate,
     """
     Creates a new user in the database.
     """
+    logger.info("POST request to create user")
     return muser.User.create_user(db, user_data)
 
 
@@ -227,6 +233,8 @@ def delete_user(user_id: int,
     """
     Deletes a user by their ID from the database.
     """
+    logger.info(
+        f"DELETE request to delete user with ID: {user_id}")
     return muser.User.delete_user(db, user_id)
 
 
@@ -293,4 +301,5 @@ def update_user(user_id: int,
     """
     Updates a user's information in the database.
     """
+    logger.info(f"POST request to edit user with ID: {user_id}")
     return muser.User.update_user(db, user_id, user_data)

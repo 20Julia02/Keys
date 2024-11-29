@@ -27,7 +27,7 @@ def change_status(
     - If the device has already been added as unapproved in the current session, remove the unapproved operation.
     - Otherwise, check user permissions and create a new unapproved operation (issue or return).
     """
-    logger.info(f"POST request to change device status: {request}")
+    logger.info(f"POST request to change device status")
 
     device = mdevice.Device.get_dev_by_code(db, request.device_code)
     session = moperation.UserSession.get_session_id(db, request.session_id)
@@ -42,8 +42,10 @@ def change_status(
 
     operation_type = "zwrot" if last_operation and last_operation.operation_type == "pobranie" else "pobranie"
     if entitled == False and request.force == False and operation_type == "pobranie":
+        logger.warning(
+            f"User with ID {session.user_id} has no permission to perform the operation")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail=f"User with ID {session.user_id} has no permission to perform the operation")
+                            detail=f"User has no permission to perform the operation")
     else:
         if moperation.UnapprovedOperation.delete_if_rescanned(db, device.id, request.session_id):
             return schemas.DetailMessage(detail="Operation removed.")
@@ -78,6 +80,8 @@ def get_unapproved_operations(session_id: Optional[int] = None,
                               current_concierge: User = Depends(
                                   oauth2.get_current_concierge),
                               db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
+    logger.info(
+        f"GET request to retrieve the unapproved operations with operation_type: {operation_type}")
     return moperation.UnapprovedOperation.get_unapproved_filtered(db, session_id, operation_type)
 
 
@@ -86,7 +90,8 @@ def get_operations_filtered(session_id: Optional[int] = None,
                             current_concierge: User = Depends(
         oauth2.get_current_concierge),
         db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
-
+    logger.info(
+        f"GET request to retrieve the operations with session ID: {session_id}")
     return moperation.DeviceOperation.get_all_operations(db, session_id)
 
 
@@ -95,7 +100,8 @@ def get_operation_id(operation_id: int,
                      current_concierge: User = Depends(
                          oauth2.get_current_concierge),
                      db: Session = Depends(database.get_db)) -> schemas.DevOperationOut:
-
+    logger.info(
+        f"GET request to retrieve the operations by ID: {operation_id}")
     return moperation.DeviceOperation.get_operation_id(db, operation_id)
 
 
@@ -104,5 +110,6 @@ def get_last_dev_operation_or_none(device_id: int,
                                    current_concierge: User = Depends(
                                        oauth2.get_current_concierge),
                                    db: Session = Depends(database.get_db)) -> schemas.DevOperationOut | None:
-
+    logger.info(
+        f"GET request to retrieve the operations for device with ID: {device_id}")
     return moperation.DeviceOperation.get_last_dev_operation_or_none(db, device_id)

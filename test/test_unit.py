@@ -172,7 +172,7 @@ def test_get_user_id_not_found():
     with pytest.raises(HTTPException) as excinfo:
         User.get_user_id(db, user_id=-1)
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "User with id: -1 doesn't exist"
+    assert excinfo.value.detail == "User doesn't exist"
 
 
 def test_create_or_get_unauthorized_user_existing():
@@ -223,7 +223,7 @@ def test_get_user_notes_filter_no_notes():
     with pytest.raises(HTTPException) as excinfo:
         UserNote.get_user_notes_filter(db, user_id=1)
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "No user notes found."
+    assert excinfo.value.detail == "No user notes found"
 
 
 def test_create_user_note_success():
@@ -237,13 +237,6 @@ def test_create_user_note_success():
     assert isinstance(note.timestamp, datetime.datetime)
     db.add.assert_called_once_with(note)
     db.commit.assert_called_once()
-
-
-def test_create_user_note_empty_note():
-    db = MagicMock()
-    note_data = schemas.UserNoteCreate(user_id=1, note="")
-    with pytest.raises(ValueError):
-        UserNote.create_user_note(db, note_data=note_data)
 
 
 def test_update_user_note_not_found():

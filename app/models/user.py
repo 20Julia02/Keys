@@ -85,11 +85,15 @@ class User(BaseUser):
         Raises:
             HTTPException: Raises a 404 error if no users are found with the message "There is no user in database".
         """
-        user = db.query(User).all()
-        if (not user):
+        logger.info("Fetching users from the database.")
+        users = db.query(User).all()
+        if (not users):
+            logger.warning(f"No users found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There is no user in the database")
-        return user
+        logger.debug(
+            f"Retrieved {len(users)} users that match given criteria.")
+        return users
 
     @classmethod
     def get_user_id(cls,
@@ -109,10 +113,14 @@ class User(BaseUser):
         Raises:
             HTTPException: Raises a 404 error if the user is not found.
         """
+        logger.info(f"Attempting to retrieve user with ID: {user_id}")
         user = db.query(User).filter(User.id == user_id).first()
         if (not user):
+            logger.warning(
+                f"User with ID {user_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"User with id: {user_id} doesn't exist")
+                                detail=f"User doesn't exist")
+        logger.debug(f"User retrieved: {user}")
         return user
 
     @classmethod
@@ -131,16 +139,21 @@ class User(BaseUser):
         Returns:
             User: The newly created user object.
         """
+        logger.info("Creating a new user")
+        logger.debug(f"User data provided: {user_data}")
+
         new_user = cls(**user_data.model_dump())
         db.add(new_user)
         if commit:
             try:
                 db.commit()
-                db.refresh(new_user)
+                logger.info("User created and committed to the database.")
             except Exception as e:
                 db.rollback()
+                logger.error(
+                    f"Error while creating user: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
+                                    detail=f"An internal error occurred while creating user")
         return new_user
 
     @classmethod
@@ -163,18 +176,24 @@ class User(BaseUser):
         Raises:
             HTTPException: Raises a 404 error if the user is not found.
         """
+        logger.info(f"Attempting to delete user with ID: {user_id}")
+
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
+            logger.warning(f"User with ID {user_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"User with id: {user_id} doesn't exist")
         db.delete(user)
         if commit:
             try:
                 db.commit()
+                logger.info(f"User with ID: {user_id} deleted successfully.")
             except Exception as e:
+                logger.error(
+                    f"Error while deleting user with ID {user_id}: {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
+                                    detail=f"An internal error occurred while deleting user")
         return True
 
     @classmethod
@@ -199,9 +218,12 @@ class User(BaseUser):
             HTTPException: Raises a 404 error if the user is not found.
             Exception: For any other issues during the commit.
         """
+        logger.info(f"Attempting to update user with ID: {user_id}")
+        logger.debug(f"New user data: {user_data}")
         user = db.query(User).filter(User.id == user_id).first()
 
         if not user:
+            logger.warning(f"User with ID {user_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"User with id {user_id} not found")
         user.name = user_data.name
@@ -216,12 +238,13 @@ class User(BaseUser):
         if commit:
             try:
                 db.commit()
-                db.refresh(user)
+                logger.info(f"User with ID {user_id} updated successfully.")
             except Exception as e:
+                logger.error(
+                    f"Error while updating user with ID {user_id}: {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
-
+                                    detail=f"An internal error occurred while updating user")
         return user
 
 
@@ -266,11 +289,18 @@ class UnauthorizedUser(BaseUser):
         Raises:
             HTTPException: Raises a 403 error if an email conflict occurs with different name or surname.
         """
+        logger.info(
+            "Creating a new unauthorized user or retriving existing one if exists")
+        logger.debug(
+            f"Unauthorized user data provided: email: {email}, name: {name}, surname: {surname}")
+
         existing_user = db.query(
             UnauthorizedUser).filter_by(email=email).first()
 
         if existing_user:
             if existing_user.name != name or existing_user.surname != surname:
+                logger.warning(
+                    f"User with email {email} already exists but with a different name or surname")
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail={
@@ -283,6 +313,8 @@ class UnauthorizedUser(BaseUser):
                         }
                     }
                 )
+            logger.debug(
+                f"Existing unauthorized user retrieved: {existing_user}")
             return existing_user, False
 
         new_user = UnauthorizedUser(
@@ -294,11 +326,14 @@ class UnauthorizedUser(BaseUser):
         if commit:
             try:
                 db.commit()
-                db.refresh(new_user)
+                logger.info(
+                    "New unauthorized user created and committed to the database.")
             except Exception as e:
                 db.rollback()
+                logger.error(
+                    f"Error while creating new unauthorized user: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
+                                    detail=f"An internal error occurred while creating unauthorized user")
         return new_user, True
 
     @classmethod
@@ -317,11 +352,16 @@ class UnauthorizedUser(BaseUser):
         Raises:
             HTTPException: Raises a 404 error if no unauthorized users are found with a relevant message.
         """
-        user = db.query(UnauthorizedUser).all()
-        if (not user):
+        logger.info("Retrieving all unauthorized users")
+
+        users = db.query(UnauthorizedUser).all()
+        if (not users):
+            logger.warning(
+                "No unauthorized users found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There is no unauthorized user in database")
-        return user
+        logger.debug(f"Unauthorized users found: {users}")
+        return users
 
     @classmethod
     def get_unathorized_user(cls,
@@ -341,11 +381,15 @@ class UnauthorizedUser(BaseUser):
         Raises:
             HTTPException: Raises a 404 error if the unauthorized user is not found.
         """
+        logger.info(
+            f"Attempting to retrieve unauthorized user with ID: {user_id}")
         user = db.query(UnauthorizedUser).filter(
             UnauthorizedUser.id == user_id).first()
         if not user:
+            logger.warning(f"Unauthorized user with ID {user_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Unauthorized user with id: {user_id} doesn't exist")
+        logger.debug(f"Unauthorized user retrieved: {user}")
         return user
 
     @classmethod
@@ -370,10 +414,15 @@ class UnauthorizedUser(BaseUser):
             HTTPException: Raises a 404 error if the unauthorized user is not found.
             Exception: For any other issues during the commit.
         """
+        logger.info(
+            f"Attempting to update unauthorized user with ID: {user_id}")
+        logger.debug(f"New unaauthorized user data: {user_data}")
+
         user = db.query(UnauthorizedUser).filter(
             UnauthorizedUser.id == user_id).first()
 
         if not user:
+            logger.warning(f"Unauthorized user with id {user_id} not found.")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Unauthorized user with id {user_id} not found")
 
@@ -384,11 +433,14 @@ class UnauthorizedUser(BaseUser):
         if commit:
             try:
                 db.commit()
-                db.refresh(user)
+                logger.info(
+                    f"Unauthorized user with ID {user_id} updated successfully.")
             except Exception as e:
+                logger.error(
+                    f"Error while updating unauthorized user with ID {user_id}: {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
+                                    detail=f"An internal error occurred while updating unauthorized user")
 
         return user
 
@@ -412,22 +464,29 @@ class UnauthorizedUser(BaseUser):
         Raises:
             HTTPException: Raises a 404 error if the user is not found.
         """
+        logger.info(
+            f"Attempting to delete unauthorized user with ID: {user_id}")
 
         user = db.query(UnauthorizedUser).filter(
             UnauthorizedUser.id == user_id).first()
 
         if not user:
+            logger.warning(f"Unauthorized user with id {user_id} not found.")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Unauthorized user with id: {user_id} doesn't exist")
 
         db.delete(user)
         if commit:
             try:
+                logger.info(
+                    f"Unauthorized user with ID {user_id} deleted successfully.")
                 db.commit()
             except Exception as e:
+                logger.error(
+                    f"Error while deleting unauthorized user with ID {user_id}: {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
+                                    detail=f"An internal error occurred while deleting unauthorized user")
         return True
 
 
@@ -459,13 +518,20 @@ class UserNote(Base):
         Raises:
             HTTPException: Raises a 404 error if no user notes are found.
         """
+        logger.info("Attempting to retrieve user notes.")
+        logger.debug(f"Filtering notes by user ID: {user_id}")
+
         notes = db.query(UserNote)
         if user_id:
             notes = notes.filter(UserNote.user_id == user_id)
         notes = notes.all()
         if not notes:
+            logger.warning(f"No user notes found that match given criteria")
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="No user notes found.")
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No user notes found")
+        logger.debug(
+            f"Retrieved {len(notes)} user notes that match given criteria")
         return notes
 
     @classmethod
@@ -486,10 +552,14 @@ class UserNote(Base):
         Raises:
             HTTPException: Raises a 404 error if the note is not found.
         """
+        logger.info(f"Attempting to retrieve user note with ID: {note_id}")
         note = db.query(UserNote).filter(UserNote.id == note_id).first()
         if not note:
+            logger.warning(f"Note with ID {note_id} not found.")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail=f"There is no user notes with id {note_id}.")
+
+        logger.debug(f"Retrieved user note: {note}")
         return note
 
     @classmethod
@@ -513,8 +583,9 @@ class UserNote(Base):
             ValueError: If the note text is empty.
             Exception: For any other issues during the commit.
         """
-        if not note_data.note:
-            raise ValueError("Note cannot be empty")
+        logger.info("Creating a new user note.")
+        logger.debug(f"Note data provided: {note_data}")
+
         note_data_dict = note_data.model_dump()
         note_data_dict["timestamp"] = datetime.datetime.now()
         note = UserNote(**note_data_dict)
@@ -522,11 +593,14 @@ class UserNote(Base):
         if commit:
             try:
                 db.commit()
-                db.refresh(note)
+                logger.info(
+                    "User note created and committed to the database.")
             except Exception as e:
                 db.rollback()
+                logger.error(
+                    f"Error while creating user note': {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
+                                    detail=f"An internal error occurred while creating user note")
         return note
 
     @classmethod
@@ -552,26 +626,36 @@ class UserNote(Base):
             HTTPException: Raises a 404 error if the note is not found, or 204 if the note is deleted.
             Exception: For any issues during the commit.
         """
+        logger.info(f"Attempting to update user note with ID: {note_id}")
+
         note = db.query(UserNote).filter(UserNote.id == note_id).first()
 
         if not note:
+            logger.warning(f"User note with id {note_id} not found for update")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Note with id {note_id} not found")
         if note_data.note is None:
+            logger.info(
+                f"Deleting user note with ID: {note_id} as new content is None.")
             cls.delete_user_note(db, note_id)
             raise HTTPException(
                 status_code=status.HTTP_204_NO_CONTENT, detail="Note deleted")
+
+        logger.debug(f"Updating user note content to: {note_data.note}")
         note.note = note_data.note
         note.timestamp = datetime.datetime.now()
 
         if commit:
             try:
                 db.commit()
-                db.refresh(note)
+                logger.info(
+                    f"User note with ID {note_id} updated successfully.")
             except Exception as e:
                 db.rollback()
+                logger.error(
+                    f"Error while updating user note with ID {note_id}: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
+                                    detail=f"An internal error occurred while updating user note")
 
         return note
 
@@ -596,16 +680,24 @@ class UserNote(Base):
             HTTPException: Raises a 404 error if the note is not found.
             Exception: For any issues during the commit.
         """
+        logger.info(f"Attempting to delete user note with ID: {note_id}")
+
         note = db.query(UserNote).filter(UserNote.id == note_id).first()
         if not note:
+            logger.warning(
+                f"User note with ID {note_id} not found for deletion")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Note with id: {note_id} doesn't exist")
         db.delete(note)
         if commit:
             try:
                 db.commit()
+                logger.info(
+                    f"User mote with ID {note_id} deleted successfully.")
             except Exception as e:
                 db.rollback()
+                logger.error(
+                    f"Error while deleting user note with ID {note_id}: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
+                                    detail=f"An internal error occurred while deleting user note")
         return True

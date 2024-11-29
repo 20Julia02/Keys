@@ -133,7 +133,6 @@ class UserSession(Base):
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail=f"An internal error occurred while updating session status")
-        logger.debug(f"Session with ID {session_id} ended.")
         return session
 
     @classmethod
@@ -162,6 +161,8 @@ class UserSession(Base):
             logger.warning(f"Session with ID {session_id} not found.")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="Session doesn't exist")
+
+        logger.debug(f"Retrieved session: {session}")
         return session
 
 
@@ -221,6 +222,7 @@ class UnapprovedOperation(Base):
                     f"Error while deleting operation with ID {operation_unapproved.id}: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail=f"An internal error occurred while deleting operation")
+
             return True
         return False
 
@@ -258,8 +260,6 @@ class UnapprovedOperation(Base):
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail=f"An internal error occurred while creating unapproved operation")
-        logger.debug(
-            f"New unapproved operation added to the database: {new_operation}")
         return new_operation
 
     @classmethod
@@ -352,8 +352,52 @@ class UnapprovedOperation(Base):
                     f"Error while removing operations from unapproved and creating new upproved ones': {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail=f"An internal error occurred during operation transfer")
-        logger.debug(f"Operations moved to upproved ones")
         return operation_list
+
+    @classmethod
+    def delete_all_for_session(cls,
+                               db: Session,
+                               session_id: int,
+                               commit: Optional[bool] = True) -> None:
+        """
+        Deletes all unapproved operations for the given session ID.
+
+        Args:
+            db (Session): The database session.
+            session_id (int): ID of the session whose unapproved operations should be deleted.
+            commit (bool, optional): Whether to commit the transaction after deletion.
+
+        Raises:
+            HTTPException: If an error occurs during the deletion process.
+        """
+        logger.info(
+            f"Deleting all unapproved operations for session ID: {session_id}")
+
+        try:
+            operations_to_delete = db.query(cls).filter(
+                cls.session_id == session_id).all()
+
+            if not operations_to_delete:
+                logger.info(
+                    f"No unapproved operations found for session ID: {session_id}")
+                return
+
+            logger.debug(
+                f"Found {len(operations_to_delete)} unapproved operations to delete.")
+
+            for operation in operations_to_delete:
+                db.delete(operation)
+
+            if commit:
+                db.commit()
+                logger.info(
+                    f"All unapproved operations for session ID: {session_id} have been successfully deleted")
+        except Exception as e:
+            db.rollback()
+            logger.error(
+                f"Error while deleting unapproved operations for session ID: {session_id}: {e}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                detail=f"An internal error occurred while deleting unapproved operations")
 
 
 class DeviceOperation(Base):
@@ -439,8 +483,10 @@ class DeviceOperation(Base):
                 f"Operations for user with ID {user_id} and type: {operation_type} not found.")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User with id {user_id} doesn't have any devices"
+                detail=f"No operations that match given criteria found"
             )
+        logger.debug(
+            f"Retrieved {len(operations)} operations that match given criteria.")
         return operations
 
     @classmethod
@@ -476,8 +522,7 @@ class DeviceOperation(Base):
                 logger.error(
                     f"Error while creating operation': {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred")
-        logger.debug(f"New operation added to the database: {new_operation}")
+                                    detail=f"An internal error occurred while creating operation")
         return new_operation
 
     @classmethod
@@ -538,6 +583,7 @@ class DeviceOperation(Base):
             logger.warning(f"Operationwith ID {operation_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Operation with id: {operation_id} doesn't exist")
+        logger.debug(f"Retrieved operation: {operation}")
         return operation
 
     @classmethod
@@ -571,4 +617,5 @@ class DeviceOperation(Base):
         )
         if not operation:
             logger.info(f"Operation for device with ID: {device_id} not found")
+        logger.debug(f"Retrieved operation: {operation}")
         return operation

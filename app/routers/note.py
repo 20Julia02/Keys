@@ -4,6 +4,7 @@ from app import database, oauth2, schemas
 import app.models.user as muser
 import app.models.device as mdevice
 from sqlalchemy.orm import Session
+from app.config import logger
 
 router = APIRouter(
     prefix="/notes",
@@ -21,6 +22,8 @@ def get_user_notes_filtered(
     typically contain important information associated with users.
     HTTPException: If an error occurs while retrieving the user notes.
     """
+    logger.info(
+        f"GET request to retrieve user notes filtered by user ID: {user_id}")
     return muser.UserNote.get_user_notes_filter(db, user_id)
 
 
@@ -34,6 +37,8 @@ def get_user_notes_id(
     typically contain important information associated with users.
     HTTPException: If an error occurs while retrieving the user notes.
     """
+    logger.info(
+        f"GET request to retrieve user notes filtered by note ID: {note_id}")
     return muser.UserNote.get_user_note_id(db, note_id)
 
 
@@ -46,6 +51,7 @@ def add_user_note(note_data: schemas.UserNoteCreate,
     It allows to add a new note to a specific user.
     The note is stored in the database along with the user ID.
     """
+    logger.info("POST request to create user note")
     return muser.UserNote.create_user_note(db, note_data)
 
 
@@ -58,13 +64,17 @@ def edit_user_note(note_id: int,
     """
     Edits a note with the specified ID for a user.
     """
+    logger.info("PUT request to edit user note")
     return muser.UserNote.update_user_note(db, note_id, note_data)
 
 
 @router.get("/devices", response_model=Sequence[schemas.DeviceNoteOut])
 def get_devices_notes_filtered(device_id: Optional[int] = None,
-                               current_concierge: muser.User = Depends(oauth2.get_current_concierge),
+                               current_concierge: muser.User = Depends(
+                                   oauth2.get_current_concierge),
                                db: Session = Depends(database.get_db)) -> Sequence[schemas.DeviceNoteOut]:
+    logger.info(
+        f"GET request to retrieve device notes filtered by user ID: {device_id}.")
     return mdevice.DeviceNote.get_dev_notes(db, device_id)
 
 
@@ -78,6 +88,8 @@ def get_device_notes_id(
     typically contain important information associated with users.
     HTTPException: If an error occurs while retrieving the user notes.
     """
+    logger.info(
+        f"GET request to retrieve device notes filtered by note ID: {note_id}.")
     return mdevice.DeviceNote.get_device_note_id(db, note_id)
 
 
@@ -90,6 +102,7 @@ def add_device_note(note_data: schemas.DeviceNote,
     It allows to add a note to a specific operation. The operation is identified
     by its unique ID, and the note is saved in the database.
     """
+    logger.info("POST request to create device note")
     return mdevice.DeviceNote.create_dev_note(db, note_data)
 
 
@@ -102,6 +115,7 @@ def edit_device_note(note_id: int,
     """
     Edits a note with the specified ID for a device.
     """
+    logger.info("PUT request to edit device note")
     return mdevice.DeviceNote.update_dev_note(db, note_id, note_data)
 
 
@@ -109,5 +123,6 @@ def edit_device_note(note_id: int,
 def delete_device_note(note_id: int,
                        db: Session = Depends(database.get_db),
                        current_concierge: muser.User = Depends(oauth2.get_current_concierge)):
-
+    logger.info(
+        f"DELETE request to delete device note with ID: {note_id}")
     return mdevice.DeviceNote.delete_dev_note(db, note_id)

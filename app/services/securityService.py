@@ -27,6 +27,7 @@ class PasswordService:
         Returns:
             str: The hashed password.
         """
+        logger.info("Hashing given password")
         return self.pwd_context.hash(password)
 
     def verify_hashed(self,
@@ -42,8 +43,10 @@ class PasswordService:
         Returns:
             bool: True if the passwords match, False otherwise.
         """
-
-        return self.pwd_context.verify(plain_text, hashed_text)
+        logger.info("Verifing if given plain text matches the hashed one")
+        verified = self.pwd_context.verify(plain_text, hashed_text)
+        logger.debug(f"Text verified with response: {verified}")
+        return verified
 
 
 class TokenService:
@@ -68,6 +71,9 @@ class TokenService:
         Returns:
             str: The encoded JWT token.
         """
+        logger.info("Creating a JWT token")
+        logger.debug(
+            f"Given  parameters - token_type: {token_type}, data: {data}")
         if token_type == "refresh":
             time_delta = self.REFRESH_TOKEN_EXPIRE_MINUTES
         else:
@@ -80,7 +86,7 @@ class TokenService:
 
         encoded_jwt = jwt.encode(
             to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
-
+        logger.debug(f"Token created")
         return encoded_jwt
 
     def verify_concierge_token(self,
@@ -97,6 +103,7 @@ class TokenService:
         Raises:
             HTTPException: If the token is invalid or missing required data.
         """
+        logger.info("Verifying the given token")
         try:
             payload = jwt.decode(token, self.SECRET_KEY,
                                  algorithms=[self.ALGORITHM])
@@ -104,12 +111,17 @@ class TokenService:
             role = payload.get("user_role")
 
             if user_id is None or role is None:
+                logger.warning(
+                    "Token does not contain information about the user id and role")
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                     detail="Invalid token")
             token_data = schemas.TokenData(id=user_id, role=role)
-        except JWTError:
+        except JWTError as e:
+            logger.error(f"Failed to verify token: {str(e)}")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail="Invalid token")
+                                detail="Failed to verify token")
+        logger.debug(
+            f"Given token is verified and data are extracted: {token_data}")
         return token_data
 
     def is_token_blacklisted(self,
@@ -123,7 +135,11 @@ class TokenService:
         Returns:
             bool: True if the token is blacklisted, False otherwise.
         """
-        return self.db.query(mpermission.TokenBlacklist).filter_by(token=token).first() is not None
+        logger.info("Checking if given token is not blacklisted")
+        is_blacklisted = self.db.query(mpermission.TokenBlacklist).filter_by(
+            token=token).first() is not None
+        logger.debug(f"Token checked with response: {is_blacklisted}")
+        return is_blacklisted
 
     def add_token_to_blacklist(self,
                                token: str,
@@ -139,17 +155,22 @@ class TokenService:
             bool: True if the token was successfully added to the blacklist.
             False if token was already blacklisted
         """
+        logger.info("Adding the token to blacklist")
         if not self.is_token_blacklisted(token):
             db_token = mpermission.TokenBlacklist(token=token)
             self.db.add(db_token)
             if commit:
                 try:
                     self.db.commit()
+                    logger.debug("Token added to blacklist")
                 except Exception as e:
                     self.db.rollback()
+                    logger.error(
+                        f"Error while adding token to blacklist: {e}")
                     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                        detail=f"An internal error occurred")
+                                        detail=f"An internal error occurred while adding token to blacklist")
             return True
+        logger.debug("Token has been already blackllisted")
         return False
 
     def generate_tokens(self,
@@ -168,11 +189,15 @@ class TokenService:
         Raises:
             Exception: Any exceptions related to token generation or encoding issues.
         """
+        logger.info("Generating a pair of JWT tokens (access and refresh)")
         access_token = self.create_token(
             {"user_id": user_id, "user_role": role}, "access")
         refresh_token = self.create_token(
             {"user_id": user_id, "user_role": role}, "refresh")
-        return schemas.Token(access_token=access_token, refresh_token=refresh_token, token_type="bearer")
+        tokens = schemas.Token(access_token=access_token,
+                               refresh_token=refresh_token, token_type="bearer")
+        logger.debug("Tokens created")
+        return tokens
 
 
 class AuthorizationService:
@@ -205,7 +230,7 @@ class AuthorizationService:
                 f"The user: {user.email} with role: {user_role.value} cannot perform this operation without the {role.value} role")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"You cannot perform this operation without the {role.value} role")
+                detail=f"You cannot perform this operation without the appropriate role")
         return True
 
     def get_current_concierge(self,
@@ -223,10 +248,14 @@ class AuthorizationService:
         Raises:
             HTTPException: If the token is invalid, blacklisted, or the user is not found.
         """
+        logger.info(
+            f"Retrieving the concierge from the database by token")
         token_service = TokenService(self.db)
         if token_service.is_token_blacklisted(token):
+            logger.error(
+                "Token has been blacklisted. Concierge is logged out.")
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                detail="You are logged out")
+                                detail="Concierge is logged out")
 
         token_data = token_service.verify_concierge_token(token)
 
@@ -236,10 +265,14 @@ class AuthorizationService:
         ).first()
 
         if user is None:
+            logger.warning(
+                f"Could not validate credentials. User with id: {token_data.id} and role {token_data.role} doesn't exist")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail="Could not validate credentials",
                                 headers={"Authenticate": "Bearer"})
         self.entitled_or_error(muser.UserRole.concierge, user)
+        logger.debug(
+            f"User that match given token retrieved")
         return user
 
     def get_current_concierge_token(self,
@@ -253,13 +286,15 @@ class AuthorizationService:
         Returns:
             str: The validated JWT token.
         """
+        logger.info(
+            f"Retrieving the concierge by token")
         _ = self.get_current_concierge(token)
         return token
 
     def authenticate_user_login(self,
                                 username: str,
                                 password: str,
-                                role: str) -> muser.User:
+                                role: Literal["administrator", "portier", "pracownik", "student", "gość"]) -> muser.User:
         """
         Authenticates a user using their username and password, verifying credentials and role entitlement.
 
@@ -283,20 +318,14 @@ class AuthorizationService:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials")
 
-        try:
-            required_role = muser.UserRole[role]
-        except KeyError:
-            logger.error(f"Invalid role: {role}")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid role: {role}"
-            )
+        required_role = muser.UserRole[role]
         self.entitled_or_error(required_role, user)
+        logger.info("User authenticated")
         return user
 
     def authenticate_user_card(self,
                                card_id: schemas.CardId,
-                               role: str) -> muser.User:
+                               role: Literal["administrator", "portier", "pracownik", "student", "gość"]) -> muser.User:
         """
         Authenticates a user using their card ID, checking credentials and role entitlement.
 
@@ -310,21 +339,16 @@ class AuthorizationService:
         Raises:
             HTTPException: Raises a 403 error if the card ID is invalid or the user does not have the required role.
         """
+        logger.info("Authenticating user by card")
         password_service = PasswordService()
         users = self.db.query(muser.User).filter(
             muser.User.card_code.isnot(None)).all()
         for user in users:
             if password_service.verify_hashed(card_id.card_id, user.card_code):
-                try:
-                    required_role = muser.UserRole[role]
-                except KeyError:
-                    logger.error(f"Invalid role: {role}")
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Invalid role: {role}"
-                    )
+                required_role = muser.UserRole[role]
                 self.entitled_or_error(required_role, user)
+                logger.info("User authenticated")
                 return user
-
+        logger.error(f"There is no user with given card code")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials")

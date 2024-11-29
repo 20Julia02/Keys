@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, String, Date, Time, text, Table, Connection, event
+from sqlalchemy import Integer, case, func, ForeignKey, String, Date, Time, text, Table, Connection, event
 from sqlalchemy.orm import relationship, mapped_column, Mapped, Session
 from typing import Optional, List, Any
 import datetime
@@ -36,7 +36,7 @@ class Permission(Base):
                         user_id: Optional[int] = None,
                         room_id: Optional[int] = None,
                         date: Optional[datetime.date] = None,
-                        start_time: Optional[datetime.time] = None,
+                        time: Optional[datetime.time] = None,
                         ) -> List["Permission"]:
         """
         Retrieves a list of permissions based on specified filters like `user_id`, `room_id`, `date`, and `start_time`.
@@ -47,7 +47,7 @@ class Permission(Base):
             user_id (int, optional): ID of the user whose permissions are being queried. Default is `None`.
             room_id (int, optional): ID of the room for which permissions are being queried. Default is `None`.
             date (datetime.date, optional): Date of permissions to retrieve. Default is `None`.
-            start_time (datetime.time, optional): Start time of permissions to retrieve. Default is `None`.
+            time (datetime.time, optional): Time of permissions to retrieve. Default is `None`.
 
         Returns:
             List[Permission]: A list of permissions that match the specified criteria.
@@ -74,10 +74,11 @@ class Permission(Base):
                 f"Filtering permissions by date: {date}")
             query = query.filter(Permission.date == date)
 
-        if start_time is not None:
+        if time is not None:
             logger.debug(
-                f"Filtering permissions by start_time: {start_time}")
-            query = query.filter(Permission.start_time == start_time)
+                f"Filtering permissions by time: {time}")
+            query = query.filter(Permission.start_time <=
+                                 time, Permission.end_time >= time)
 
         permissions = query.order_by(
             Permission.date, Permission.start_time).all()
@@ -162,7 +163,6 @@ class Permission(Base):
                     f"Error while creating permission: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail=f"An internal error occurred while creating permission")
-        logger.debug(f"New permission added to the database: {new_permission}")
         return new_permission
 
     @classmethod
@@ -215,7 +215,6 @@ class Permission(Base):
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail=f"An internal error occurred while updating permission")
-        logger.debug(f"Updated permission in the database: {permission}")
         return permission
 
     @classmethod
@@ -267,7 +266,8 @@ class Permission(Base):
                                date: Optional[datetime.date] = None,
                                time: Optional[datetime.time] = None) -> List["Permission"]:
         """
-        Retrieves all active permissions for a user at a specified date and time.
+        Retrieves all active permissions for a user at a specified date and time,
+        sorted by room number using a specific numeric and text-based sorting rule.
 
         Args:
             db (Session): Database session.
@@ -288,12 +288,29 @@ class Permission(Base):
         logger.debug(
             f"Filtering permissions for date: {date} and time: {time}")
 
-        permissions = db.query(Permission).filter(
+        query = db.query(Permission).join(Room, Permission.room_id == Room.id).filter(
             Permission.user_id == user_id,
             Permission.date == date,
             Permission.start_time <= time,
             Permission.end_time >= time
-        ).order_by(Permission.start_time).all()
+        )
+
+        numeric_part = func.regexp_replace(Room.number, r'\D+', '', 'g')
+        text_part = func.regexp_replace(Room.number, r'\d+', '', 'g')
+
+        query = query.order_by(
+            case(
+                (numeric_part != '', func.cast(numeric_part, Integer)),
+                else_=None
+            ).asc(),
+            case(
+                (numeric_part == '', text_part),
+                else_=None
+            ).asc(),
+            text_part.asc()
+        )
+
+        permissions = query.all()
 
         logger.debug(
             f"Found {len(permissions)} permissions for user with ID {user_id} at the specified time")
