@@ -385,8 +385,8 @@ class UnapprovedOperation(Base):
             logger.debug(
                 f"Found {len(operations_to_delete)} unapproved operations to delete.")
 
-            for operation in operations_to_delete:
-                db.delete(operation)
+            db.query(cls).filter(cls.session_id == session_id).delete(
+                synchronize_session=False)
 
             if commit:
                 db.commit()

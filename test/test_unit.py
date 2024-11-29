@@ -346,7 +346,7 @@ def test_verify_concierge_token_invalid(mock_jwt_decode: Any):
     with pytest.raises(HTTPException) as excinfo:
         token_service.verify_concierge_token(token)
     assert excinfo.value.status_code == 401
-    assert excinfo.value.detail == "Invalid token"
+    assert excinfo.value.detail == "Failed to verify token"
 
 
 def test_is_token_blacklisted():
@@ -389,7 +389,7 @@ def test_entitled_or_error_user_no_role():
     with pytest.raises(HTTPException) as excinfo:
         auth_service.entitled_or_error(UserRole.admin, user)
     assert excinfo.value.status_code == 403
-    assert excinfo.value.detail == "You cannot perform this operation without the administrator role"
+    assert excinfo.value.detail == "You cannot perform this operation without the appropriate role"
 
 
 @patch.object(TokenService, "is_token_blacklisted", return_value=True)
@@ -401,7 +401,7 @@ def test_get_current_concierge_blacklisted_token(mock_is_blacklisted: Any):
     with pytest.raises(HTTPException) as excinfo:
         auth_service.get_current_concierge(token)
     assert excinfo.value.status_code == 403
-    assert excinfo.value.detail == "You are logged out"
+    assert excinfo.value.detail == "Concierge is logged out"
 
 
 @patch.object(TokenService, "is_token_blacklisted", return_value=False)

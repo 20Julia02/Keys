@@ -157,7 +157,7 @@ def approve_session_card(
     return operations
 
 
-@router.post("/reject/session/{session_id}", response_model=schemas.SessionOut)
+@router.post("/reject/session/{session_id}")
 def reject_session(session_id: int = Path(description="Unique identifier of the session"),
                    db: Session = Depends(database.get_db),
                    current_concierge: User = Depends(oauth2.get_current_concierge)):
@@ -165,9 +165,7 @@ def reject_session(session_id: int = Path(description="Unique identifier of the 
     """
     logger.info(f"POST request to reject session by login and password")
     moperation.UserSession.end_session(db, session_id, reject=True)
-    operations = moperation.UnapprovedOperation.delete_all_for_session(
-        db, session_id)
-    return operations
+    return moperation.UnapprovedOperation.delete_all_for_session(db, session_id)
 
 
 @router.post("/start-session/login", response_model=schemas.SessionOut, responses={

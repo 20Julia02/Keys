@@ -92,7 +92,7 @@ def test_refresh_token_with_valid_token(db: Session,
 def test_refresh_token_with_invalid_token():
     response = client.post("/refresh", json={"refresh_token": "invalid_token"})
     assert response.status_code == 401
-    assert response.json()["detail"] == "Invalid token"
+    assert response.json()["detail"] == "Failed to verify token"
 
 
 def test_get_all_devices(test_device: mdevice.Device,
@@ -639,7 +639,7 @@ def test_approve_session_login_no_permission(test_user: muser.User,
     )
     assert response.status_code == 403
     assert response.json() == {
-        "detail": "You cannot perform this operation without the portier role"}
+        "detail": "You cannot perform this operation without the appropriate role"}
 
 
 def test_approve_session_card_no_devices(test_session: moperation.UserSession,
@@ -972,7 +972,7 @@ def test_logout_with_invalid_token():
     response = client.post(
         "/logout", headers={"Authorization": "Bearer invalid_token"})
     assert response.status_code == 401
-    assert response.json()["detail"] == "Invalid token"
+    assert response.json()["detail"] == "Failed to verify token"
 
 
 def test_logout_with_blacklisted_token(test_concierge: muser.User,
@@ -982,4 +982,4 @@ def test_logout_with_blacklisted_token(test_concierge: muser.User,
     response2 = client.post(
         "/logout", headers={"Authorization": f"Bearer {concierge_token}"})
     assert response2.status_code == 403
-    assert response2.json()["detail"] == "You are logged out"
+    assert response2.json()["detail"] == "Concierge is logged out"
