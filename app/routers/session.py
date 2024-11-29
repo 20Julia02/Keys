@@ -157,7 +157,7 @@ def approve_session_card(
     return operations
 
 
-@router.post("reject/session", response_model=schemas.SessionOut)
+@router.post("reject/session{session_id}", response_model=schemas.SessionOut)
 def reject_session(session_id: int = Path(description="Unique identifier of the session"),
                    db: Session = Depends(database.get_db),
                    current_concierge: User = Depends(oauth2.get_current_concierge)):
