@@ -424,7 +424,7 @@ def test_get_permission_with_date_start_time(test_concierge: muser.User,
     assert response.status_code == 200
     assert datetime.strptime(
         response.json()[0]["date"], '%Y-%m-%d').date() == test_permission.date
-    assert datetime.strptime(response.json()[0]["start_time"], '%H:%M:%S.%f').time(
+    assert datetime.strptime(response.json()[0]["start_time"], '%H:%M:%S').time(
     ) == test_permission.start_time
     assert len(response.json()) == 1
 

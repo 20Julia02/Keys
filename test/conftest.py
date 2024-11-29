@@ -91,13 +91,27 @@ def test_room_2(db: Session) -> mdevice.Room:
 
 @pytest.fixture(scope="module")
 def test_permission(db: Session, test_user: muser.User, test_room: mdevice.Room) -> mpermission.Permission:
+    now = datetime.datetime.now()
+    start_time = (now - datetime.timedelta(hours=1))
+    end_time = (now + datetime.timedelta(hours=1))
+    if start_time.date() < now.date():
+        start_time = datetime.datetime.combine(
+            now.date(), datetime.time(0, 0))
+
+    if end_time.date() > now.date():
+        end_time = datetime.datetime.combine(
+            now.date(), datetime.time(23, 59))
+
+    assert start_time.date() == now.date(), "Start time must be today"
+    assert end_time.date() == now.date(), "End time must be today"
+    assert end_time > start_time, "End time must be greater than start time"
+
     permission = mpermission.Permission(
         user_id=test_user.id,
         room_id=test_room.id,
         date=datetime.date.today(),
-        start_time=(datetime.datetime.now() -
-                    datetime.timedelta(hours=1)).time(),
-        end_time=(datetime.datetime.now() + datetime.timedelta(hours=1)).time()
+        start_time=start_time.time(),
+        end_time=end_time.time()
     )
     db.add(permission)
     db.commit()

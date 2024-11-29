@@ -1,6 +1,6 @@
 from sqlalchemy import Integer, and_, case, ForeignKey, String, UniqueConstraint, func, TIMESTAMP
 from sqlalchemy.orm import Mapped, relationship, mapped_column, Session
-import enum
+from enum import Enum
 import datetime
 from fastapi import HTTPException, status
 from app.models.base import Base
@@ -10,6 +10,7 @@ from app.models.user import User
 from typing import Optional, List, Literal
 from sqlalchemy import Enum as SAEnum
 from app.config import logger
+from app.models.base import get_enum_values
 
 
 class Room(Base):
@@ -228,12 +229,12 @@ class Room(Base):
         return True
 
 
-class DeviceVersion(enum.Enum):
+class DeviceVersion(Enum):
     primary = "podstawowa"
     backup = "zapasowa"
 
 
-class DeviceType(enum.Enum):
+class DeviceType(Enum):
     key = "klucz"
     microphone = "mikrofon"
     remote_controler = "pilot"
@@ -243,12 +244,12 @@ class Device(Base):
     __tablename__ = "device"
     id: Mapped[int] = mapped_column(primary_key=True)
     code: Mapped[str] = mapped_column(String(50), unique=True, index=True)
-    dev_type: Mapped[DeviceType] = mapped_column(SAEnum(
-        DeviceType, values_callable=lambda e: [x.value for x in e]))
+    dev_type: Mapped[DeviceType] = mapped_column(
+        SAEnum(DeviceType, values_callable=get_enum_values))
     room_id: Mapped[int] = mapped_column(ForeignKey(
         "room.id", ondelete="RESTRICT", onupdate="RESTRICT"), index=True)
-    dev_version: Mapped[DeviceVersion] = mapped_column(SAEnum(
-        DeviceVersion, values_callable=lambda e: [x.value for x in e]))
+    dev_version: Mapped[DeviceVersion] = mapped_column(
+        SAEnum(DeviceVersion, values_callable=get_enum_values))
 
     room = relationship("Room", back_populates="devices")
     notes = relationship(

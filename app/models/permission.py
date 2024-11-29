@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, case, func, ForeignKey, String, Date, Time, text, Table, Connection, event
+from sqlalchemy import CheckConstraint, Integer, case, func, ForeignKey, String, Date, Time, text, Table, Connection, event
 from sqlalchemy.orm import relationship, mapped_column, Mapped, Session
 from typing import Optional, List, Any
 import datetime
@@ -29,6 +29,11 @@ class Permission(Base):
 
     user: Mapped["User"] = relationship(back_populates="permissions")
     room: Mapped["Room"] = relationship(back_populates="permissions")
+
+    __table_args__ = (
+        CheckConstraint("end_time > start_time",
+                        name="check_end_time_gt_start_time"),
+    )
 
     @classmethod
     def get_permissions(cls,
@@ -115,7 +120,7 @@ class Permission(Base):
             f"Checking if user with ID: {user_id} has permission to access room with ID: {room_id}")
         current_date = datetime.date.today()
         current_time = datetime.datetime.now().time()
-
+        print(current_time, current_date)
         has_permission = db.query(Permission).filter(
             Permission.user_id == user_id,
             Permission.room_id == room_id,

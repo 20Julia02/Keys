@@ -165,6 +165,7 @@ def reject_session(session_id: int = Path(description="Unique identifier of the 
     """
     logger.info(f"POST request to reject session by login and password")
     moperation.UserSession.end_session(db, session_id, reject=True)
+
     return moperation.UnapprovedOperation.delete_all_for_session(db, session_id)
 
 
