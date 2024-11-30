@@ -185,7 +185,7 @@ def test_get_dev_by_invalid_code(concierge_token: str):
     response = client.get("/devices/code/-5",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
-    assert response.json()["detail"] == "Device with code: -5 not found"
+    assert response.json()["detail"] == "Device not found"
 
 
 def test_create_device(test_room: mdevice.Room,
@@ -422,10 +422,11 @@ def test_get_permission_with_date_start_time(test_concierge: muser.User,
     response = client.get(f"/permissions?date={test_permission.date}&start_time={test_permission.start_time}",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 200
-    assert datetime.strptime(
-        response.json()[0]["date"], '%Y-%m-%d').date() == test_permission.date
-    assert datetime.strptime(response.json()[0]["start_time"], '%H:%M:%S').time(
-    ) == test_permission.start_time
+
+    response_data = response.json()[0]
+
+    assert datetime.strptime(response_data["date"], '%Y-%m-%d').date() == test_permission.date
+    assert datetime.strptime(response_data["start_time"], '%H:%M:%S.%f').time() == test_permission.start_time
     assert len(response.json()) == 1
 
 
@@ -451,7 +452,7 @@ def test_get_room_by_invalid_id(test_concierge: muser.User,
     response = client.get(
         f"/rooms/{-5}", headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
-    assert response.json()["detail"] == "Room with id: -5 not found"
+    assert response.json()["detail"] == "Room not found"
 
 
 def test_create_unauthorized_user(test_concierge: muser.User,
@@ -486,7 +487,7 @@ def test_start_session_unauthorized_invalid(concierge_token: str):
                            headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
     assert response.json()[
-        "detail"] == f"Unauthorized user with id -11 not found"
+        "detail"] == f"Unauthorized user not found"
 
 
 def test_create_unauthorized_user_duplicated(test_concierge: muser.User,
@@ -513,7 +514,7 @@ def test_create_unauthorized_user_duplicated_invalid(test_concierge: muser.User,
                            headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 409
     assert response.json()[
-        "detail"]["message"] == "User with this email already exists but with a different name or surname."
+        "detail"] == "User with this email already exists but with a different name or surname"
 
 
 def test_create_unauthorized_user_with_missing_data(test_concierge: muser.User,
@@ -556,7 +557,7 @@ def test_get_unauthorized_user_with_invalid_id(test_concierge: muser.User,
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
     assert response.json()[
-        "detail"] == "Unauthorized user with id: 9999 doesn't exist"
+        "detail"] == "Unauthorized user doesn't exist"
 
 
 def test_delete_unauthorized_user_invalid_id(concierge_token: str):
@@ -564,7 +565,7 @@ def test_delete_unauthorized_user_invalid_id(concierge_token: str):
                              headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
     assert response.json()[
-        "detail"] == "Unauthorized user with id: 9999 doesn't exist"
+        "detail"] == "Unauthorized user doesn't exist"
 
 
 def test_delete_unauthorized_user_valid(db: Session,
@@ -810,7 +811,7 @@ def test_get_user_notes_id_invalid(test_user: muser.User,
     response = client.get(f"/notes/users/-7",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
-    assert response.json()["detail"] == "There is no user notes with id -7."
+    assert response.json()["detail"] == "There is no user notes with this id"
 
 
 def test_get_user_notes_not_found(concierge_token: str):
@@ -906,7 +907,7 @@ def test_get_device_notes_id_invalid(test_device: mdevice.Device,
                           headers={"Authorization": f"Bearer {concierge_token}"})
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "No device notes with id -2 found"
+    assert response.json()["detail"] == "No device notes found"
 
 
 def test_add_device_note(db: Session,
@@ -957,7 +958,7 @@ def test_delete_device_note(db: Session,
 
     assert response.status_code == 404
     assert response.json()[
-        "detail"] == f"No device notes with id {test_device_note.id} found"
+        "detail"] == f"No device notes found"
 
 
 def test_logout_with_valid_token(test_concierge: muser.User,

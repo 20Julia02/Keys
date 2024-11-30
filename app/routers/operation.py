@@ -45,7 +45,7 @@ def change_status(
         logger.warning(
             f"User with ID {session.user_id} has no permission to perform the operation")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail=f"User has no permission to perform the operation")
+                            detail="User has no permission to perform the operation")
     else:
         if moperation.UnapprovedOperation.delete_if_rescanned(db, device.id, request.session_id):
             return schemas.DetailMessage(detail="Operation removed.")

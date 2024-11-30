@@ -80,7 +80,7 @@ class Room(Base):
         if not room:
             logger.warning(f"Room with ID {room_id} not found.")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Room with id: {room_id} not found")
+                                detail="Room not found")
         logger.debug(f"Room retrieved: {room}")
         return room
 
@@ -112,7 +112,7 @@ class Room(Base):
                 f"Attempted to create room with duplicate number '{room_data.number}'.")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Room with number '{room_data.number}' already exists."
+                detail="Room with this number already exists."
             )
 
         new_room = Room(number=room_data.number)
@@ -162,7 +162,7 @@ class Room(Base):
         if not room:
             logger.warning(f"Room with ID {room_id} not found for update.")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Room with id: {room_id} not found")
+                                detail="Room not found")
 
         if room_data.number != room.number:
             if db.query(Room).filter(Room.number == room_data.number).first():
@@ -170,8 +170,7 @@ class Room(Base):
                     f"Attempted to update room with duplicate number '{room_data.number}'.")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Room with number '{
-                        room_data.number}' already exists."
+                    detail="Room with this number already exists."
                 )
             room.number = room_data.number
             logger.debug(f"Room number updated to '{room_data.number}'")
@@ -184,7 +183,7 @@ class Room(Base):
                 db.rollback()
                 logger.error(f"Error updating room ID {room_id}: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while updating room")
+                                    detail="An internal error occurred while updating room")
         logger.debug(f"Updated room in the database: {room}")
         return room
 
@@ -214,7 +213,7 @@ class Room(Base):
         if not room:
             logger.warning(f"Room with ID {room_id} not found for deletion.")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Room with id: {room_id} doesn't exist")
+                                detail="Room doesn't exist")
         db.delete(room)
         if commit:
             try:
@@ -224,7 +223,7 @@ class Room(Base):
                 db.rollback()
                 logger.error(f"Error deleting room ID {room_id}: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while deleting room")
+                                    detail="An internal error occurred while deleting room")
         logger.debug(f"Device removed from database")
         return True
 
@@ -399,7 +398,7 @@ class Device(Base):
         if not device:
             logger.warning(f"Device with ID {dev_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Device with id: {dev_id} not found")
+                                detail="Device not found")
         logger.debug(f"Device retrieved: {device}")
         return device
 
@@ -426,7 +425,7 @@ class Device(Base):
         if not device:
             logger.warning(f"Device with code {dev_code} not found.")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Device with code: {dev_code} not found")
+                                detail="Device not found")
 
         logger.debug(f"Device retrieved: {device}")
         return device
@@ -462,7 +461,7 @@ class Device(Base):
                 logger.error(
                     f"Error while creating device: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while creating device")
+                                    detail="An internal error occurred while creating device")
 
         logger.debug(f"New device added to the database: {new_device}")
         return new_device
@@ -504,7 +503,7 @@ class Device(Base):
                     f"Error while updating device with ID {dev_id}: {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while updating device")
+                                    detail="An internal error occurred while updating device")
 
         return device
 
@@ -541,7 +540,7 @@ class Device(Base):
                     f"Error while deleting device with ID {dev_id}: {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while deleting device")
+                                    detail="An internal error occurred while deleting device")
         return True
 
 
@@ -612,7 +611,7 @@ class DeviceNote(Base):
         if not note:
             logger.warning(f"Note with ID {note_id} not found.")
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=f"No device notes with id {note_id} found")
+                status_code=status.HTTP_404_NOT_FOUND, detail="No device notes found")
 
         logger.debug(f"Retrieved note: {note}")
         return note
@@ -650,7 +649,7 @@ class DeviceNote(Base):
                 logger.error(
                     f"Error while creating device note': {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while creating note")
+                                    detail="An internal error occurred while creating note")
 
         return note
 
@@ -681,7 +680,7 @@ class DeviceNote(Base):
         if not note:
             logger.warning(f"Note with id {note_id} not found for update")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Note with id {note_id} not found")
+                                detail="Note not found")
         if note_data.note is None:
             logger.info(
                 f"Deleting device note with ID: {note_id} as new content is None.")
@@ -703,7 +702,7 @@ class DeviceNote(Base):
                 logger.error(
                     f"Error while updating device note with ID {note_id}: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while updating device note")
+                                    detail="An internal error occurred while updating device note")
         return note
 
     @classmethod
@@ -729,7 +728,7 @@ class DeviceNote(Base):
             logger.warning(
                 f"Device note with ID {note_id} not found for deletion")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Note with id: {note_id} not found")
+                                detail="Note not found")
         db.delete(note)
         if commit:
             try:
@@ -740,5 +739,5 @@ class DeviceNote(Base):
                 logger.error(
                     f"Error while deleting note with ID {note_id}: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while deleting device note")
+                                    detail="An internal error occurred while deleting device note")
         return True

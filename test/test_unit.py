@@ -49,7 +49,7 @@ def test_get_room_id_not_found():
     with pytest.raises(HTTPException) as excinfo:
         mdevice.Room.get_room_id(db, room_id=-1)
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "Room with id: -1 not found"
+    assert excinfo.value.detail == "Room not found"
 
 
 def test_get_room_id_found():
@@ -101,7 +101,7 @@ def test_get_by_id_not_found():
     with pytest.raises(HTTPException) as excinfo:
         mdevice.Device.get_dev_by_id(db, dev_id=-1)
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "Device with id: -1 not found"
+    assert excinfo.value.detail == "Device not found"
 
 
 def test_get_by_id_found():
@@ -121,7 +121,7 @@ def test_get_by_code_not_found():
     with pytest.raises(HTTPException) as excinfo:
         mdevice.Device.get_dev_by_code(db, dev_code="InvalidCode")
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "Device with code: InvalidCode not found"
+    assert excinfo.value.detail == "Device not found"
 
 
 def test_get_by_code_found():
@@ -211,9 +211,8 @@ def test_create_or_get_unauthorized_user_conflict():
             db, name="Jane", surname="Doe", email="john@example.com"
         )
     assert excinfo.value.status_code == 409
-    detail: dict[str, Any] = excinfo.value.detail
-    assert isinstance(detail, dict)
-    assert detail['message'] == "User with this email already exists but with a different name or surname."
+    detail = excinfo.value.detail
+    assert detail == "User with this email already exists but with a different name or surname" # type: ignore
 
 
 def test_get_user_notes_filter_no_notes():
@@ -247,7 +246,7 @@ def test_update_user_note_not_found():
         UserNote.update_user_note(
             db, note_id=1, note_data=schemas.NoteUpdate(note="Updated note"))
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "Note with id 1 not found"
+    assert excinfo.value.detail == "Note not found"
 
 
 def test_delete_user_note_success():

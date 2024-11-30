@@ -46,7 +46,7 @@ router = APIRouter(
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": "User with this email already exists but with a different name or surname."
+                                 "detail": "User with this email already exists but with a different name or surname"
                              }
                          }
                      }

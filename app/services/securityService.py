@@ -168,7 +168,7 @@ class TokenService:
                     logger.error(
                         f"Error while adding token to blacklist: {e}")
                     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                        detail=f"An internal error occurred while adding token to blacklist")
+                                        detail="An internal error occurred while adding token to blacklist")
             return True
         logger.debug("Token has been already blackllisted")
         return False
@@ -230,7 +230,7 @@ class AuthorizationService:
                 f"The user: {user.email} with role: {user_role.value} cannot perform this operation without the {role.value} role")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"You cannot perform this operation without the appropriate role")
+                detail="You cannot perform this operation without the appropriate role")
         return True
 
     def get_current_concierge(self,
@@ -268,8 +268,7 @@ class AuthorizationService:
             logger.warning(
                 f"Could not validate credentials. User with id: {token_data.id} and role {token_data.role} doesn't exist")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                detail="Could not validate credentials",
-                                headers={"Authenticate": "Bearer"})
+                                detail="Could not validate credentials")
         self.entitled_or_error(muser.UserRole.concierge, user)
         logger.debug(
             f"User that match given token retrieved")
@@ -294,7 +293,7 @@ class AuthorizationService:
     def authenticate_user_login(self,
                                 username: str,
                                 password: str,
-                                role: Literal["administrator", "portier", "pracownik", "student", "gość"]) -> muser.User:
+                                role: Literal["admin", "concierge", "employee", "student", "guest"]) -> muser.User:
         """
         Authenticates a user using their username and password, verifying credentials and role entitlement.
 
@@ -325,7 +324,7 @@ class AuthorizationService:
 
     def authenticate_user_card(self,
                                card_id: schemas.CardId,
-                               role: Literal["administrator", "portier", "pracownik", "student", "gość"]) -> muser.User:
+                               role: Literal["admin", "concierge", "employee", "student", "guest"]) -> muser.User:
         """
         Authenticates a user using their card ID, checking credentials and role entitlement.
 

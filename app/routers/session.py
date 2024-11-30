@@ -270,7 +270,7 @@ def start_unauthorized_session(unauthorized_id: int,
     if not user:
         raise HTTPException(
             status_code=404,
-            detail=f"Unauthorized user with id {unauthorized_id} not found"
+            detail="Unauthorized user not found"
         )
     return moperation.UserSession.create_session(db, unauthorized_id, current_concierge.id)
 

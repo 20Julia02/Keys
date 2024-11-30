@@ -77,7 +77,7 @@ class UserSession(Base):
                 logger.error(f"Error while creating session: {str(e)}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while creating session")
+                                    detail="An internal error occurred while creating session")
         return new_session
 
     @classmethod
@@ -113,7 +113,7 @@ class UserSession(Base):
             logger.warning(
                 f"Session with id {session_id} not found for update")
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=f"Session with id {session_id}not found")
+                status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
         if session.status == "w trakcie" and session.end_time is None:
             session.status = "odrzucona" if reject else "potwierdzona"
             session.end_time = datetime.datetime.now(ZoneInfo("Europe/Warsaw"))
@@ -121,7 +121,7 @@ class UserSession(Base):
             logger.error(
                 f"Session with id {session_id} has been allready ended with status {session.status}")
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                detail=f"Session has been allready ended.")
+                                detail="Session has been allready ended.")
         if commit:
             try:
                 db.commit()
@@ -132,7 +132,7 @@ class UserSession(Base):
                     f"Error while updating session status with ID {session_id}: {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while updating session status")
+                                    detail="An internal error occurred while updating session status")
         return session
 
     @classmethod
@@ -221,7 +221,7 @@ class UnapprovedOperation(Base):
                 logger.error(
                     f"Error while deleting operation with ID {operation_unapproved.id}: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while deleting operation")
+                                    detail="An internal error occurred while deleting operation")
 
             return True
         return False
@@ -259,7 +259,7 @@ class UnapprovedOperation(Base):
                     f"Error while creating unapproved operation': {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while creating unapproved operation")
+                                    detail="An internal error occurred while creating unapproved operation")
         return new_operation
 
     @classmethod
@@ -351,7 +351,7 @@ class UnapprovedOperation(Base):
                 logger.error(
                     f"Error while removing operations from unapproved and creating new upproved ones': {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred during operation transfer")
+                                    detail="An internal error occurred during operation transfer")
         return operation_list
 
     @classmethod
@@ -397,7 +397,7 @@ class UnapprovedOperation(Base):
             logger.error(
                 f"Error while deleting unapproved operations for session ID: {session_id}: {e}")
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                detail=f"An internal error occurred while deleting unapproved operations")
+                                detail="An internal error occurred while deleting unapproved operations")
 
 
 class DeviceOperation(Base):
@@ -483,7 +483,7 @@ class DeviceOperation(Base):
                 f"Operations for user with ID {user_id} and type: {operation_type} not found.")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No operations that match given criteria found"
+                detail="No operations that match given criteria found"
             )
         logger.debug(
             f"Retrieved {len(operations)} operations that match given criteria.")
@@ -522,7 +522,7 @@ class DeviceOperation(Base):
                 logger.error(
                     f"Error while creating operation': {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while creating operation")
+                                    detail="An internal error occurred while creating operation")
         return new_operation
 
     @classmethod
@@ -582,7 +582,7 @@ class DeviceOperation(Base):
         if not operation:
             logger.warning(f"Operationwith ID {operation_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Operation with id: {operation_id} doesn't exist")
+                                detail="Operation doesn't exist")
         logger.debug(f"Retrieved operation: {operation}")
         return operation
 

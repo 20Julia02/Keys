@@ -1,25 +1,28 @@
 from pydantic_settings import BaseSettings
-from pydantic import ConfigDict
 import logging
 from logging.handlers import RotatingFileHandler
 
 
 class Settings(BaseSettings):
-    db_hostname: str
-    db_port: str
-    db_password: str
-    db_name: str
-    db_username: str
-    secret_key: str
-    algorithm: str
-    access_token_expire_minutes: int
-    refresh_token_expire_minutes: int
+    db_hostname: str = ""
+    db_port: str = ""
+    db_password: str = ""
+    db_name: str = ""
+    db_username: str = ""
+    secret_key: str = ""
+    algorithm: str = ""
+    access_token_expire_minutes: int = 0
+    refresh_token_expire_minutes: int = 0
 
-    model_config = ConfigDict(env_file="_env")
+    class Config:
+        env_file = "_env"
+        env_file_encoding = "utf-8"
 
 
-settings = Settings()
-
+try:
+    settings = Settings()
+except Exception as e:
+    raise ValueError("Failed to load settings:") from e
 
 handler = RotatingFileHandler(
     "app.log",
@@ -32,5 +35,5 @@ formatter = logging.Formatter(
 handler.setFormatter(formatter)
 
 logger = logging.getLogger("app_logger")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 logger.addHandler(handler)

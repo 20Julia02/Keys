@@ -8,6 +8,7 @@ from app import schemas
 from app.models.base import Base, timestamp
 from sqlalchemy import Enum as SAEnum
 from app.config import logger
+from app.models.base import get_enum_values
 
 
 if TYPE_CHECKING:
@@ -51,10 +52,10 @@ class User(BaseUser):
         'base_user.id'), primary_key=True)
     name: Mapped[str] = mapped_column(String(50))
     surname: Mapped[str] = mapped_column(String(50))
-    role: Mapped[UserRole] = mapped_column(SAEnum(
-        UserRole, values_callable=lambda e: [x.value for x in e]))
-    faculty: Mapped[Optional[Faculty]] = mapped_column(SAEnum(
-        Faculty, values_callable=lambda e: [x.value for x in e]))
+    role: Mapped[UserRole] = mapped_column(
+        SAEnum(UserRole, values_callable=get_enum_values))
+    faculty: Mapped[Optional[Faculty]] = mapped_column(
+        SAEnum(Faculty, values_callable=get_enum_values))
     photo_url: Mapped[Optional[str]] = mapped_column(unique=True)
     email: Mapped[str] = mapped_column(String(100), unique=True)
     password: Mapped[str]
@@ -119,7 +120,7 @@ class User(BaseUser):
             logger.warning(
                 f"User with ID {user_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"User doesn't exist")
+                                detail="User doesn't exist")
         logger.debug(f"User retrieved: {user}")
         return user
 
@@ -153,7 +154,7 @@ class User(BaseUser):
                 logger.error(
                     f"Error while creating user: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while creating user")
+                                    detail="An internal error occurred while creating user")
         return new_user
 
     @classmethod
@@ -182,7 +183,7 @@ class User(BaseUser):
         if not user:
             logger.warning(f"User with ID {user_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"User with id: {user_id} doesn't exist")
+                                detail="User doesn't exist")
         db.delete(user)
         if commit:
             try:
@@ -193,7 +194,7 @@ class User(BaseUser):
                     f"Error while deleting user with ID {user_id}: {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while deleting user")
+                                    detail="An internal error occurred while deleting user")
         return True
 
     @classmethod
@@ -225,7 +226,7 @@ class User(BaseUser):
         if not user:
             logger.warning(f"User with ID {user_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"User with id {user_id} not found")
+                                detail="User not found")
         user.name = user_data.name
         user.surname = user_data.surname
         user.email = user_data.email
@@ -244,7 +245,7 @@ class User(BaseUser):
                     f"Error while updating user with ID {user_id}: {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while updating user")
+                                    detail="An internal error occurred while updating user")
         return user
 
 
@@ -301,18 +302,8 @@ class UnauthorizedUser(BaseUser):
             if existing_user.name != name or existing_user.surname != surname:
                 logger.warning(
                     f"User with email {email} already exists but with a different name or surname")
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail={
-                        "message": "User with this email already exists but with a different name or surname.",
-                        "user": {
-                            "id": existing_user.id,
-                            "name": existing_user.name,
-                            "surname": existing_user.surname,
-                            "email": existing_user.email
-                        }
-                    }
-                )
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                                    detail="User with this email already exists but with a different name or surname")
             logger.debug(
                 f"Existing unauthorized user retrieved: {existing_user}")
             return existing_user, False
@@ -333,7 +324,7 @@ class UnauthorizedUser(BaseUser):
                 logger.error(
                     f"Error while creating new unauthorized user: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while creating unauthorized user")
+                                    detail="An internal error occurred while creating unauthorized user")
         return new_user, True
 
     @classmethod
@@ -388,7 +379,7 @@ class UnauthorizedUser(BaseUser):
         if not user:
             logger.warning(f"Unauthorized user with ID {user_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Unauthorized user with id: {user_id} doesn't exist")
+                                detail="Unauthorized user doesn't exist")
         logger.debug(f"Unauthorized user retrieved: {user}")
         return user
 
@@ -424,7 +415,7 @@ class UnauthorizedUser(BaseUser):
         if not user:
             logger.warning(f"Unauthorized user with id {user_id} not found.")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Unauthorized user with id {user_id} not found")
+                                detail="Unauthorized user not found")
 
         user.name = user_data.name
         user.surname = user_data.surname
@@ -440,7 +431,7 @@ class UnauthorizedUser(BaseUser):
                     f"Error while updating unauthorized user with ID {user_id}: {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while updating unauthorized user")
+                                    detail="An internal error occurred while updating unauthorized user")
 
         return user
 
@@ -473,7 +464,7 @@ class UnauthorizedUser(BaseUser):
         if not user:
             logger.warning(f"Unauthorized user with id {user_id} not found.")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Unauthorized user with id: {user_id} doesn't exist")
+                                detail="Unauthorized user doesn't exist")
 
         db.delete(user)
         if commit:
@@ -486,7 +477,7 @@ class UnauthorizedUser(BaseUser):
                     f"Error while deleting unauthorized user with ID {user_id}: {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while deleting unauthorized user")
+                                    detail="An internal error occurred while deleting unauthorized user")
         return True
 
 
@@ -557,7 +548,7 @@ class UserNote(Base):
         if not note:
             logger.warning(f"Note with ID {note_id} not found.")
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=f"There is no user notes with id {note_id}.")
+                status_code=status.HTTP_404_NOT_FOUND, detail="There is no user notes with this id")
 
         logger.debug(f"Retrieved user note: {note}")
         return note
@@ -600,7 +591,7 @@ class UserNote(Base):
                 logger.error(
                     f"Error while creating user note': {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while creating user note")
+                                    detail="An internal error occurred while creating user note")
         return note
 
     @classmethod
@@ -633,7 +624,7 @@ class UserNote(Base):
         if not note:
             logger.warning(f"User note with id {note_id} not found for update")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Note with id {note_id} not found")
+                                detail="Note not found")
         if note_data.note is None:
             logger.info(
                 f"Deleting user note with ID: {note_id} as new content is None.")
@@ -655,7 +646,7 @@ class UserNote(Base):
                 logger.error(
                     f"Error while updating user note with ID {note_id}: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while updating user note")
+                                    detail="An internal error occurred while updating user note")
 
         return note
 
@@ -687,7 +678,7 @@ class UserNote(Base):
             logger.warning(
                 f"User note with ID {note_id} not found for deletion")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Note with id: {note_id} doesn't exist")
+                                detail="Note doesn't exist")
         db.delete(note)
         if commit:
             try:
@@ -699,5 +690,5 @@ class UserNote(Base):
                 logger.error(
                     f"Error while deleting user note with ID {note_id}: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while deleting user note")
+                                    detail="An internal error occurred while deleting user note")
         return True

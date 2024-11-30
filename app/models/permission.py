@@ -167,7 +167,7 @@ class Permission(Base):
                 logger.error(
                     f"Error while creating permission: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while creating permission")
+                                    detail="An internal error occurred while creating permission")
         return new_permission
 
     @classmethod
@@ -201,7 +201,7 @@ class Permission(Base):
         if not permission:
             logger.warning(f"Permission with ID {permission_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Permission with id: {permission_id} doesn't exist")
+                                detail="Permission doesn't exist")
 
         permission.user_id = permission_data.user_id
         permission.room_id = permission_data.room_id
@@ -219,7 +219,7 @@ class Permission(Base):
                     f"Error while updating permission with ID {permission_id}: {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while updating permission")
+                                    detail="An internal error occurred while updating permission")
         return permission
 
     @classmethod
@@ -249,7 +249,7 @@ class Permission(Base):
         if not permission:
             logger.warning(f"Permission with ID {permission_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Permission with id: {permission_id} doesn't exist")
+                                detail="Permission doesn't exist")
         db.delete(permission)
         if commit:
             try:
@@ -261,7 +261,7 @@ class Permission(Base):
                     f"Error while deleting permission with ID {permission_id}: {e}")
                 db.rollback()
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail=f"An internal error occurred while deleting permission")
+                                    detail="An internal error occurred while deleting permission")
         return True
 
     @classmethod
