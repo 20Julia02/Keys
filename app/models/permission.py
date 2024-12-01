@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Integer, case, func, ForeignKey, String, Date, Time, text, Table, Connection, event
+from sqlalchemy import and_, or_, CheckConstraint, Integer, case, func, ForeignKey, String, Date, Time, text, Table, Connection, event
 from sqlalchemy.orm import relationship, mapped_column, Mapped, Session
 from typing import Optional, List, Any
 import datetime
@@ -44,59 +44,67 @@ class Permission(Base):
                         time: Optional[datetime.time] = None,
                         ) -> List["Permission"]:
         """
-        Retrieves a list of permissions based on specified filters like `user_id`, `room_id`, `date`, and `start_time`.
-        The results are sorted by date and start time.
+        Retrieves a list of permissions based on specified filters such as `user_id`, `room_id`, `date`, and `time`.
+
+        Filters permissions that occur today or in the future. 
+        For today's date, it includes permissions that are currently active or start later on the same day. 
+        Results are sorted by date and start time.
 
         Args:
-            db (Session): Database session used to execute the query.
-            user_id (int, optional): ID of the user whose permissions are being queried. Default is `None`.
-            room_id (int, optional): ID of the room for which permissions are being queried. Default is `None`.
-            date (datetime.date, optional): Date of permissions to retrieve. Default is `None`.
-            time (datetime.time, optional): Time of permissions to retrieve. Default is `None`.
+            db (Session): The database session.
+            user_id (Optional[int]): The ID of the user whose permissions are being queried. Default is None.
+            room_id (Optional[int]): The ID of the room for which permissions are being queried. Default is None.
+            date (Optional[datetime.date]): The specific date for which permissions should be retrieved. Default is None.
+            time (Optional[datetime.time]): The specific time for which permissions should be retrieved. Default is None.
 
         Returns:
-            List[Permission]: A list of permissions that match the specified criteria.
+            List[Permission]: A list of permissions matching the specified criteria.
 
         Raises:
-            HTTPException: Raises a 404 error if no permissions are found, with the message "No permissions found that match given criteria".
+            HTTPException: 
+                - 404 Not Found: If no permissions are found that match the given criteria.
         """
         logger.info(f"Attempting to retrieve permissions")
+
+        current_date = datetime.date.today()
+        current_time = datetime.datetime.now().time()
+
         query = db.query(Permission).filter(
-            Permission.date >= datetime.date.today())
+            or_(
+                Permission.date > current_date,
+                and_(
+                    Permission.date == current_date,
+                    Permission.end_time >= current_time
+                )
+            )
+        )
 
         if user_id is not None:
-            logger.debug(
-                f"Filtering permissions by user with ID: {user_id}")
+            logger.debug(f"Filtering permissions by user with ID: {user_id}")
             query = query.filter(Permission.user_id == user_id)
 
         if room_id is not None:
-            logger.debug(
-                f"Filtering permissions by room with ID: {room_id}")
+            logger.debug(f"Filtering permissions by room with ID: {room_id}")
             query = query.filter(Permission.room_id == room_id)
 
         if date is not None:
-            logger.debug(
-                f"Filtering permissions by date: {date}")
+            logger.debug(f"Filtering permissions by date: {date}")
             query = query.filter(Permission.date == date)
 
         if time is not None:
-            logger.debug(
-                f"Filtering permissions by time: {time}")
-            query = query.filter(Permission.start_time <=
-                                 time, Permission.end_time >= time)
+            logger.debug(f"Filtering permissions by time: {time}")
+            query = query.filter(Permission.start_time <= time, Permission.end_time >= time)
 
-        permissions = query.order_by(
-            Permission.date, Permission.start_time).all()
+        permissions = query.order_by(Permission.date, Permission.start_time).all()
 
         if not permissions:
-            logger.warning(
-                f"No permissions found that match given criteria")
+            logger.warning("No permissions found that match given criteria")
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="No permissions found that match given criteria"
             )
-        logger.debug(
-            f"Retrieved {len(permissions)} permissions that match given criteria.")
+
+        logger.debug(f"Retrieved {len(permissions)} permissions that match given criteria.")
         return permissions
 
     @classmethod
@@ -105,22 +113,20 @@ class Permission(Base):
                            user_id: int,
                            room_id: int) -> bool:
         """
-        Checks if the user has permission to access a specific room. Permissions are checked for the moment.
-        Returns `True` or `False` depending on whether the user has active permissions.
+        Checks if a user has active permission to access a specific room at the current date and time.
 
         Args:
-            db (Session): Database session used to execute the query.
-            user_id (int): ID of the user whose permissions are being checked.
-            room_id (int): ID of the room being accessed.
+            db (Session): The database session.
+            user_id (int): The ID of the user whose permission is being checked.
+            room_id (int): The ID of the room being accessed.
 
         Returns:
-            bool: `True` if the user has permission, `False` otherwise.
+            bool: True if the user has permission, False otherwise.
         """
         logger.info(
             f"Checking if user with ID: {user_id} has permission to access room with ID: {room_id}")
         current_date = datetime.date.today()
         current_time = datetime.datetime.now().time()
-        print(current_time, current_date)
         has_permission = db.query(Permission).filter(
             Permission.user_id == user_id,
             Permission.room_id == room_id,
@@ -140,21 +146,24 @@ class Permission(Base):
                           permission_data: schemas.PermissionCreate,
                           commit: Optional[bool] = True) -> "Permission":
         """
-        Creates a new permission based on the data provided in `permission` and saves it to the database.
-        Commits and refreshes the object depending on the value of `commit`.
+        Creates a new permission and saves it to the database.
+
+        Commits the transaction unless specified otherwise.
 
         Args:
-            db (Session): Database session used to execute the operation.
-            permission (schemas.PermissionCreate): Schema containing data for creating a new permission.
-            commit (bool, optional): Whether to commit changes to the database after adding the new permission. Default is `True`.
+            db (Session): The database session.
+            permission_data (schemas.PermissionCreate): Data required to create the permission.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
-            Permission: The newly created permission.
+            Permission: The newly created permission object.
 
         Raises:
-            Exception: If there are issues adding or committing the permission.
+            HTTPException: 
+                - 500 Internal Server Error: If an error occurs during the commit process.
         """
         logger.info("Creating a new permission")
+
         new_permission = cls(**permission_data)
         db.add(new_permission)
         if commit:
@@ -178,6 +187,7 @@ class Permission(Base):
                           commit: Optional[bool] = True) -> "Permission":
         """
         Updates an existing permission in the database.
+        Commits the transaction unless specified otherwise.
 
         Args:
             db (Session): The database session.
@@ -189,13 +199,15 @@ class Permission(Base):
             Permission: The updated Permission object.
 
         Raises:
-            HTTPException: If the permission is not found or conflicts with existing permissions.
-            Exception: For any issues during the commit.
+            HTTPException: 
+                - 404 Not Found: If the permission with the given ID does not exist.
+                - 500 Internal Server Error: If an error occurs during the commit process.
         """
         logger.info(
             f"Attempting to update permission with ID: {permission_id}")
         logger.debug(
             f"New permission data: {permission_data}")
+        
         permission = db.query(Permission).filter(
             Permission.id == permission_id).first()
         if not permission:
@@ -228,7 +240,7 @@ class Permission(Base):
                           permission_id: int,
                           commit: Optional[bool] = True) -> bool:
         """
-        Deletes a permission by its ID from the database.
+        Deletes a permission by its ID from the database. Commits the transaction unless specified otherwise.
 
         Args:
             db (Session): The database session.
@@ -239,8 +251,9 @@ class Permission(Base):
             bool: True if the permission was successfully deleted.
 
         Raises:
-            HTTPException: If the permission with the given ID does not exist.
-            Exception: For any issues during the commit.
+            HTTPException: 
+                - 404 Not Found: If the permission with the given ID does not exist.
+                - 500 Internal Server Error: If an error occurs during the commit process.
         """
         logger.info(
             f"Attempting to delete permission with ID: {permission_id}")
@@ -268,28 +281,23 @@ class Permission(Base):
     def get_active_permissions(cls,
                                db: Session,
                                user_id: int,
-                               date: Optional[datetime.date] = None,
-                               time: Optional[datetime.time] = None) -> List["Permission"]:
+                               date: Optional[datetime.date] = datetime.datetime.now().date(),
+                               time: Optional[datetime.time] = datetime.datetime.now().time()) -> List["Permission"]:
         """
-        Retrieves all active permissions for a user at a specified date and time,
-        sorted by room number using a specific numeric and text-based sorting rule.
+        Retrieves all active permissions for a user at a specific date and time.
+
+        Filters permissions for the given user, date, and time, and sorts them by room number. If no date or time is provided, defaults to the current date and time.
 
         Args:
-            db (Session): Database session.
+            db (Session): The database session.
             user_id (int): The ID of the user whose permissions are being checked.
-            date (datetime.date, optional): The date to check for permissions. Defaults to the current date.
-            time (datetime.time, optional): The time to check for permissions. Defaults to the current time.
+            date (Optional[datetime.date]): The date to check for permissions. Defaults to the current date.
+            time (Optional[datetime.time]): The time to check for permissions. Defaults to the current time.
 
         Returns:
-            List[Permission]: A list of permissions for the specified user at the given time.
+            List[Permission]: A list of active permissions for the user at the specified date and time.
         """
         logger.info(f"Checking active permissions for user with ID {user_id}")
-
-        if date is None:
-            date = datetime.datetime.now().date()
-        if time is None:
-            time = datetime.datetime.now().time()
-
         logger.debug(
             f"Filtering permissions for date: {date} and time: {time}")
 
@@ -327,17 +335,19 @@ def delete_old_reservations(target: Table,
                             connection: Connection,
                             **kwargs: Any) -> None:
     """
-    Deletes permissions older than one week after the `Permission` table is created to keep the database current.
-    Automatically invoked after the `Permission` table is created.
+    Deletes permissions older than one week after the `Permission` table is created.
+
+    This function is automatically invoked when the `Permission` table is created.
 
     Args:
-        target (Table): The table affected by the operation, in this case `Permission`.
-        connection (Connection): Database connection object used to execute the delete query.
-        **kwargs (Any): Additional arguments passed to the event.
+        target (Table): The table affected by the operation (`Permission` in this case).
+        connection (Connection): Database connection object used to execute the query.
+        **kwargs (Any): Additional arguments.
 
     Returns:
         None
     """
+
     one_week_ago = datetime.date.today() - datetime.timedelta(weeks=1)
     delete_query = text(
         f"DELETE FROM {target.name} WHERE date < :one_week_ago")
@@ -349,12 +359,17 @@ def create_permission_conflict_trigger(target: Table,
                                        connection: Any,
                                        **kw: Any) -> None:
     """
-    Creates a trigger to check for time conflicts in room permissions.
+    Creates a database trigger to prevent time conflicts in room permissions.
+
+    The trigger ensures that no overlapping permissions exist for the same room on the same date.
 
     Args:
-        target (Table): The table to which the trigger applies.
-        connection (Any): The connection to the database.
+        target (Table): The table to which the trigger applies (`Permission`).
+        connection (Any): The database connection used to execute the trigger creation.
         **kw (Any): Additional arguments.
+
+    Returns:
+        None
     """
     connection.execute(text("""
     CREATE OR REPLACE FUNCTION check_room_permission_conflict() 

@@ -75,17 +75,20 @@ class User(BaseUser):
                       db: Session) -> List["User"]:
         """
         Retrieves all users from the database.
-        If no users are found, raises an exception.
+
+        If no users are found, an HTTPException is raised.
 
         Args:
-            db (Session): Database session used for executing the query.
+            db (Session): The database session used to execute the query.
 
         Returns:
-            List[User]: List of all users in the database.
+            List[User]: A list of all users in the database.
 
         Raises:
-            HTTPException: Raises a 404 error if no users are found with the message "There is no user in database".
+            HTTPException: 
+                - 404 Not Found: If no users are found in the database.
         """
+
         logger.info("Fetching users from the database.")
         users = db.query(User).all()
         if (not users):
@@ -102,17 +105,17 @@ class User(BaseUser):
                     user_id: int) -> "User":
         """
         Retrieves a user by their ID from the database.
-        Raises an exception if the user is not found.
 
         Args:
-            db (Session): Database session used for executing the query.
-            user_id (int): ID of the user to retrieve.
+            db (Session): The database session used to execute the query.
+            user_id (int): The ID of the user to retrieve.
 
         Returns:
             User: The user object with the specified ID.
 
         Raises:
-            HTTPException: Raises a 404 error if the user is not found.
+            HTTPException: 
+                - 404 Not Found: If no user with the given ID exists in the database.
         """
         logger.info(f"Attempting to retrieve user with ID: {user_id}")
         user = db.query(User).filter(User.id == user_id).first()
@@ -132,13 +135,19 @@ class User(BaseUser):
         """
         Creates a new user in the database.
 
+        Commits the transaction unless specified otherwise.
+
         Args:
-            db (Session): Database session used for executing the operation.
-            user_data (schemas.UserCreate): Data for creating the new user.
-            commit (bool, optional): Whether to commit the transaction after adding the user. Default is True.
+            db (Session): The database session used to execute the operation.
+            user_data (schemas.UserCreate): The data required to create a new user.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
             User: The newly created user object.
+
+        Raises:
+            HTTPException: 
+                - 500 Internal Server Error: If an error occurs during the commit process.
         """
         logger.info("Creating a new user")
         logger.debug(f"User data provided: {user_data}")
@@ -164,19 +173,23 @@ class User(BaseUser):
                     commit: bool = True) -> bool:
         """
         Deletes a user by their ID from the database.
-        Raises an exception if the user is not found.
+
+        Commits the transaction unless specified otherwise.
 
         Args:
-            db (Session): Database session used for executing the operation.
-            user_id (int): ID of the user to delete.
-            commit (bool, optional): Whether to commit the transaction after adding the user. Default is True.
+            db (Session): The database session used to execute the operation.
+            user_id (int): The ID of the user to delete.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
             bool: True if the user was successfully deleted.
 
         Raises:
-            HTTPException: Raises a 404 error if the user is not found.
+            HTTPException: 
+                - 404 Not Found: If no user with the given ID exists in the database.
+                - 500 Internal Server Error: If an error occurs during the commit process.
         """
+
         logger.info(f"Attempting to delete user with ID: {user_id}")
 
         user = db.query(User).filter(User.id == user_id).first()
@@ -206,18 +219,21 @@ class User(BaseUser):
         """
         Updates a user's information in the database.
 
+        Commits the transaction unless specified otherwise.
+
         Args:
-            db (Session): Database session used for executing the operation.
-            user_id (int): ID of the user to update.
-            user_data (schemas.UserCreate): Updated data for the user.
-            commit (bool, optional): Whether to commit the transaction after updating the user. Default is True.
+            db (Session): The database session used to execute the operation.
+            user_id (int): The ID of the user to update.
+            user_data (schemas.UserCreate): The updated data for the user.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
             User: The updated user object.
 
         Raises:
-            HTTPException: Raises a 404 error if the user is not found.
-            Exception: For any other issues during the commit.
+            HTTPException: 
+                - 404 Not Found: If no user with the given ID exists in the database.
+                - 500 Internal Server Error: If an error occurs during the commit process.
         """
         logger.info(f"Attempting to update user with ID: {user_id}")
         logger.debug(f"New user data: {user_data}")
@@ -270,25 +286,29 @@ class UnauthorizedUser(BaseUser):
                                         email: str,
                                         commit: bool = True) -> Tuple["UnauthorizedUser", bool]:
         """
-        Checks whether an unauthorised user with a given email exists in the database.
-        If so and his name and surname matches those in the database it returns an existing user, 
-        if the email was not in the database it creates a new user. If the email address was registered 
-        and the user provides a different first and last name than in the database, the method raises an error.
+        Checks if an unauthorized user with the given email exists in the database.
 
-        Returns the user and a Boolean value indicating whether the user is new.
+        If a user with the email exists and their name and surname match the provided values, 
+        the existing user is returned. If the email exists but the name or surname differ, 
+        an HTTPException is raised. If the email does not exist in the database, a new user is created.
+
+        Commits the transaction unless specified otherwise.
 
         Args:
-            db (Session): Database session used for executing the query.
-            name (str): First name of the user.
-            surname (str): Last name of the user.
-            email (str): Email address of the user.
-            commit (bool, optional): Whether to commit the transaction after adding the user. Default is True.
+            db (Session): The database session used to execute the operation.
+            name (str): The first name of the unauthorized user.
+            surname (str): The last name of the unauthorized user.
+            email (str): The email address of the unauthorized user.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
-            Tuple[UnauthorizedUser, bool]: Tuple containing the user object and a boolean indicating if the user is newly created.
+            Tuple[UnauthorizedUser, bool]: A tuple containing the unauthorized user object and 
+            a boolean indicating whether the user is newly created.
 
         Raises:
-            HTTPException: Raises a 403 error if an email conflict occurs with different name or surname.
+            HTTPException: 
+                - 409 Conflict: If a user with the same email exists but the name or surname does not match.
+                - 500 Internal Server Error: If an error occurs during the commit process.
         """
         logger.info(
             "Creating a new unauthorized user or retriving existing one if exists")
@@ -332,16 +352,18 @@ class UnauthorizedUser(BaseUser):
                                   db: Session) -> List["UnauthorizedUser"]:
         """
         Retrieves all unauthorized users from the database.
-        Raises an exception if no users are found.
+
+        Raises an exception if no unauthorized users are found.
 
         Args:
-            db (Session): Database session used for executing the query.
+            db (Session): The database session used to execute the query.
 
         Returns:
-            List[UnauthorizedUser]: List of all unauthorized users in the database.
+            List[UnauthorizedUser]: A list of all unauthorized users in the database.
 
         Raises:
-            HTTPException: Raises a 404 error if no unauthorized users are found with a relevant message.
+            HTTPException: 
+                - 404 Not Found: If no unauthorized users are found in the database.
         """
         logger.info("Retrieving all unauthorized users")
 
@@ -359,18 +381,20 @@ class UnauthorizedUser(BaseUser):
                              db: Session,
                              user_id: int) -> "UnauthorizedUser":
         """
-        Retrieves an unauthorized user by their ID.
+        Retrieves an unauthorized user by their ID from the database.
+
         Raises an exception if the user is not found.
 
         Args:
-            db (Session): Database session used for executing the query.
-            user_id (int): ID of the unauthorized user to retrieve.
+            db (Session): The database session used to execute the query.
+            user_id (int): The ID of the unauthorized user to retrieve.
 
         Returns:
             UnauthorizedUser: The unauthorized user object with the specified ID.
 
         Raises:
-            HTTPException: Raises a 404 error if the unauthorized user is not found.
+            HTTPException: 
+                - 404 Not Found: If no unauthorized user with the given ID exists in the database.
         """
         logger.info(
             f"Attempting to retrieve unauthorized user with ID: {user_id}")
@@ -392,18 +416,21 @@ class UnauthorizedUser(BaseUser):
         """
         Updates an unauthorized user's information in the database.
 
+        Commits the transaction unless specified otherwise.
+
         Args:
-            db (Session): Database session used for executing the operation.
-            user_id (int): ID of the unauthorized user to update.
-            user_data (schemas.UnauthorizedUser): New data for updating the user.
-            commit (Optional[bool]): Whether to commit the transaction after updating the user. Default is True.
+            db (Session): The database session used to execute the operation.
+            user_id (int): The ID of the unauthorized user to update.
+            user_data (schemas.UnauthorizedUser): The updated data for the unauthorized user.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
             UnauthorizedUser: The updated unauthorized user object.
 
         Raises:
-            HTTPException: Raises a 404 error if the unauthorized user is not found.
-            Exception: For any other issues during the commit.
+            HTTPException: 
+                - 404 Not Found: If no unauthorized user with the given ID exists in the database.
+                - 500 Internal Server Error: If an error occurs during the commit process.
         """
         logger.info(
             f"Attempting to update unauthorized user with ID: {user_id}")
@@ -442,18 +469,21 @@ class UnauthorizedUser(BaseUser):
                                  commit: bool = True) -> bool:
         """
         Deletes an unauthorized user by their ID from the database.
-        Raises an exception if the user is not found.
+
+        Commits the transaction unless specified otherwise.
 
         Args:
-            db (Session): Database session used for executing the operation.
-            user_id (int): ID of the unauthorized user to delete.
-            commit (Optional[bool]): Whether to commit the transaction after deleting the user. Default is True.
+            db (Session): The database session used to execute the operation.
+            user_id (int): The ID of the unauthorized user to delete.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
-            bool: `True` if the user was successfully deleted.
+            bool: `True` if the unauthorized user was successfully deleted.
 
         Raises:
-            HTTPException: Raises a 404 error if the user is not found.
+            HTTPException: 
+                - 404 Not Found: If no unauthorized user with the given ID exists in the database.
+                - 500 Internal Server Error: If an error occurs during the commit process.
         """
         logger.info(
             f"Attempting to delete unauthorized user with ID: {user_id}")
@@ -497,17 +527,19 @@ class UserNote(Base):
                               user_id: Optional[int] = None) -> List["UserNote"]:
         """
         Retrieves user notes filtered by user ID if provided.
-        Raises an exception if no notes are found.
+
+        Raises an exception if no notes are found that match the filter criteria.
 
         Args:
-            db (Session): Database session used for executing the query.
-            user_id (Optional[int]): ID of the user to filter notes. Default is `None`.
+            db (Session): The database session used to execute the query.
+            user_id (Optional[int]): The ID of the user to filter notes by. Default is `None`.
 
         Returns:
-            List[UserNote]: List of user notes matching the filter criteria.
+            List[UserNote]: A list of user notes matching the filter criteria.
 
         Raises:
-            HTTPException: Raises a 404 error if no user notes are found.
+            HTTPException: 
+                - 404 Not Found: If no user notes are found that match the given criteria.
         """
         logger.info("Attempting to retrieve user notes.")
         logger.debug(f"Filtering notes by user ID: {user_id}")
@@ -531,17 +563,19 @@ class UserNote(Base):
                          note_id: int) -> "UserNote":
         """
         Retrieves a user note by its ID.
-        Raises an exception if the note is not found.
+
+        Raises an exception if the note with the specified ID is not found.
 
         Args:
-            db (Session): Database session used for executing the query.
-            note_id (intl): ID of the note to retrieve.
+            db (Session): The database session used to execute the query.
+            note_id (int): The ID of the note to retrieve.
 
         Returns:
             UserNote: The user note with the specified ID.
 
         Raises:
-            HTTPException: Raises a 404 error if the note is not found.
+            HTTPException: 
+                - 404 Not Found: If no user note with the given ID exists in the database.
         """
         logger.info(f"Attempting to retrieve user note with ID: {note_id}")
         note = db.query(UserNote).filter(UserNote.id == note_id).first()
@@ -560,19 +594,20 @@ class UserNote(Base):
                          commit: bool = True) -> "UserNote":
         """
         Creates a new user note with the specified data and saves it to the database.
-        Commits and refreshes the note if `commit` is `True`.
+
+        Commits the transaction and refreshes the note object if `commit` is `True`.
 
         Args:
-            db (Session): Database session used for executing the operation.
-            note_data (schemas.UserNoteCreate): Data for creating a new user note.
-            commit (optional[bool]): Whether to commit the transaction after adding the note. Default is `True`.
+            db (Session): The database session used to execute the operation.
+            note_data (schemas.UserNoteCreate): The data for creating a new user note.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is `True`.
 
         Returns:
             UserNote: The newly created user note.
 
         Raises:
-            ValueError: If the note text is empty.
-            Exception: For any other issues during the commit.
+            HTTPException: 
+                - 500 Internal Server Error: If an error occurs during the commit process.
         """
         logger.info("Creating a new user note.")
         logger.debug(f"Note data provided: {note_data}")
@@ -601,21 +636,24 @@ class UserNote(Base):
                          note_data: schemas.NoteUpdate,
                          commit: bool = True) -> "UserNote":
         """
-        Updates a user note by ID with new data, or deletes it if note content is `None`.
-        Commits and refreshes the note if `commit` is `True`.
+        Updates a user note by ID with new data, or deletes the note if the new content is `None`.
+
+        Commits the transaction and refreshes the note object if `commit` is `True`.
 
         Args:
-            db (Session): Database session used for executing the operation.
-            note_id (int): ID of the note to update.
-            note_data (schemas.NoteUpdate): New data for updating the note.
-            commit (optional[bool]): Whether to commit the transaction after updating the note. Default is `True`.
+            db (Session): The database session used to execute the operation.
+            note_id (int): The ID of the note to update.
+            note_data (schemas.NoteUpdate): The new data for updating the note.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is `True`.
 
         Returns:
             UserNote: The updated user note.
 
         Raises:
-            HTTPException: Raises a 404 error if the note is not found, or 204 if the note is deleted.
-            Exception: For any issues during the commit.
+            HTTPException: 
+                - 404 Not Found: If no user note with the given ID exists in the database.
+                - 204 No Content: If the note is deleted.
+                - 500 Internal Server Error: If an error occurs during the commit process.
         """
         logger.info(f"Attempting to update user note with ID: {note_id}")
 
@@ -657,19 +695,21 @@ class UserNote(Base):
                          commit: Optional[bool] = True) -> bool:
         """
         Deletes a user note by its ID.
-        Raises an exception if the note is not found.
+
+        Commits the transaction after deleting the note if `commit` is `True`.
 
         Args:
-            db (Session): Database session used for executing the operation.
-            note_id (int): ID of the note to delete.
-            commit (optional[bool]): Whether to commit the transaction after deleting the note. Default is `True`.
+            db (Session): The database session used to execute the operation.
+            note_id (int): The ID of the note to delete.
+            commit (bool, optional): Whether to commit the transaction after deleting the note. Default is `True`.
 
         Returns:
             bool: `True` if the note was successfully deleted.
 
         Raises:
-            HTTPException: Raises a 404 error if the note is not found.
-            Exception: For any issues during the commit.
+            HTTPException: 
+            - 404 Not Found: If no user note with the given ID exists in the database.
+            - 500 Internal Server Error: If an error occurs during the commit process.
         """
         logger.info(f"Attempting to delete user note with ID: {note_id}")
 

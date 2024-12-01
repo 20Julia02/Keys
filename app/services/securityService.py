@@ -62,15 +62,16 @@ class TokenService:
                      data: dict[str, Any],
                      token_type: Literal['access', 'refresh']) -> str:
         """
-        Creates a JWT token with the given data and token type (refresh or access).
+        Creates a JWT token with the given data and token type (access or refresh).
 
         Args:
-            data (dict): The data to encode in the token.
-            type (str): The type of token ('refresh' or 'access').
+            data (dict[str, Any]): The data to encode in the token, such as user information.
+            token_type (str): The type of token ('access' or 'refresh').
 
         Returns:
             str: The encoded JWT token.
         """
+
         logger.info("Creating a JWT token")
         logger.debug(
             f"Given  parameters - token_type: {token_type}, data: {data}")
@@ -101,7 +102,9 @@ class TokenService:
             TokenData: An object containing the extracted token data (user_id and user_role).
 
         Raises:
-            HTTPException: If the token is invalid or missing required data.
+            HTTPException: 
+                - 401 Unauthorized: If the token is invalid 
+                - 401 Unauthorized: If the token is missing required data.
         """
         logger.info("Verifying the given token")
         try:
@@ -145,15 +148,19 @@ class TokenService:
                                token: str,
                                commit: bool = True) -> bool:
         """
-        Checks whether the token is blacklisted, if not 
-        adds the token to the blacklist in the database.
+        Adds the token to the blacklist in the database if not already blacklisted.
+        If `commit` is `True`, the transaction will be committed after the operation.
 
         Args:
             token (str): The token to blacklist.
-            commit (optional[bool]): Whether to commit the transaction after updating the note. Default is `True`.
+            commit (bool, optional): Whether to commit the transaction after updating the blacklist. Defaults to `True`.
+
         Returns:
-            bool: True if the token was successfully added to the blacklist.
-            False if token was already blacklisted
+            bool: True if the token was successfully added to the blacklist, False if the token was already blacklisted.
+
+        Raises:
+            HTTPException: 
+                - 500 Internal Server Error: If there is an error while adding the token to the blacklist.
         """
         logger.info("Adding the token to blacklist")
         if not self.is_token_blacklisted(token):
@@ -184,10 +191,7 @@ class TokenService:
             role (str): The role of the user, which will be included in the token payload.
 
         Returns:
-            schemas.Token: An object containing the access token, refresh token, and token type.
-
-        Raises:
-            Exception: Any exceptions related to token generation or encoding issues.
+            Token: An object containing the access token, refresh token, and token type.
         """
         logger.info("Generating a pair of JWT tokens (access and refresh)")
         access_token = self.create_token(
@@ -209,15 +213,19 @@ class AuthorizationService:
     def entitled_or_error(role: muser.UserRole,
                           user: muser.User) -> bool:
         """
-        Checks if the current user has the required role or is an admin.
-        Raises an HTTP 403 Forbidden exception if the user is not entitled.
+        Checks if the current user has the required role or higher.
+        Raises an HTTP exception if the user is not entitled.
 
         Args:
-            role (str): The required role.
-            user: The current user object, containing the user's role.
+            role (UserRole): The required role for the user.
+            user (User): The user object, containing the user's role.
+
+        Returns:
+            bool: True if the user has the required role or higher.
 
         Raises:
-            HTTPException: If the user does not have the required role.
+            HTTPException: 
+                - 403 Forbidden: If the user does not have the required role or higher.
         """
         logger.info(
             f"Checking if user with email: {user.email} has at least role: {role.value}")
@@ -240,13 +248,14 @@ class AuthorizationService:
 
         Args:
             token (str): The JWT token.
-            db (Session): The database session.
 
         Returns:
             User: The user object corresponding to the token's concierge ID and role.
 
         Raises:
-            HTTPException: If the token is invalid, blacklisted, or the user is not found.
+            HTTPException:
+                - 403 Forbidden: If the token is blacklisted.
+                - 401 Unauthorized: If the token is invalid or the user cannot be found in the database.
         """
         logger.info(
             f"Retrieving the concierge from the database by token")
@@ -277,13 +286,18 @@ class AuthorizationService:
     def get_current_concierge_token(self,
                                     token: str) -> str:
         """
-        Retrieves the current user's (concierge) token after validating his identity.
+        Returns the current user's (concierge) token after validating their identity.
 
         Args:
-            token (str): The JWT token.
+            token (str): The JWT token to be verified.
 
         Returns:
-            str: The validated JWT token.
+            str: The validated JWT token for the user.
+
+        Raises:
+            HTTPException:
+                - 403 Forbidden: If the token is invalid or blacklisted.
+                - 401 Unauthorized: If the user is not found or credentials do not match.
         """
         logger.info(
             f"Retrieving the concierge by token")
@@ -306,7 +320,9 @@ class AuthorizationService:
             muser.User: The authenticated user object if credentials and role are valid.
 
         Raises:
-            HTTPException: Raises a 403 error if the credentials are invalid or the user does not have the required role.
+            HTTPException:
+                - 403 Forbidden: If the credentials are invalid or the user does not have the required role.
+                - 401 Unauthorized: If the username is not found or the password is incorrect.
         """
         logger.info("Authenticating user by login and password")
         password_service = PasswordService()
@@ -336,7 +352,9 @@ class AuthorizationService:
             muser.User: The authenticated user object if the card ID and role are valid.
 
         Raises:
-            HTTPException: Raises a 403 error if the card ID is invalid or the user does not have the required role.
+            HTTPException:
+                - 403 Forbidden: If the card ID is invalid or the user does not have the required role.
+                - 401 Unauthorized: If no user is found matching the card ID.
         """
         logger.info("Authenticating user by card")
         password_service = PasswordService()

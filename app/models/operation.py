@@ -47,14 +47,21 @@ class UserSession(Base):
         """
         Creates a new session in the database for a given user and concierge.
 
+        The session is initialized with the current timestamp as the start time and a status of "w trakcie". 
+        By default, commits the transaction unless specified otherwise.
+
         Args:
             db (Session): The database session.
             user_id (int): The ID of the user associated with the session.
             concierge_id (int): The ID of the concierge managing the session.
-            commit (bool, optional): Whether to commit the transaction after adding the device.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
-            UserSession: The UserSession object with the specified ID.
+            UserSession: The newly created UserSession object.
+
+        Raises:
+            HTTPException: 
+                - 500 Internal Server Error: If an error occurs while committing the transaction.
         """
         logger.info("Starting session creation process.")
         logger.debug(
@@ -87,21 +94,26 @@ class UserSession(Base):
                     reject: Optional[bool] = False,
                     commit: Optional[bool] = True) -> "UserSession":
         """
-        Changes the status of the session to rejected or completed
-        depending on the given value of the reject argument. The default
-        (reject = False) changes the status to completed.
+        Ends a session by updating its status to either "odrzucona" or "potwierdzona" based on the `reject` argument.
+
+        If `reject` is `False` (default), the status is updated to "potwierdzona". The end time is set to the current timestamp. 
+        Raises an exception if the session has already ended.
+        By default, commits the transaction unless specified otherwise.
 
         Args:
             db (Session): The database session.
-            session_id (int): the ID of the session
-            reject (bool, optional): if False the status changes to completed, else to rejected
-            commit (bool, optional): Whether to commit the transaction after adding the device.
+            session_id (int): The ID of the session to end.
+            reject (bool, optional): If True, the session status is set to "odrzucona". Default is False.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
-            _type_: schemas.Session. The session with completed status
+            UserSession: The updated UserSession object.
 
         Raises:
-            HTTPException: If the session with given ID doesn't exist
+            HTTPException: 
+                - 404 Not Found: If the session with the given ID does not exist.
+                - 403 Forbidden: If the session has already been ended.
+                - 500 Internal Server Error: If an error occurs while committing the transaction.
         """
 
         logger.info("Attempting to end session.")
@@ -140,17 +152,18 @@ class UserSession(Base):
                        db: Session,
                        session_id: int) -> "UserSession":
         """
-        Retrieves a session by its ID.
+        Retrieves a session by its unique ID.
 
         Args:
             db (Session): The database session.
-            session_id (int): ID of the session.
+            session_id (int): The unique ID of the session to retrieve.
 
         Returns:
             UserSession: The UserSession object with the specified ID.
 
         Raises:
-            HTTPException: If no session with the given ID exists.
+            HTTPException: 
+                - 404 Not Found: If no session with the given ID exists.
         """
         logger.info(f"Attempting to retrieve session with ID: {session_id}")
         session = db.query(UserSession).filter(
@@ -191,17 +204,22 @@ class UnapprovedOperation(Base):
                             device_id: int,
                             session_id: int) -> bool:
         """
-        Checks if a device has been rescanned during a session. If it has, 
-        deletes the unapproved operation and returns True. Otherwise, returns False.
+        Checks if a device has been rescanned during a session. 
+
+        If it has, deletes the unapproved operation, commits the transaction and returns `True`.
+        If no unapproved operation is found, returns `False`.
 
         Args:
             db (Session): The database session.
-            device_id (int): ID of the device.
-            session_id (int): ID of the session.
+            device_id (int): The ID of the device.
+            session_id (int): The ID of the session.
 
         Returns:
-            bool: True if device has been rescanned during one session 
-            and unapproved operation was deleted, False otherwise.
+            bool: True if the device was rescanned and the unapproved operation was deleted, False otherwise.
+
+        Raises:
+            HTTPException: 
+            - 500 Internal Server Error: If an error occurs while deleting the unapproved operation.
         """
         logger.info(
             f"Attempting to check if device with ID: {device_id} has been rescanned during session with id: {session_id}")
@@ -234,13 +252,20 @@ class UnapprovedOperation(Base):
         """
         Creates an unapproved operation in the database.
 
+        The operation is initialized with the current timestamp. 
+        By default, commits the transaction unless specified otherwise.
+
         Args:
             db (Session): The database session.
-            operation_data (schemas.DevOperation): Data for the unapproved operation.
-            commit (bool, optional): Whether to commit the operation to the database.
+            operation_data (schemas.DevOperation): Data required to create the unapproved operation.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
-            DeviceOperation: The created unapproved operation object.
+            UnapprovedOperation: The newly created unapproved operation object.
+
+        Raises:
+            HTTPException: 
+                - 500 Internal Server Error: If an error occurs while committing the transaction.
         """
         logger.info("Creating a new unnapproved operation.")
         logger.debug(f"Uapproved peration data provided: {operation_data}")
@@ -268,18 +293,22 @@ class UnapprovedOperation(Base):
                                 session_id: Optional[int] = None,
                                 operation_type: Literal["pobranie", "zwrot", None] = None) -> List["UnapprovedOperation"]:
         """
-        Retrieves unapproved operations. It filters results by a given session ID and operation type.
+        Retrieves unapproved operations filtered by session ID and/or operation type.
+
+        If no filters are provided, all unapproved operations are retrieved. 
+        Raises an exception if no operations match the criteria.
 
         Args:
             db (Session): The database session.
-            session_id (int): ID of the session to filter by.
-            operation_type(Optional[Literal["pobranie", "zwrot"]]): the type of operation to filter by.
+            session_id (Optional[int]): The ID of the session to filter by (optional).
+            operation_type (Optional[Literal["pobranie", "zwrot"]]): The type of operation to filter by (optional).
 
         Returns:
-            List[UnapprovedOperation]: A list of unapproved operations for the session.
+            List[UnapprovedOperation]: A list of unapproved operations matching the criteria.
 
         Raises:
-            HTTPException: If no unapproved operations are found.
+            HTTPException: 
+                - 404 Not Found: If no unapproved operations match the given criteria.
         """
         logger.info(f"Attempting to retrieve unapproved operations")
 
@@ -310,19 +339,23 @@ class UnapprovedOperation(Base):
                                          session_id: int,
                                          commit: Optional[bool] = True) -> List[schemas.DevOperationOut]:
         """
-        Transfers unapproved operations to the approved operations table and
-        removes them from the unapproved table.
+        Transfers unapproved operations to the approved operations table and removes them from the unapproved table.
+        By default, commits the transaction unless specified otherwise.
+
+        The function retrieves all unapproved operations for the given session ID, creates corresponding approved operations, and deletes the unapproved ones.
 
         Args:
             db (Session): The database session.
-            session_id (int): ID of the session.
-            commit (bool, optional): Whether to commit the operations to the database.
+            session_id (int): The ID of the session.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
-            List[schemas.DevOperationOut]: A list of approved operation objects.
+            List[schemas.DevOperationOut]: A list of approved operation objects created from the unapproved operations.
 
         Raises:
-            HTTPException: If an error occurs during operation transfer.
+            HTTPException: 
+                - 404 Not Found: If no unapproved operations match the given criteria.
+                - 500 Internal Server Error: If an error occurs during the commit.
         """
         logger.info(
             "Transfering unapproved operations to the approved ones.")
@@ -360,15 +393,20 @@ class UnapprovedOperation(Base):
                                session_id: int,
                                commit: Optional[bool] = True) -> None:
         """
-        Deletes all unapproved operations for the given session ID.
+        Deletes all unapproved operations for a given session.
+
+        If no unapproved operations are found for the specified session ID, raises an HTTPException. 
+        By default, commits the transaction unless specified otherwise.
 
         Args:
             db (Session): The database session.
-            session_id (int): ID of the session whose unapproved operations should be deleted.
-            commit (bool, optional): Whether to commit the transaction after deletion.
+            session_id (int): The ID of the session whose unapproved operations should be deleted.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Raises:
-            HTTPException: If an error occurs during the deletion process.
+            HTTPException: 
+                - 404 Not Found: If no unapproved operations are found for the specified session ID.
+                - 500 Internal Server Error: If an error occurs during the commit.
         """
         logger.info(
             f"Deleting all unapproved operations for session ID: {session_id}")
@@ -380,7 +418,8 @@ class UnapprovedOperation(Base):
             if not operations_to_delete:
                 logger.info(
                     f"No unapproved operations found for session ID: {session_id}")
-                return
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="No unapproved operations found for this session")
 
             logger.debug(
                 f"Found {len(operations_to_delete)} unapproved operations to delete.")
@@ -422,12 +461,15 @@ class DeviceOperation(Base):
         """
         Generates a subquery to retrieve the latest operation timestamp for each device.
 
+        The subquery groups operations by `device_id` and retrieves the maximum timestamp for each group.
+
         Args:
             db (Session): The database session.
 
         Returns:
-            sqlalchemy.sql.selectable.Subquery: Subquery for the latest device operations.
+            sqlalchemy.sql.selectable.Subquery: A subquery for the latest device operations.
         """
+
         logger.debug(
             f"Generating a subquery to retrieve latest operation timestamp")
         return (
@@ -445,18 +487,22 @@ class DeviceOperation(Base):
                                    user_id: int,
                                    operation_type: Optional[Literal["pobranie", "zwrot"]] = "pobranie") -> Sequence["DeviceOperation"]:
         """
-        Retrieves the last operations of a specific type (default "pobranie") for a user.
+        Retrieves the last operations of a specific type for a given user.
+
+        Filters operations by user ID and operation type (default: "pobranie"). 
+        Retrieves only the latest operation for each device.
 
         Args:
             db (Session): The database session.
-            user_id (int): ID of the user.
-            operation_type (Literal["pobranie", "zwrot"], optional): Type of operation to filter by (default is 'pobranie').
+            user_id (int): The ID of the user.
+            operation_type (Optional[Literal["pobranie", "zwrot"]]): The type of operation to filter by (default: "pobranie").
 
         Returns:
             Sequence[DeviceOperation]: A sequence of the user's last device operations.
 
         Raises:
-            HTTPException: If no operations are found for the user.
+            HTTPException: 
+                - 404 Not Found: If no operations are found for the specified user and type.
         """
         logger.info("Attempting to retrieve last user operation.")
         logger.debug(
@@ -497,13 +543,20 @@ class DeviceOperation(Base):
         """
         Creates a new operation for a device.
 
+        The operation is initialized with the current timestamp. 
+        By default, commits the transaction unless specified otherwise.
+
         Args:
             db (Session): The database session.
-            operation_data (schemas.DevOperation): Data for the new operation.
-            commit (bool, optional): Whether to commit the operation to the database.
+            operation_data (schemas.DevOperation): Data required to create the operation.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
-            DeviceOperation: The created DeviceOperation object.
+            DeviceOperation: The newly created DeviceOperation object.
+
+        Raises:
+            HTTPException: 
+                - 500 Internal Server Error: If an error occurs during the commit process.
         """
         logger.info("Creating a new operation.")
         logger.debug(f"Operation data provided: {operation_data}")
@@ -531,17 +584,20 @@ class DeviceOperation(Base):
                            session_id: Optional[int] = None
                            ) -> List["DeviceOperation"]:
         """
-        Retrieves all device operations from the database and
-        it filters results by session Id if given.
+        Retrieves all device operations from the database, optionally filtering by session ID.
+
+        If no session ID is provided, retrieves all operations. Raises an exception if no operations are found.
 
         Args:
             db (Session): The database session.
-            session_id (Optional[int]): The session Id to filter by
+            session_id (Optional[int]): The session ID to filter by (optional).
+
         Returns:
-            List[DeviceOperation]: A list of all DeviceOperation objects.
+            List[DeviceOperation]: A list of DeviceOperation objects matching the criteria.
 
         Raises:
-            HTTPException: If no operations are found.
+            HTTPException: 
+                - 404 Not Found: If no operations are found.
         """
         logger.info("Attempting to retrieve operations.")
 
@@ -563,17 +619,18 @@ class DeviceOperation(Base):
                          db: Session,
                          operation_id: int) -> "DeviceOperation":
         """
-        Retrieves a specific operation by its ID.
+        Retrieves a specific operation by its ID. Raises an exception if operation doesn't exist.
 
         Args:
             db (Session): The database session.
-            operation_id (int): ID of the operation.
+            operation_id (int): The ID of the operation to retrieve.
 
         Returns:
             DeviceOperation: The DeviceOperation object with the specified ID.
 
         Raises:
-            HTTPException: If the operation does not exist.
+            HTTPException: 
+                - 404 Not Found: If no operation with the given ID exists.
         """
         logger.info(
             f"Attempting to retrieve operation with ID: {operation_id}")
@@ -591,14 +648,14 @@ class DeviceOperation(Base):
                                        db: Session,
                                        device_id: int) -> "DeviceOperation|None":
         """
-        Retrieves the last operation for a device or returns None if no operation exists.
+        Retrieves the last operation for a specific device or returns None if no operations exist.
 
         Args:
             db (Session): The database session.
-            device_id (int): ID of the device.
+            device_id (int): The ID of the device.
 
         Returns:
-            DeviceOperation|None: The last DeviceOperation for the device, or None if no operations exist.
+            Optional[DeviceOperation]: The last DeviceOperation object for the specified device, or None if no operations exist.
         """
         logger.info(
             f"Attempting to retrieve last operation for device with ID: {device_id}")

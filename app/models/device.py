@@ -27,18 +27,21 @@ class Room(Base):
                   db: Session,
                   room_number: Optional[str] = None) -> List["Room"]:
         """
-        Retrieves a list of rooms from the database. If `room_number` is specified, 
-        only returns the room with the matching number.
+        Retrieves a list of rooms from the database. 
+
+        If `room_number` is provided, only returns the room(s) with the matching number. 
+        If no room matches the criteria, raises an HTTPException.
 
         Args:
             db (Session): The database session.
-            room_number (str, optional): The room number to filter by (if provided).
+            room_number (Optional[str]): The room number to filter by (if provided).
 
         Returns:
             List[Room]: A list of Room objects that match the criteria.
 
         Raises:
-            HTTPException: If no rooms are found in the database.
+            HTTPException: 
+                - 404 Not Found: If no rooms are found in the database.
         """
         logger.info("Fetching rooms from the database")
         logger.debug(f"Room filter applied: room_number={room_number}")
@@ -64,6 +67,8 @@ class Room(Base):
         """
         Retrieves a room by its unique ID.
 
+        If the room with the given ID is not found, raises an HTTPException.
+
         Args:
             db (Session): The database session.
             room_id (int): The unique ID of the room.
@@ -72,7 +77,8 @@ class Room(Base):
             Room: The Room object with the specified ID.
 
         Raises:
-            HTTPException: If no room with the given ID exists.
+            HTTPException: 
+                - 404 Not Found: If no room with the given ID exists in the database.
         """
         logger.info(f"Retrieving room by ID: {room_id}")
 
@@ -92,6 +98,9 @@ class Room(Base):
         """
         Creates a new room in the database.
 
+        If a room with the specified number already exists, raises an HTTPException. 
+        By default, commits the transaction immediately.
+
         Args:
             db (Session): The database session.
             room_data (schemas.RoomCreate): Data required to create the new room.
@@ -101,8 +110,9 @@ class Room(Base):
             Room: The newly created Room object.
 
         Raises:
-            HTTPException: If a room with the specified number already exists.
-            Exception: For any issues during the commit.
+            HTTPException: 
+                - 404 Not Found: If a room with the specified number already exists.
+                - 500 Internal Server Error: If an internal error occurs during the commit.
         """
         logger.info("Creating a new room.")
         logger.debug(f"Room data: {room_data}")
@@ -142,6 +152,9 @@ class Room(Base):
         """
         Updates an existing room in the database.
 
+        If the room with the specified ID is not found, raises an HTTPException. 
+        If the updated number already exists for another room, raises an HTTPException.
+
         Args:
             db (Session): The database session.
             room_id (int): The ID of the room to update.
@@ -152,8 +165,10 @@ class Room(Base):
             Room: The updated Room object.
 
         Raises:
-            HTTPException: If the room is not found or a room with the new number already exists.
-            Exception: For any issues during the commit.
+            HTTPException: 
+                - 404 Not Found: If the room is not found.
+                - 400 Bad Request: If a room with the new number already exists.
+                - 500 Internal Server Error: If an internal error occurs during the commit.
         """
         logger.info(f"Updating room with ID: {room_id}")
         logger.debug(f"New room data: {room_data}")
@@ -193,19 +208,23 @@ class Room(Base):
                     room_id: int,
                     commit: Optional[bool] = True) -> bool:
         """
-        Deletes a room by its ID from the database.
+        Deletes a room by its unique ID from the database.
+
+        If the room with the specified ID does not exist, raises an HTTPException. 
+        By default, commits the transaction immediately.
 
         Args:
             db (Session): The database session.
-            room_id (int): The ID of the room to delete.
+            room_id (int): The unique ID of the room to delete.
             commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
             bool: True if the room was successfully deleted.
 
         Raises:
-            HTTPException: If the room with the given ID does not exist.
-            Exception: For any issues during the commit.
+            HTTPException: 
+                - 404 Not Found: If the room with the given ID does not exist.
+                - 500 Internal Server Error: If an internal error occurs during the commit.
         """
         logger.info(f"Deleting room with ID: {room_id}")
 
@@ -272,20 +291,22 @@ class Device(Base):
         room_number: Optional[str] = None
     ):
         """
-        Retrieves detailed information for devices, including fields from related tables such as Room and User.
-        This includes device type, version, room number, ownership status, and any associated notes.
+        Retrieves detailed information for devices, including related data such as room number, ownership status, and notes.
+
+        Filters can be applied based on device type, version, and room number. Raises an HTTPException if no devices match the criteria.
 
         Args:
             db (Session): The database session.
-            dev_type (str, optional): The type of device to filter by.
-            dev_version (str, optional): The version of the device to filter by.
-            room_number (str, optional): The room number to filter by.
+            dev_type (Optional[str]): The type of device to filter by (e.g., 'klucz', 'mikrofon', 'pilot').
+            dev_version (Optional[str]): The version of the device to filter by (e.g., 'podstawowa', 'zapasowa').
+            room_number (Optional[str]): The room number to filter by.
 
         Returns:
-            List[dict]: A list of dictionaries containing selected fields from Device, Room, User, and related tables.
+            List[dict]: A list of dictionaries containing selected fields from Device, Room, and related tables.
 
         Raises:
-            HTTPException: If no records match the given criteria.
+            HTTPException: 
+                - 404 Not Found: If no devices match the specified criteria.
         """
         logger.info("Retrieving devices with detailed information")
         logger.debug(
@@ -391,7 +412,8 @@ class Device(Base):
             Device: The Device object with the specified ID.
 
         Raises:
-            HTTPException: If no device with the given ID exists.
+            HTTPException: 
+            - 404 Not Found: If no device with the given ID exists.
         """
         logger.info(f"Attempting to retrieve device with ID: {dev_id}")
         device = db.query(cls).filter(cls.id == dev_id).first()
@@ -417,7 +439,8 @@ class Device(Base):
             Device: The Device object with the specified code.
 
         Raises:
-            HTTPException: If no device with the given code exists.
+            HTTPException: 
+            - 404 Not Found: If no device with the given code exists.
         """
         logger.info(f"Attempting to retrieve device with code: {dev_code}")
 
@@ -438,14 +461,20 @@ class Device(Base):
         """
         Creates a new device in the database.
 
+        Adds the device based on the provided data. Commits the transaction by default unless specified otherwise.
+
         Args:
             db (Session): The database session.
-            device_data (schemas.DeviceCreate): The data for creating the device.
-            commit (bool, optional): Whether to commit the transaction after adding the device.
+            device_data (schemas.DeviceCreate): The data required to create the new device.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
-            Device: The created Device object.
-        """
+            Device: The newly created Device object.
+
+        Raises:
+            HTTPException: 
+            - 500 Internal Server Error: If an error occurs during the commit.
+        """  
         logger.info("Creating a new device")
         logger.debug(f"Device data provided: {device_data}")
 
@@ -475,17 +504,21 @@ class Device(Base):
         """
         Updates an existing device in the database.
 
+        Modifies the device's attributes based on the provided data. Commits the transaction by default unless specified otherwise.
+
         Args:
             db (Session): The database session.
             dev_id (int): The unique ID of the device to update.
             device_data (schemas.DeviceUpdate): The data for updating the device.
-            commit (bool, optional): Whether to commit the transaction after updating the device.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
             Device: The updated Device object.
 
         Raises:
-            HTTPException: If the device with the given ID does not exist.
+            HTTPException: 
+                - 404 Not Found: If no device with the given ID exists.
+                - 500 Internal Server Error: If an error occurs during the commit.
         """
         logger.info(f"Attempting to update device with ID: {dev_id}")
         logger.debug(f"New device data: {device_data}")
@@ -513,19 +546,20 @@ class Device(Base):
                    dev_id: int,
                    commit: Optional[bool] = True) -> bool:
         """
-        Deletes a device from the database.
+        Deletes a device by its unique ID from the database. Commits the transaction by default unless specified otherwise.
 
         Args:
             db (Session): The database session.
             dev_id (int): The unique ID of the device to delete.
-            commit (bool, optional): Whether to commit the transaction after deleting the device.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
-            bool: True if device was deleted successfully
+            bool: True if the device was successfully deleted.
 
         Raises:
-            HTTPException: If the device with the given ID does not exist.
-
+            HTTPException: 
+                - 404 Not Found: If the device with the given ID does not exist.
+                - 500 Internal Server Error: If an error occurs during the commit.
         """
         logger.info(f"Attempting to delete device with ID: {dev_id}")
 
@@ -560,17 +594,21 @@ class DeviceNote(Base):
                       db: Session,
                       dev_id: Optional[int]) -> List["DeviceNote"]:
         """
-        Retrieves all notes associated with a specified device (if given).
+        Retrieves all notes associated with a specified device.
+
+        If a device ID is provided, only notes for that device are returned. 
+        Raises an HTTPException if no notes match the criteria.
 
         Args:
             db (Session): The database session.
-            device_id (int, optional): The ID of the device to filter by.
+            dev_id (Optional[int]): The ID of the device to filter by (if provided).
 
         Returns:
-            List[DeviceNote]: A list of DeviceNote objects.
+            List[DeviceNote]: A list of DeviceNote objects that match the criteria.
 
         Raises:
-            HTTPException: If no notes match the criteria.
+            HTTPException: 
+                - 404 Not Found: If no notes match the criteria.
         """
         logger.info("Attempting to retrieve device notes.")
         logger.debug(f"Filtering notes by device ID: {dev_id}")
@@ -593,7 +631,7 @@ class DeviceNote(Base):
                            db: Session,
                            note_id: int) -> "DeviceNote":
         """
-        Retrieves a specific note by its ID.
+        Retrieves a specific note by its unique ID.
 
         Args:
             db (Session): The database session.
@@ -603,7 +641,8 @@ class DeviceNote(Base):
             DeviceNote: The DeviceNote object with the specified ID.
 
         Raises:
-            HTTPException: If no note with the given ID exists.
+            HTTPException: 
+                - 404 Not Found: If no note with the given ID exists.
         """
         logger.info(f"Attempting to retrieve note with ID: {note_id}")
 
@@ -622,15 +661,21 @@ class DeviceNote(Base):
                         note_data: schemas.DeviceNote,
                         commit: Optional[bool] = True) -> "DeviceNote":
         """
-        Creates a new note for a device.
+        Creates a new note for a specified device.
+
+        Adds the note based on the provided data. Commits the transaction by default unless specified otherwise.
 
         Args:
             db (Session): The database session.
-            note_data (schemas.DeviceNote): The data for creating the note.
-            commit (bool, optional): Whether to commit the transaction after adding the note.
+            note_data (schemas.DeviceNote): The data required to create the new note.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
-            DeviceNote: The created DeviceNote object.
+            DeviceNote: The newly created DeviceNote object.
+
+        Raises:
+            HTTPException: 
+                - 500 Internal Server Error: If an error occurs during the commit.
         """
         logger.info("Creating a new device note.")
         logger.debug(f"Note data provided: {note_data}")
@@ -660,19 +705,24 @@ class DeviceNote(Base):
                         note_data: schemas.NoteUpdate,
                         commit: Optional[bool] = True) -> "DeviceNote":
         """
-        Updates an existing device note or deletes it if no content is provided.
+        Updates an existing device note.
+
+        If the new content is `None`, the note will be deleted. Commits the transaction by default unless specified otherwise.
 
         Args:
             db (Session): The database session.
             note_id (int): The ID of the note to update.
             note_data (schemas.NoteUpdate): The new content of the note.
-            commit (bool, optional): Whether to commit the transaction after updating.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
             DeviceNote: The updated DeviceNote object.
 
         Raises:
-            HTTPException: If no note with the given ID exists, or if the note is deleted.
+            HTTPException: 
+                - 404 Not Found: If the note with the given ID does not exist.
+                - 204 No Content: If the note is deleted due to `None` content.
+                - 500 Internal Server Error: If an error occurs during the commit.
         """
         logger.info(f"Attempting to update device note with ID: {note_id}")
 
@@ -711,15 +761,21 @@ class DeviceNote(Base):
                         note_id: int,
                         commit: Optional[bool] = True) -> bool:
         """
-        Deletes a device note by its ID.
+        Deletes a specific device note by its unique ID. 
+        Commits the transaction by default unless specified otherwise.
 
         Args:
             db (Session): The database session.
             note_id (int): The ID of the note to delete.
-            commit (bool, optional): Whether to commit the transaction after deleting the note. Default is `True`.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
+
+        Returns:
+            bool: True if the note was successfully deleted.
 
         Raises:
-            HTTPException: If no note with the given ID exists.
+            HTTPException: 
+                - 404 Not Found: If the note with the given ID does not exist.
+                - 500 Internal Server Error: If an error occurs during the commit.
         """
         logger.info(f"Attempting to delete device note with ID: {note_id}")
 
