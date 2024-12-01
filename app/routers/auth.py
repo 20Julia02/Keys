@@ -93,8 +93,9 @@ def card_login(card_code: schemas.CardId,
                     "detail": "Invalid token"
                 }
             }
-        }
+        },
     },
+
 })
 def refresh_token(refresh_token: schemas.RefreshToken, db: Session = Depends(database.get_db)) -> schemas.Token:
     """

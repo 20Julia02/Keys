@@ -37,14 +37,13 @@ def get_db():
         Session: A SQLAlchemy database session object that can be used to query the database.
 
     Raises:
-        HTTPException: If the maximum retry attempts are exhausted and the database connection cannot be established.
+        If the maximum retry attempts are exhausted and the database connection cannot be established.
     """
     db = None
     retries = 3
     for attempt in range(retries):
         try:
             db = SessionLocal()
-            logger.info("Database session opened.")
             yield db
             break
         except exc.OperationalError as e:
@@ -56,6 +55,4 @@ def get_db():
                 raise
         finally:
             if db:
-                logger.info("Closing database session.")
                 db.close()
-                logger.info("Database session closed successfully.")

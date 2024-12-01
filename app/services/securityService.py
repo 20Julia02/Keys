@@ -103,8 +103,7 @@ class TokenService:
 
         Raises:
             HTTPException: 
-                - 401 Unauthorized: If the token is invalid 
-                - 401 Unauthorized: If the token is missing required data.
+                - 401 Unauthorized: If the token is invalid or if the token is missing required data.
         """
         logger.info("Verifying the given token")
         try:
@@ -322,7 +321,6 @@ class AuthorizationService:
         Raises:
             HTTPException:
                 - 403 Forbidden: If the credentials are invalid or the user does not have the required role.
-                - 401 Unauthorized: If the username is not found or the password is incorrect.
         """
         logger.info("Authenticating user by login and password")
         password_service = PasswordService()
@@ -354,7 +352,6 @@ class AuthorizationService:
         Raises:
             HTTPException:
                 - 403 Forbidden: If the card ID is invalid or the user does not have the required role.
-                - 401 Unauthorized: If no user is found matching the card ID.
         """
         logger.info("Authenticating user by card")
         password_service = PasswordService()
