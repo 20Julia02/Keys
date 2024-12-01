@@ -188,8 +188,8 @@ def delete_permission(permission_id: int,
 @router.get("/active", response_model=Sequence[PermissionOut])
 def get_active_permissions(
     user_id: int,
-    date: Optional[datetime.date] = None,
-    time: Optional[datetime.time] = None,
+    date: Optional[datetime.date] = datetime.datetime.now().date(),
+    time: Optional[datetime.time] = datetime.datetime.now().time(),
     db: Session = Depends(database.get_db),
     current_concierge: User = Depends(oauth2.get_current_concierge)
 ) -> Sequence[PermissionOut]:
