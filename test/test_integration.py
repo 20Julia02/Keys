@@ -811,7 +811,8 @@ def test_get_user_notes_id_invalid(test_user: muser.User,
     response = client.get(f"/notes/users/-7",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 404
-    assert response.json()["detail"] == "There is no user notes with this id"
+    print(response.json()["detail"])
+    assert response.json()["detail"] == "There is no user note with this id"
 
 
 def test_get_user_notes_not_found(concierge_token: str):
@@ -962,9 +963,11 @@ def test_delete_device_note(db: Session,
 
 
 def test_logout_with_valid_token(test_concierge: muser.User,
+                                 concierge_refresh_token: str,
                                  concierge_token: str):
     response = client.post(
-        "/logout", headers={"Authorization": f"Bearer {concierge_token}"})
+        "/logout", headers={"Authorization": f"Bearer {concierge_token}"},
+        json={"refresh_token":concierge_refresh_token})
     assert response.status_code == 200
     assert response.json() == {"detail": "User logged out successfully"}
 
@@ -977,10 +980,13 @@ def test_logout_with_invalid_token():
 
 
 def test_logout_with_blacklisted_token(test_concierge: muser.User,
+                                       concierge_refresh_token: str,
                                        concierge_token: str):
     client.post(
-        "/logout", headers={"Authorization": f"Bearer {concierge_token}"})
+        "/logout", headers={"Authorization": f"Bearer {concierge_token}"},
+        json={"refresh_token":concierge_refresh_token})
     response2 = client.post(
-        "/logout", headers={"Authorization": f"Bearer {concierge_token}"})
+        "/logout", headers={"Authorization": f"Bearer {concierge_token}"},
+        json={"refresh_token":concierge_refresh_token})
     assert response2.status_code == 403
     assert response2.json()["detail"] == "Concierge is logged out"

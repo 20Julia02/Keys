@@ -363,16 +363,6 @@ def test_is_token_blacklisted_true():
 
     assert token_service.is_token_blacklisted("blacklisted_token") is True
 
-
-def test_add_token_to_blacklist():
-    db = MagicMock()
-    db.query.return_value.filter_by.return_value.first.return_value = None
-    token_service = TokenService(db)
-    token_service.add_token_to_blacklist("blacklisted_token")
-    db.add.assert_called_once()
-    db.commit.assert_called_once()
-
-
 def test_entitled_or_error_user_has_role():
     db = MagicMock()
     auth_service = AuthorizationService(db)

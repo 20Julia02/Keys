@@ -395,7 +395,7 @@ class UnapprovedOperation(Base):
         """
         Deletes all unapproved operations for a given session.
 
-        If no unapproved operations are found for the specified session ID, raises an HTTPException. 
+        If no unapproved operations are found for the specified session ID, returns None. 
         By default, commits the transaction unless specified otherwise.
 
         Args:
@@ -405,38 +405,36 @@ class UnapprovedOperation(Base):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If no unapproved operations are found for the specified session ID.
                 - 500 Internal Server Error: If an error occurs during the commit.
         """
         logger.info(
             f"Deleting all unapproved operations for session ID: {session_id}")
 
-        try:
-            operations_to_delete = db.query(cls).filter(
-                cls.session_id == session_id).all()
+        operations_to_delete = db.query(cls).filter(
+            cls.session_id == session_id).all()
 
-            if not operations_to_delete:
-                logger.info(
-                    f"No unapproved operations found for session ID: {session_id}")
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="No unapproved operations found for this session")
+        if not operations_to_delete:
+            logger.info(
+                f"No unapproved operations found for session ID: {session_id}")
+            return
 
-            logger.debug(
-                f"Found {len(operations_to_delete)} unapproved operations to delete.")
+        logger.debug(
+            f"Found {len(operations_to_delete)} unapproved operations to delete.")
 
-            db.query(cls).filter(cls.session_id == session_id).delete(
-                synchronize_session=False)
+        db.query(cls).filter(cls.session_id == session_id).delete(
+            synchronize_session=False)
 
-            if commit:
+        if commit:
+            try:
                 db.commit()
                 logger.info(
                     f"All unapproved operations for session ID: {session_id} have been successfully deleted")
-        except Exception as e:
-            db.rollback()
-            logger.error(
-                f"Error while deleting unapproved operations for session ID: {session_id}: {e}")
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                detail="An internal error occurred while deleting unapproved operations")
+            except Exception as e:
+                db.rollback()
+                logger.error(
+                    f"Error while deleting unapproved operations for session ID: {session_id}: {e}")
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                    detail="An internal error occurred while deleting unapproved operations")
 
 
 class DeviceOperation(Base):

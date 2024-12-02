@@ -406,6 +406,37 @@ class UnauthorizedUser(BaseUser):
                                 detail="Unauthorized user doesn't exist")
         logger.debug(f"Unauthorized user retrieved: {user}")
         return user
+    
+    @classmethod
+    def get_unathorized_user_email(cls,
+                             db: Session,
+                             email: str) -> "UnauthorizedUser":
+        """
+        Retrieves an unauthorized user by their email from the database.
+
+        Raises an exception if the user is not found.
+
+        Args:
+            db (Session): The database session used to execute the query.
+            email (str): The email of the unauthorized user to retrieve.
+
+        Returns:
+            UnauthorizedUser: The unauthorized user object with the specified email.
+
+        Raises:
+            HTTPException: 
+                - 404 Not Found: If no unauthorized user with the given email exists in the database.
+        """
+        logger.info(
+            f"Attempting to retrieve unauthorized user with email: {email}")
+        user = db.query(UnauthorizedUser).filter(
+            UnauthorizedUser.email == email).first()
+        if not user:
+            logger.warning(f"Unauthorized user with email {email} not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="Unauthorized user doesn't exist")
+        logger.debug(f"Unauthorized user retrieved: {user}")
+        return user
 
     @classmethod
     def update_unauthorized_user(cls,
@@ -582,7 +613,7 @@ class UserNote(Base):
         if not note:
             logger.warning(f"Note with ID {note_id} not found.")
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="There is no user notes with this id")
+                status_code=status.HTTP_404_NOT_FOUND, detail="There is no user note with this id")
 
         logger.debug(f"Retrieved user note: {note}")
         return note

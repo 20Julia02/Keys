@@ -14,7 +14,7 @@ router = APIRouter(
 
 @router.post("/login", response_model=schemas.Token, responses={
     403: {
-        "description": "Authentication failed due to incorrect login credentials.",
+        "description": "Credentials are invalid or the user does not have the required role.",
         "content": {
             "application/json": {
                 "example": {
@@ -51,7 +51,7 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
 
 @router.post("/login/card", response_model=schemas.Token, responses={
     403: {
-        "description": "Authentication failed due to incorrect login credentials.",
+        "description": "Credentials are invalid or the user does not have the required role.",
         "content": {
             "application/json": {
                 "example": {
@@ -84,13 +84,62 @@ def card_login(card_code: schemas.CardId,
     return token_service.generate_tokens(concierge.id, concierge.role.value)
 
 
-@router.post("/refresh", response_model=schemas.Token, responses={
+@router.get("/concierge", response_model=schemas.UserOut, responses={
     401: {
-        "description": "Invalid or expired refresh token.",
+        "description": "Token is invalid or is missing required data.",
         "content": {
             "application/json": {
                 "example": {
                     "detail": "Invalid token"
+                }
+            }
+        },
+    },
+    404: {
+        "description": "No user with the given ID exists in the database.",
+        "content": {
+            "application/json": {
+                "example": {
+                    "user_not_found":{
+                        "detail": "User doesn't exist"
+                    },
+                    "missing_data":{
+                        "detail": "Invalid token"
+                    }
+                }
+            }
+        },
+    },
+})
+def get_current_user(token: str = Depends(oauth2.get_current_concierge_token),
+                     db: Session = Depends(database.get_db)) -> schemas.UserOut:
+    """
+    Get the current logged-in user based on the provided token.
+
+    This endpoint returns the details of the user who is currently authenticated.
+    It verifies the provided token and retrieves the user's data.
+    """
+    logger.info(f"GET request to retrieve current user information")
+
+    token_service = securityService.TokenService(db)
+    token_data = token_service.verify_concierge_token(token)
+    if token_data.id is None:
+        logger.warning(f"Token is missing user_id.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    user = muser.User.get_user_id(db, token_data.id)
+    return user
+
+
+@router.post("/refresh", response_model=schemas.Token, responses={
+    401: {
+        "description": "Token is invalid or is missing required data.",
+        "content": {
+            "application/json": {
+                "example": {
+                    "missing_data":{"detail": "Invalid token"},
+                    "invalid_token":{"detail": "Failed to verify token"}
                 }
             }
         },
@@ -107,26 +156,21 @@ def refresh_token(refresh_token: schemas.RefreshToken, db: Session = Depends(dat
     logger.info(f"POST request to refresh tokens")
 
     token_service = securityService.TokenService(db)
-    token_data = token_service.verify_concierge_token(
+    auth_service = securityService.AuthorizationService(db)
+    token_data = auth_service.get_current_concierge(
         refresh_token.refresh_token)
 
-    user = db.query(muser.User).filter_by(id=token_data.id).first()
-    if not user:
-        logger.warning(
-            f"Token is invalid. No user with ID {token_data.id} found")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-
-    return token_service.generate_tokens(user.id, user.role.value)
+    return token_service.generate_tokens(token_data.id, token_data.role.value)
 
 
 @router.post("/logout", responses={
     401: {
-        "description": "Invalid or expired refresh token.",
+        "description": "Token is invalid or is missing required data.",
         "content": {
             "application/json": {
                 "example": {
-                    "detail": "Invalid token"
+                    "missing_data":{"detail": "Invalid token"},
+                    "invalid_token":{"detail": "Failed to verify token"}
                 }
             }
         }
@@ -142,31 +186,19 @@ def refresh_token(refresh_token: schemas.RefreshToken, db: Session = Depends(dat
         }
     },
 })
-def logout(token: str = Depends(oauth2.get_current_concierge_token),
+def logout(refresh_token: schemas.RefreshToken,
+           access_token: str = Depends(oauth2.get_current_concierge_token),
            db: Session = Depends(database.get_db)) -> JSONResponse:
     """
-    Log out the concierge by blacklisting their token.
+    Log out the concierge by blacklisting their tokens.
 
-    This endpoint allows a concierge to log out by adding their access token to a blacklist,
-    effectively invalidating it for future requests.
+    This endpoint allows a concierge to log out by adding their access and refresh tokens
+    to a blacklist, effectively invalidating them for future requests.
     """
     logger.info(f"POST request to logout user")
-
     token_service = securityService.TokenService(db)
-    token_data = token_service.verify_concierge_token(token)
 
-    concierge = db.query(muser.User).filter_by(id=token_data.id).first()
-    if not concierge:
-        logger.warning(
-            f"Token is invalid. No concierge with ID {token_data.id} found")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    token_service.add_token_to_blacklist(access_token)
+    token_service.add_token_to_blacklist(refresh_token.refresh_token)
 
-    if token_service.add_token_to_blacklist(token):
-        logger.info("User logged out successfully")
-        return JSONResponse({"detail": "User logged out successfully"})
-
-    logger.warning(
-        f"Concierge with ID {token_data.id} is already logged out")
-    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                        detail="You are already logged out")
+    return JSONResponse({"detail": "User logged out successfully"})

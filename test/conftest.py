@@ -221,3 +221,11 @@ def concierge_token(db: Session, test_concierge: muser.User) -> str:
         'user_id': test_concierge.id, 'user_role': test_concierge.role.value}
     token = token_service.create_token(token_data, token_type="access")
     return token
+
+@pytest.fixture(scope="module")
+def concierge_refresh_token(db: Session, test_concierge: muser.User) -> str:
+    token_service = securityService.TokenService(db)
+    token_data: dict[str, Any] = {
+        'user_id': test_concierge.id, 'user_role': test_concierge.role.value}
+    token = token_service.create_token(token_data, token_type="refresh")
+    return token

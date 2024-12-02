@@ -1,6 +1,7 @@
 from typing import Any, Literal
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
+from fastapi.responses import JSONResponse
 from passlib.context import CryptContext
 import datetime
 from zoneinfo import ZoneInfo
@@ -145,23 +146,29 @@ class TokenService:
 
     def add_token_to_blacklist(self,
                                token: str,
-                               commit: bool = True) -> bool:
+                               commit: bool = True) -> JSONResponse:
         """
-        Adds the token to the blacklist in the database if not already blacklisted.
-        If `commit` is `True`, the transaction will be committed after the operation.
+        Adds a token to the blacklist in the database to prevent further use. 
+        If the token is already blacklisted, the user is considered logged out.
+        By default, commits the transaction immediately.
 
         Args:
             token (str): The token to blacklist.
-            commit (bool, optional): Whether to commit the transaction after updating the blacklist. Defaults to `True`.
+            commit (bool, optional): Whether to commit the transaction immediately. Default is True.
 
         Returns:
-            bool: True if the token was successfully added to the blacklist, False if the token was already blacklisted.
+            JSONResponse: JSON response with a message indicating the user has been logged out successfully.
 
         Raises:
             HTTPException: 
-                - 500 Internal Server Error: If there is an error while adding the token to the blacklist.
+                - 403 Forbidden: If the token is blacklisted.
+                - 401 Unauthorized: If the token is invalid or the user cannot be found in the database.
+                - 500 Internal Server Error: If there is an error while committing the transaction to the database.
         """
         logger.info("Adding the token to blacklist")
+        auth_service = AuthorizationService(self.db)
+        token_data = auth_service.get_current_concierge(token)
+        
         if not self.is_token_blacklisted(token):
             db_token = mpermission.TokenBlacklist(token=token)
             self.db.add(db_token)
@@ -175,9 +182,14 @@ class TokenService:
                         f"Error while adding token to blacklist: {e}")
                     raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                         detail="An internal error occurred while adding token to blacklist")
-            return True
-        logger.debug("Token has been already blackllisted")
-        return False
+            
+            logger.debug( f"Token for user with ID: {token_data.id} successfully added to blacklist")
+            return JSONResponse({"detail": "User logged out successfully"})
+
+        logger.debug(
+            f"Token has been already blackllisted. User with id {token_data.id} is logged out")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                        detail="You are already logged out")
 
     def generate_tokens(self,
                         user_id: int,

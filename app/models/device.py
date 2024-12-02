@@ -608,7 +608,7 @@ class DeviceNote(Base):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If no notes match the criteria.
+                - 404 Not Found: If no device notes match the criteria.
         """
         logger.info("Attempting to retrieve device notes.")
         logger.debug(f"Filtering notes by device ID: {dev_id}")
@@ -642,7 +642,7 @@ class DeviceNote(Base):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If no note with the given ID exists.
+                - 404 Not Found: If no device note with the given ID exists.
         """
         logger.info(f"Attempting to retrieve note with ID: {note_id}")
 
