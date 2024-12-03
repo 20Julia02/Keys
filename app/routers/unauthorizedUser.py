@@ -212,7 +212,7 @@ def get_unathorized_user(user_id: int,
 
 @router.get("/email",
             response_model=schemas.UnauthorizedUserOut)
-def get_unathorized_user_email(email: schemas.UnauthorizedEmail,
+def get_unathorized_user_email(email: str,
                                current_concierge: muser.User = Depends(
                                    oauth2.get_current_concierge),
                                 db: Session = Depends(database.get_db)) -> schemas.UnauthorizedUserOut:
@@ -222,7 +222,7 @@ def get_unathorized_user_email(email: schemas.UnauthorizedEmail,
     """
     logger.info(
         f"GET request to retrieve unauthorized user with email: {email}.")
-    return muser.UnauthorizedUser.get_unathorized_user_email(db, email.email)
+    return muser.UnauthorizedUser.get_unathorized_user_email(db, email)
 
 
 @router.post("/{user_id}",

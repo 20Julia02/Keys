@@ -22,10 +22,22 @@ def change_status(
     current_concierge: int = Depends(oauth2.get_current_concierge),
 ) -> schemas.DevOperationOrDetailResponse:
     """
-    Change the status of the device based on session id, permissions, and optional force flag.
+    Changes the status of a device based on the session, user permissions, and an optional force flag.
 
-    - If the device has already been added as unapproved in the current session, remove the unapproved operation.
-    - Otherwise, check user permissions and create a new unapproved operation (issue or return).
+    Functionality:
+    - Determines the next operation type (`pobranie` or `zwrot`) based on the last approved operation for the device.
+    - Validates user permissions to ensure the user is entitled to perform the operation:
+        - If the user does not have permission, the `force` flag is not set, and the next operation type is `pobranie`, 
+        the operation is denied with an appropriate error message.
+    - Handles rescanning of the device within the current session:
+        - If the detected operation type is `pobranie` (retrieval), rescanning is treated as a `zwrot` (return). In this case:
+            - Even if the user does not have permission and the `force` flag is not set, 
+            no error is raised and the unapproved operation is removed.
+        - If the detected operation type is `zwrot` (return), rescanning is treated as a `pobranie` (retrieval). In this case:
+            - If the user does not have permission and the `force` flag is not set, an error is raised. 
+            Otherwise, the unapproved operation is removed.
+    - If the operation is not a repeated scan, the user is entitled, or the `force` flag is set, 
+    a new unapproved operation is created for further validation.
     """
     logger.info(f"POST request to change device status")
 
@@ -41,7 +53,7 @@ def change_status(
     )
 
     operation_type = "zwrot" if last_operation and last_operation.operation_type == "pobranie" else "pobranie"
-    if entitled == False and request.force == False:
+    if not entitled and not request.force:
         if operation_type == "pobranie":
             if moperation.UnapprovedOperation.delete_if_rescanned(db, device.id, request.session_id):
                 return schemas.DetailMessage(detail="Operation removed.")
@@ -49,7 +61,7 @@ def change_status(
                 f"User with ID {session.user_id} has no permission to perform the operation")
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                 detail="User has no permission to perform the operation")
-        else:
+        elif operation_type == "zwrot":
             if moperation.UnapprovedOperation.check_if_rescanned(db, device.id, request.session_id):
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                                 detail="User has no permission to perform the operation")
