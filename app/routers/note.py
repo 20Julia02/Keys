@@ -30,7 +30,6 @@ def get_user_notes_filtered(
         db: Session = Depends(database.get_db)) -> Sequence[schemas.UserNote]:
     """
     It fetches all user-related notes stored in the database. 
-    User notes typically contain important information associated with users.
 
     User notes are filtered by user ID if provided.
     """
@@ -57,7 +56,6 @@ def get_user_notes_id(
         db: Session = Depends(database.get_db)) -> schemas.UserNote:
     """
     It fetches user-related note stored in the database with given note_id. 
-    User notes typically contain important information associated with users.
     """
     logger.info(
         f"GET request to retrieve user notes filtered by note ID: {note_id}")
@@ -82,8 +80,6 @@ def add_user_note(note_data: schemas.UserNoteCreate,
                   db: Session = Depends(database.get_db)) -> schemas.UserNote:
     """
     It allows to add a new note to a specific user.
-
-    User notes typically contain important information associated with users.
     """
     logger.info("POST request to create user note")
     return muser.UserNote.create_user_note(db, note_data)
@@ -149,6 +145,11 @@ def get_devices_notes_filtered(device_id: Optional[int] = None,
                                current_concierge: muser.User = Depends(
                                    oauth2.get_current_concierge),
                                db: Session = Depends(database.get_db)) -> Sequence[schemas.DeviceNoteOut]:
+    """
+    Retrieves all notes associated with a specified device.
+
+    If a device ID is provided, only notes for that device are returned. 
+    """
     logger.info(
         f"GET request to retrieve device notes filtered by user ID: {device_id}.")
     return mdevice.DeviceNote.get_dev_notes(db, device_id)
@@ -160,7 +161,7 @@ def get_devices_notes_filtered(device_id: Optional[int] = None,
         "content": {
             "application/json": {
                 "example": {
-                    "detail": "No device notes that match given criteria found"
+                    "detail": "No device note found"
                 }
             }
         }
@@ -171,16 +172,25 @@ def get_device_notes_id(
         current_concierge: muser.User = Depends(oauth2.get_current_concierge),
         db: Session = Depends(database.get_db)) -> schemas.DeviceNote:
     """
-    It fetches all user-related notes stored in the database. User notes
-    typically contain important information associated with users.
-    HTTPException: If an error occurs while retrieving the user notes.
+    Retrieves a specific note by its unique ID. 
     """
     logger.info(
         f"GET request to retrieve device notes filtered by note ID: {note_id}.")
     return mdevice.DeviceNote.get_device_note_id(db, note_id)
 
 
-@router.post("/devices", response_model=schemas.DeviceNoteOut, status_code=status.HTTP_201_CREATED)
+@router.post("/devices", response_model=schemas.DeviceNoteOut, status_code=status.HTTP_201_CREATED, responses={
+    500: {
+        "description": "If an error occurs during the commit",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "An internal error occurred while creating note"
+                }
+            }
+        }
+    },
+})
 def add_device_note(note_data: schemas.DeviceNote,
                     current_concierge: muser.User = Depends(
                         oauth2.get_current_concierge),
@@ -193,23 +203,78 @@ def add_device_note(note_data: schemas.DeviceNote,
     return mdevice.DeviceNote.create_dev_note(db, note_data)
 
 
-@router.put("/devices/{note_id}", response_model=schemas.DeviceNoteOut)
+@router.put("/devices/{note_id}", response_model=schemas.DeviceNoteOut, responses={
+    500: {
+        "description": "If an error occurs during the commit",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "An internal error occurred while updating device note"
+                }
+            }
+        }
+    },
+    404: {
+        "description": "If the note with the given ID does not exist.",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Note not found"
+                }
+            }
+        }
+    },
+    204: {
+        "description": "If the note is deleted due to `None` content",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Note deleted"
+                }
+            }
+        }
+    },
+})
 def edit_device_note(note_id: int,
                      note_data: schemas.NoteUpdate,
                      current_concierge: muser.User = Depends(
                          oauth2.get_current_concierge),
                      db: Session = Depends(database.get_db)) -> schemas.DeviceNoteOut:
     """
-    Edits a note with the specified ID for a device.
+    Updates an existing device note with the specified ID.
     """
     logger.info("PUT request to edit device note")
     return mdevice.DeviceNote.update_dev_note(db, note_id, note_data)
 
 
-@router.delete("/devices/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/devices/{note_id}", status_code=status.HTTP_204_NO_CONTENT, responses={
+    500: {
+        "description": "If an error occurs during the commit",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "An internal error occurred while deleting device note"
+                }
+            }
+        }
+    },
+    404: {
+        "description": "If the note with the given ID does not exist.",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Note not found"
+                }
+            }
+        }
+    },
+})
 def delete_device_note(note_id: int,
                        db: Session = Depends(database.get_db),
                        current_concierge: muser.User = Depends(oauth2.get_current_concierge)):
+    """
+    Deletes a specific device note by its unique ID. 
+    """
     logger.info(
         f"DELETE request to delete device note with ID: {note_id}")
     return mdevice.DeviceNote.delete_dev_note(db, note_id)

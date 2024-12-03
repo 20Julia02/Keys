@@ -650,7 +650,7 @@ class DeviceNote(Base):
         if not note:
             logger.warning(f"Note with ID {note_id} not found.")
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="No device notes found")
+                status_code=status.HTTP_404_NOT_FOUND, detail="No device note found")
 
         logger.debug(f"Retrieved note: {note}")
         return note

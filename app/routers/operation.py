@@ -41,15 +41,22 @@ def change_status(
     )
 
     operation_type = "zwrot" if last_operation and last_operation.operation_type == "pobranie" else "pobranie"
-    if entitled == False and request.force == False and operation_type == "pobranie":
-        logger.warning(
-            f"User with ID {session.user_id} has no permission to perform the operation")
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="User has no permission to perform the operation")
-    else:
-        if moperation.UnapprovedOperation.delete_if_rescanned(db, device.id, request.session_id):
-            return schemas.DetailMessage(detail="Operation removed.")
+    if entitled == False and request.force == False:
+        if operation_type == "pobranie":
+            if moperation.UnapprovedOperation.delete_if_rescanned(db, device.id, request.session_id):
+                return schemas.DetailMessage(detail="Operation removed.")
+            logger.warning(
+                f"User with ID {session.user_id} has no permission to perform the operation")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                detail="User has no permission to perform the operation")
+        else:
+            if moperation.UnapprovedOperation.check_if_rescanned(db, device.id, request.session_id):
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                detail="User has no permission to perform the operation")
 
+    elif moperation.UnapprovedOperation.delete_if_rescanned(db, device.id, request.session_id):
+                return schemas.DetailMessage(detail="Operation removed.")
+    
     operation_data = schemas.DevOperation(
         device_id=device.id,
         session_id=session.id,

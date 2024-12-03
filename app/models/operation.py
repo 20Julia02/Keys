@@ -197,17 +197,12 @@ class UnapprovedOperation(Base):
         back_populates="unapproved_operations")
     device: Mapped["Device"] = relationship(
         back_populates="unapproved_operations")
+    
 
     @classmethod
-    def delete_if_rescanned(cls,
-                            db: Session,
-                            device_id: int,
-                            session_id: int) -> bool:
+    def check_if_rescanned(cls, db: Session, device_id: int, session_id: int) -> Optional["UnapprovedOperation"]:
         """
-        Checks if a device has been rescanned during a session. 
-
-        If it has, deletes the unapproved operation, commits the transaction and returns `True`.
-        If no unapproved operation is found, returns `False`.
+        Checks if a device has been rescanned during a session.
 
         Args:
             db (Session): The database session.
@@ -215,34 +210,60 @@ class UnapprovedOperation(Base):
             session_id (int): The ID of the session.
 
         Returns:
-            bool: True if the device was rescanned and the unapproved operation was deleted, False otherwise.
-
-        Raises:
-            HTTPException: 
-            - 500 Internal Server Error: If an error occurs while deleting the unapproved operation.
+            Optional[UnapprovedOperation]: The unapproved operation if found, None otherwise.
         """
         logger.info(
-            f"Attempting to check if device with ID: {device_id} has been rescanned during session with id: {session_id}")
+            f"Checking if device with ID: {device_id} has been rescanned during session with ID: {session_id}.")
         operation_unapproved = db.query(UnapprovedOperation).filter(
             UnapprovedOperation.device_id == device_id,
             UnapprovedOperation.session_id == session_id).first()
         if operation_unapproved:
             logger.info(
                 f"Device with ID: {device_id} has been rescanned during session with ID: {session_id}.")
-            db.delete(operation_unapproved)
-            try:
-                db.commit()
-                logger.info(
-                    f"Unapproved operation with ID {operation_unapproved.id} deleted successfully.")
-            except Exception as e:
-                db.rollback()
-                logger.error(
-                    f"Error while deleting operation with ID {operation_unapproved.id}: {e}")
-                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                    detail="An internal error occurred while deleting operation")
+        else:
+            logger.info(
+                f"No rescanned operation found for device ID: {device_id} in session ID: {session_id}.")
+        return operation_unapproved
 
+    @classmethod
+    def delete_if_rescanned(cls, db: Session, device_id: int, session_id: int) -> bool:
+        """
+        Deletes an unapproved operation if it has been rescanned during a session.
+
+        This method first checks if the device was rescanned using `check_if_rescanned`.
+        If found, it deletes the operation and commits the transaction.
+
+        Args:
+            db (Session): The database session.
+            device_id (int): The ID of the device.
+            session_id (int): The ID of the session.
+
+        Returns:
+            bool: True if the unapproved operation was deleted, False otherwise.
+
+        Raises:
+            HTTPException: 
+            - 500 Internal Server Error: If an error occurs while deleting the unapproved operation.
+        """
+        operation_unapproved = cls.check_if_rescanned(db, device_id, session_id)
+        if not operation_unapproved:
+            return False
+
+        logger.info(
+            f"Deleting unapproved operation with ID: {operation_unapproved.id}.")
+        db.delete(operation_unapproved)
+        try:
+            db.commit()
+            logger.info(
+                f"Unapproved operation with ID {operation_unapproved.id} deleted successfully.")
             return True
-        return False
+        except Exception as e:
+            db.rollback()
+            logger.error(
+                f"Error while deleting operation with ID {operation_unapproved.id}: {e}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                detail="An internal error occurred while deleting operation")
+
 
     @classmethod
     def create_unapproved_operation(cls,
