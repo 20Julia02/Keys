@@ -70,6 +70,22 @@ def test_user(db: Session) -> muser.User:
     db.refresh(user)
     return user
 
+@pytest.fixture(scope="module")
+def unauthorized_user(db: Session) -> muser.UnauthorizedUser:
+    """
+    Fixture to create a sample UnauthorizedUser in the test database.
+    """
+    unauthorized_user = muser.UnauthorizedUser(
+        id=1,
+        name="John",
+        surname="Doe",
+        email="john.doe@example.com",
+        added_at=datetime.datetime.now()
+    )
+    db.add(unauthorized_user)
+    db.commit()
+    return unauthorized_user
+
 
 @pytest.fixture(scope="module")
 def test_room(db: Session) -> mdevice.Room:

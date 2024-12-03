@@ -210,7 +210,7 @@ def get_unathorized_user(user_id: int,
     return muser.UnauthorizedUser.get_unathorized_user(db, user_id)
 
 
-@router.get("/email",
+@router.get("/email/{email}",
             response_model=schemas.UnauthorizedUserOut)
 def get_unathorized_user_email(email: str,
                                current_concierge: muser.User = Depends(
