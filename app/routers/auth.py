@@ -6,6 +6,9 @@ from app import database, oauth2, schemas
 import app.models.user as muser
 from app.services import securityService
 from app.config import logger
+from fastapi import Response
+from fastapi.responses import JSONResponse
+from fastapi import Request
 
 router = APIRouter(
     tags=['Authentication']
@@ -30,14 +33,12 @@ router = APIRouter(
     },
 }
 )
-def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
-          db: Session = Depends(database.get_db)) -> schemas.Token:
+def login(response: Response,
+          concierge_credentials: OAuth2PasswordRequestForm = Depends(),
+          db: Session = Depends(database.get_db),
+          ) -> schemas.Token:
     """
     Authenticate a concierge using their login credentials (username and password).
-
-    This endpoint allows a concierge to log in by providing valid credentials.
-    Upon successful authentication, the system generates and returns an access token
-    and a refresh token that can be used for subsequent API requests and token refreshing.
     """
     logger.info(f"POST request to login user by login and password")
 
@@ -46,7 +47,17 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
                                                      concierge_credentials.password, "concierge")
 
     token_service = securityService.TokenService(db)
-    return token_service.generate_tokens(concierge.id, concierge.role.value)
+    tokens = token_service.generate_tokens(concierge.id, concierge.role.value)
+
+    response.set_cookie(
+        key="refresh_token",
+        value=tokens.refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        max_age=86400
+    )
+    return tokens
 
 
 @router.post("/login/card", response_model=schemas.Token, responses={
@@ -67,7 +78,8 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
     },
 }
 )
-def card_login(card_code: schemas.CardId,
+def card_login(response: Response,
+               card_code: schemas.CardId,
                db: Session = Depends(database.get_db)) -> schemas.Token:
     """
     Authenticate a concierge using their card ID.
@@ -81,7 +93,17 @@ def card_login(card_code: schemas.CardId,
     concierge = auth_service.authenticate_user_card(card_code, "concierge")
 
     token_service = securityService.TokenService(db)
-    return token_service.generate_tokens(concierge.id, concierge.role.value)
+    tokens = token_service.generate_tokens(concierge.id, concierge.role.value)
+
+    response.set_cookie(
+        key="refresh_token",
+        value=tokens.refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        max_age=86400
+    )
+    return tokens
 
 
 @router.get("/concierge", response_model=schemas.UserOut, responses={
@@ -132,7 +154,7 @@ def get_current_user(token: str = Depends(oauth2.get_current_concierge_token),
     return user
 
 
-@router.post("/refresh", response_model=schemas.Token, responses={
+@router.post("/refresh", response_model=schemas.AccessToken, responses={
     401: {
         "description": "Token is invalid or is missing required data.",
         "content": {
@@ -146,22 +168,21 @@ def get_current_user(token: str = Depends(oauth2.get_current_concierge_token),
     },
 
 })
-def refresh_token(refresh_token: schemas.RefreshToken, db: Session = Depends(database.get_db)) -> schemas.Token:
+def refresh_token(request: Request, 
+                  db: Session = Depends(database.get_db)) -> schemas.AccessToken:
     """
     Refresh the access token using a valid refresh token.
-
-    This endpoint allows users to renew their access token by providing
-    a valid refresh token. The system verifies the refresh token and generates a new access token.
     """
     logger.info(f"POST request to refresh tokens")
-
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token missing")
     token_service = securityService.TokenService(db)
     auth_service = securityService.AuthorizationService(db)
-    token_data = auth_service.get_current_concierge(
-        refresh_token.refresh_token)
 
-    return token_service.generate_tokens(token_data.id, token_data.role.value)
-
+    token_data = auth_service.get_current_concierge(refresh_token)
+    access_token = token_service.create_token({"user_id": token_data.id, "user_role": token_data.role.value}, "access")
+    return schemas.AccessToken(access_token=access_token)
 
 @router.post("/logout", responses={
     401: {
@@ -186,19 +207,19 @@ def refresh_token(refresh_token: schemas.RefreshToken, db: Session = Depends(dat
         }
     },
 })
-def logout(refresh_token: schemas.RefreshToken,
+def logout(response: Response,
+            refresh_token: schemas.RefreshToken, 
            access_token: str = Depends(oauth2.get_current_concierge_token),
            db: Session = Depends(database.get_db)) -> JSONResponse:
     """
     Log out the concierge by blacklisting their tokens.
-
-    This endpoint allows a concierge to log out by adding their access and refresh tokens
-    to a blacklist, effectively invalidating them for future requests.
     """
     logger.info(f"POST request to logout user")
     token_service = securityService.TokenService(db)
 
     token_service.add_token_to_blacklist(access_token)
     token_service.add_token_to_blacklist(refresh_token.refresh_token)
+
+    response.delete_cookie("refresh_token")
 
     return JSONResponse({"detail": "User logged out successfully"})

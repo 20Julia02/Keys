@@ -71,10 +71,7 @@ def test_user(db: Session) -> muser.User:
     return user
 
 @pytest.fixture(scope="module")
-def unauthorized_user(db: Session) -> muser.UnauthorizedUser:
-    """
-    Fixture to create a sample UnauthorizedUser in the test database.
-    """
+def test_unauthorized_user(db: Session) -> muser.UnauthorizedUser:
     unauthorized_user = muser.UnauthorizedUser(
         id=1,
         name="John",
