@@ -30,9 +30,10 @@ def get_user_notes_filtered(
         current_concierge: muser.User = Depends(oauth2.get_current_concierge),
         db: Session = Depends(database.get_db)) -> Sequence[schemas.UserNote]:
     """
-    It fetches all user-related notes stored in the database. 
+    Retrieve all user-related notes stored in the database.
 
-    User notes are filtered by user ID if provided.
+    This endpoint fetches notes associated with users and allows filtering by a specific user ID.
+    If no notes match the criteria, a 404 response is returned with an appropriate error message.
     """
     logger.info(
         f"GET request to retrieve user notes filtered by user ID: {user_id}")
@@ -58,7 +59,10 @@ def get_user_notes_id(
         current_concierge: muser.User = Depends(oauth2.get_current_concierge),
         db: Session = Depends(database.get_db)) -> schemas.UserNote:
     """
-    It fetches user-related note stored in the database with given note_id. 
+    Retrieve a specific user-related note by its unique ID.
+
+    This endpoint fetches a note linked to a user, identified by the provided note ID.
+    If the note does not exist, a 404 response is returned.
     """
     logger.info(
         f"GET request to retrieve user notes filtered by note ID: {note_id}")
@@ -84,7 +88,10 @@ def add_user_note(note_data: schemas.UserNoteCreate,
                       oauth2.get_current_concierge),
                   db: Session = Depends(database.get_db)) -> schemas.UserNote:
     """
-    It allows to add a new note to a specific user.
+    Create a new note associated with a specific user.
+
+    This endpoint allows adding notes to a user by providing necessary data in the request body.
+    Upon successful creation, the newly created note is returned.
     """
     logger.info("POST request to create user note")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -130,7 +137,10 @@ def edit_user_note(note_id: int,
                        oauth2.get_current_concierge),
                    db: Session = Depends(database.get_db)) -> schemas.UserNote:
     """
-    Updates a user note by ID with new data, or deletes the note if the new content is None.
+    Update or delete a user note by its unique ID.
+
+    This endpoint allows modifying an existing note. If the new content is `None`, the note is deleted.
+    If the note does not exist, a 404 response is returned.
     """
     logger.info("PUT request to edit user note")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -156,9 +166,10 @@ def get_devices_notes_filtered(
                                    oauth2.get_current_concierge),
                                db: Session = Depends(database.get_db)) -> Sequence[schemas.DeviceNoteOut]:
     """
-    Retrieves all notes associated with a specified device.
+    Retrieve all notes associated with devices.
 
-    If a device ID is provided, only notes for that device are returned. 
+    This endpoint fetches notes linked to devices and allows filtering by device ID.
+    If no notes match the criteria, a 404 response is returned.
     """
     logger.info(
         f"GET request to retrieve device notes filtered by user ID: {device_id}.")
@@ -184,7 +195,12 @@ def get_device_notes_id(
         current_concierge: muser.User = Depends(oauth2.get_current_concierge),
         db: Session = Depends(database.get_db)) -> schemas.DeviceNote:
     """
-    Retrieves a specific note by its unique ID. 
+    Retrieve a specific device-related note by its unique ID.
+
+    This endpoint fetches a note associated with a device, identified by its unique ID.
+    It ensures that the requesting user is authenticated and updates their session token.
+
+    If the note does not exist in the database, a 404 error is returned with a descriptive message.
     """
     logger.info(
         f"GET request to retrieve device notes filtered by note ID: {note_id}.")
@@ -210,8 +226,14 @@ def add_device_note(note_data: schemas.DeviceNote,
                         oauth2.get_current_concierge),
                     db: Session = Depends(database.get_db)) -> schemas.DeviceNoteOut:
     """
-    It allows to add a note to a specific operation. The operation is identified
-    by its unique ID, and the note is saved in the database.
+    Create a new note associated with a specific device.
+
+    This endpoint allows authenticated users to add a note to a device. The note is 
+    linked to the specified device and stored in the database. The note's content 
+    and related metadata must be provided in the request body.
+
+    Upon successful creation, the newly added note is returned. If an error occurs 
+    during the database operation, a 500 error is returned.
     """
     logger.info("POST request to create device note")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -257,7 +279,14 @@ def edit_device_note(note_id: int,
                          oauth2.get_current_concierge),
                      db: Session = Depends(database.get_db)) -> schemas.DeviceNoteOut:
     """
-    Updates an existing device note with the specified ID.
+    Update or delete an existing device-related note.
+
+    This endpoint allows authenticated users to update a device note by its unique ID. 
+    The updated content is provided in the request body. If the updated content is `None`, 
+    the note is deleted from the database.
+
+    If the note does not exist, a 404 error is returned. A 500 error is returned 
+    if there is an issue during the database operation.
     """
     logger.info("PUT request to edit device note")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -291,7 +320,10 @@ def delete_device_note(note_id: int,
                        db: Session = Depends(database.get_db),
                        current_concierge: muser.User = Depends(oauth2.get_current_concierge)):
     """
-    Deletes a specific device note by its unique ID. 
+    Delete a device note by its unique ID.
+
+    This endpoint removes a specific note from the database. If the note does not exist,
+    a 404 response is returned.
     """
     logger.info(
         f"DELETE request to delete device note with ID: {note_id}")

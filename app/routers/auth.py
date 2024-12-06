@@ -37,7 +37,11 @@ def login(response: Response,
           db: Session = Depends(database.get_db),
           ):
     """
-    Authenticate a concierge using their login credentials (username and password).
+    Authenticate a concierge using their login credentials.
+
+    This endpoint verifies the provided username and password against the database. 
+    If the credentials are valid and the user has the "concierge" role, 
+    an access token is generated and set as a cookie in the response.
     """
     logger.info(f"POST request to login user by login and password")
 
@@ -72,11 +76,11 @@ def card_login(response: Response,
                card_code: schemas.CardId,
                db: Session = Depends(database.get_db)) -> schemas.AccessToken:
     """
-    Authenticate a concierge using their card ID.
+    AAuthenticate a concierge using their card ID.
 
-    This endpoint allows a concierge to authenticate by providing their card ID.
-    Upon successful authentication, the system generates and returns both an access token
-    and a refresh token for future API requests and token refreshing.
+    This endpoint allows a concierge to log in by providing their card ID. 
+    If the card ID is valid and the user has the "concierge" role, 
+    an access token is generated, set as a cookie, and returned in the response.
     """
     logger.info(f"POST request to login user by card")
     auth_service = securityService.AuthorizationService(db)
@@ -118,10 +122,10 @@ def card_login(response: Response,
 def get_current_user(current_concierge: muser.User = Depends(oauth2.get_current_concierge),
                      db: Session = Depends(database.get_db)) -> schemas.UserOut:
     """
-    Get the current logged-in user based on the provided token.
+    Retrieve the details of the currently authenticated user.
 
-    This endpoint returns the details of the user who is currently authenticated.
-    It verifies the provided token and retrieves the user's data.
+    This endpoint uses the provided access token to identify the currently logged-in user.
+    It fetches and returns the user's information from the database.
     """
     logger.info(f"GET request to retrieve current user information")
 
@@ -154,7 +158,10 @@ def logout(response: Response,
            access_token: str = Depends(oauth2.get_current_concierge_token),
            db: Session = Depends(database.get_db)) -> JSONResponse:
     """
-    Log out the concierge by blacklisting their tokens.
+    Log out the currently authenticated user.
+
+    This endpoint blacklists the user's current access token to prevent further usage. 
+    It also removes the refresh token cookie from the response.
     """
     logger.info(f"POST request to logout user")
     token_service = securityService.TokenService(db)
