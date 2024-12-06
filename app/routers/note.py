@@ -1,4 +1,4 @@
-from fastapi import status, Depends, APIRouter
+from fastapi import status, Depends, APIRouter, Response
 from typing import Sequence, Optional
 from app import database, oauth2, schemas
 import app.models.user as muser
@@ -25,6 +25,7 @@ router = APIRouter(
     },
 })
 def get_user_notes_filtered(
+        response: Response,
         user_id: Optional[int] = None,
         current_concierge: muser.User = Depends(oauth2.get_current_concierge),
         db: Session = Depends(database.get_db)) -> Sequence[schemas.UserNote]:
@@ -35,6 +36,7 @@ def get_user_notes_filtered(
     """
     logger.info(
         f"GET request to retrieve user notes filtered by user ID: {user_id}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return muser.UserNote.get_user_notes_filter(db, user_id)
 
 
@@ -51,6 +53,7 @@ def get_user_notes_filtered(
     },
 })
 def get_user_notes_id(
+        response: Response,
         note_id: int,
         current_concierge: muser.User = Depends(oauth2.get_current_concierge),
         db: Session = Depends(database.get_db)) -> schemas.UserNote:
@@ -59,6 +62,7 @@ def get_user_notes_id(
     """
     logger.info(
         f"GET request to retrieve user notes filtered by note ID: {note_id}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return muser.UserNote.get_user_note_id(db, note_id)
 
 
@@ -75,6 +79,7 @@ def get_user_notes_id(
     },
 })
 def add_user_note(note_data: schemas.UserNoteCreate,
+                  response: Response,
                   current_concierge: muser.User = Depends(
                       oauth2.get_current_concierge),
                   db: Session = Depends(database.get_db)) -> schemas.UserNote:
@@ -82,6 +87,7 @@ def add_user_note(note_data: schemas.UserNoteCreate,
     It allows to add a new note to a specific user.
     """
     logger.info("POST request to create user note")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return muser.UserNote.create_user_note(db, note_data)
 
 
@@ -118,6 +124,7 @@ def add_user_note(note_data: schemas.UserNoteCreate,
     },
 })
 def edit_user_note(note_id: int,
+                   response: Response,
                    note_data: schemas.NoteUpdate,
                    current_concierge: muser.User = Depends(
                        oauth2.get_current_concierge),
@@ -126,6 +133,7 @@ def edit_user_note(note_id: int,
     Updates a user note by ID with new data, or deletes the note if the new content is None.
     """
     logger.info("PUT request to edit user note")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return muser.UserNote.update_user_note(db, note_id, note_data)
 
 
@@ -141,7 +149,9 @@ def edit_user_note(note_id: int,
         }
     },
 })
-def get_devices_notes_filtered(device_id: Optional[int] = None,
+def get_devices_notes_filtered(
+                               response: Response,
+                               device_id: Optional[int] = None,
                                current_concierge: muser.User = Depends(
                                    oauth2.get_current_concierge),
                                db: Session = Depends(database.get_db)) -> Sequence[schemas.DeviceNoteOut]:
@@ -152,6 +162,7 @@ def get_devices_notes_filtered(device_id: Optional[int] = None,
     """
     logger.info(
         f"GET request to retrieve device notes filtered by user ID: {device_id}.")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return mdevice.DeviceNote.get_dev_notes(db, device_id)
 
 
@@ -168,6 +179,7 @@ def get_devices_notes_filtered(device_id: Optional[int] = None,
     },
 })
 def get_device_notes_id(
+        response: Response,
         note_id: int,
         current_concierge: muser.User = Depends(oauth2.get_current_concierge),
         db: Session = Depends(database.get_db)) -> schemas.DeviceNote:
@@ -176,6 +188,7 @@ def get_device_notes_id(
     """
     logger.info(
         f"GET request to retrieve device notes filtered by note ID: {note_id}.")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return mdevice.DeviceNote.get_device_note_id(db, note_id)
 
 
@@ -192,6 +205,7 @@ def get_device_notes_id(
     },
 })
 def add_device_note(note_data: schemas.DeviceNote,
+                    response: Response,
                     current_concierge: muser.User = Depends(
                         oauth2.get_current_concierge),
                     db: Session = Depends(database.get_db)) -> schemas.DeviceNoteOut:
@@ -200,6 +214,7 @@ def add_device_note(note_data: schemas.DeviceNote,
     by its unique ID, and the note is saved in the database.
     """
     logger.info("POST request to create device note")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return mdevice.DeviceNote.create_dev_note(db, note_data)
 
 
@@ -236,6 +251,7 @@ def add_device_note(note_data: schemas.DeviceNote,
     },
 })
 def edit_device_note(note_id: int,
+                     response: Response,
                      note_data: schemas.NoteUpdate,
                      current_concierge: muser.User = Depends(
                          oauth2.get_current_concierge),
@@ -244,6 +260,7 @@ def edit_device_note(note_id: int,
     Updates an existing device note with the specified ID.
     """
     logger.info("PUT request to edit device note")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return mdevice.DeviceNote.update_dev_note(db, note_id, note_data)
 
 
@@ -270,6 +287,7 @@ def edit_device_note(note_id: int,
     },
 })
 def delete_device_note(note_id: int,
+                       response: Response,
                        db: Session = Depends(database.get_db),
                        current_concierge: muser.User = Depends(oauth2.get_current_concierge)):
     """
@@ -277,4 +295,5 @@ def delete_device_note(note_id: int,
     """
     logger.info(
         f"DELETE request to delete device note with ID: {note_id}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return mdevice.DeviceNote.delete_dev_note(db, note_id)

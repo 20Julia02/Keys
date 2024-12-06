@@ -1,4 +1,4 @@
-from fastapi import Depends, APIRouter, status
+from fastapi import Depends, APIRouter, status, Response
 from typing import Sequence
 from app.schemas import UserOut, UserCreate
 from app import database, oauth2
@@ -53,7 +53,8 @@ router = APIRouter(
                     }
                 }
             })
-def get_all_users(current_concierge: muser.User = Depends(oauth2.get_current_concierge),
+def get_all_users(response: Response,
+                  current_concierge: muser.User = Depends(oauth2.get_current_concierge),
                   db: Session = Depends(database.get_db)) -> Sequence[UserOut]:
     """
     Retrieves all users from the database.
@@ -61,6 +62,7 @@ def get_all_users(current_concierge: muser.User = Depends(oauth2.get_current_con
     """
     logger.info(
         f"GET request to retrieve users")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return muser.User.get_all_users(db)
 
 
@@ -119,7 +121,8 @@ def get_all_users(current_concierge: muser.User = Depends(oauth2.get_current_con
                     }
                 }
             })
-def get_user(user_id: int,
+def get_user(response: Response,
+             user_id: int,
              current_concierge: muser.User = Depends(
                  oauth2.get_current_concierge),
              db: Session = Depends(database.get_db)) -> UserOut:
@@ -129,6 +132,7 @@ def get_user(user_id: int,
     """
     logger.info(
         f"GET request to retrieve user with ID: {user_id}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return muser.User.get_user_id(db, user_id)
 
 
@@ -172,7 +176,8 @@ def get_user(user_id: int,
                      }
                  }
              })
-def create_user(user_data: UserCreate,
+def create_user(response: Response,
+                user_data: UserCreate,
                 current_concierge: muser.User = Depends(
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)) -> UserOut:
@@ -180,6 +185,7 @@ def create_user(user_data: UserCreate,
     Creates a new user in the database.
     """
     logger.info("POST request to create user")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return muser.User.create_user(db, user_data)
 
 
@@ -226,7 +232,8 @@ def create_user(user_data: UserCreate,
                        }
                    }
                })
-def delete_user(user_id: int,
+def delete_user(response: Response,
+                user_id: int,
                 current_concierge: muser.User = Depends(
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)):
@@ -235,6 +242,7 @@ def delete_user(user_id: int,
     """
     logger.info(
         f"DELETE request to delete user with ID: {user_id}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return muser.User.delete_user(db, user_id)
 
 
@@ -293,7 +301,8 @@ def delete_user(user_id: int,
                      }
                  }
              })
-def update_user(user_id: int,
+def update_user(response: Response,
+                user_id: int,
                 user_data: UserCreate,
                 current_concierge: muser.User = Depends(
                     oauth2.get_current_concierge),
@@ -302,4 +311,5 @@ def update_user(user_id: int,
     Updates a user's information in the database.
     """
     logger.info(f"POST request to edit user with ID: {user_id}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return muser.User.update_user(db, user_id, user_data)

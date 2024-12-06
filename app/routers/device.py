@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.config import logger
 import app.models.user as muser
+from fastapi import Response
 
 router = APIRouter(
     prefix="/devices",
@@ -26,7 +27,8 @@ router = APIRouter(
         }
     },
 })
-def get_devices_filtered(current_concierge: User = Depends(oauth2.get_current_concierge),
+def get_devices_filtered(response: Response,
+                         current_concierge: User = Depends(oauth2.get_current_concierge),
                          dev_type: Optional[Literal["klucz",
                                                     "mikrofon", "pilot"]] = None,
                          dev_version: Optional[Literal["podstawowa",
@@ -42,6 +44,7 @@ def get_devices_filtered(current_concierge: User = Depends(oauth2.get_current_co
 
     devices = mdevice.Device.get_dev_with_details(
         db, dev_type, dev_version, room_number)
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return [schemas.DeviceOutWithNote.model_validate(device) for device in devices]
 
 
@@ -57,7 +60,8 @@ def get_devices_filtered(current_concierge: User = Depends(oauth2.get_current_co
         }
     },
 })
-def get_dev_code(dev_code: str,
+def get_dev_code(response: Response,
+                 dev_code: str,
                  current_concierge: User = Depends(
                      oauth2.get_current_concierge),
                  db: Session = Depends(database.get_db)) -> schemas.DeviceOut:
@@ -65,7 +69,7 @@ def get_dev_code(dev_code: str,
     Retrieve a device by its unique device code.
     """
     logger.info(f"GET request to retrieve device by code {dev_code}.")
-
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return mdevice.Device.get_dev_by_code(db, dev_code)
 
 
@@ -81,7 +85,8 @@ def get_dev_code(dev_code: str,
         }
     },
 })
-def get_dev_id(dev_id: int,
+def get_dev_id(response: Response,
+               dev_id: int,
                current_concierge: User = Depends(
                    oauth2.get_current_concierge),
                db: Session = Depends(database.get_db)) -> schemas.DeviceOut:
@@ -91,7 +96,7 @@ def get_dev_id(dev_id: int,
     This endpoint retrieves a device from the database using the device's unique code.
     """
     logger.info(f"GET request to retrieve device with Id {dev_id}.")
-
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return mdevice.Device.get_dev_by_id(db, dev_id)
 
 
@@ -117,7 +122,8 @@ def get_dev_id(dev_id: int,
         }
     },
 })
-def create_device(device: schemas.DeviceCreate,
+def create_device(response: Response,
+                  device: schemas.DeviceCreate,
                   db: Session = Depends(database.get_db),
                   current_concierge: User = Depends(oauth2.get_current_concierge)) -> schemas.DeviceOut:
     """
@@ -130,6 +136,7 @@ def create_device(device: schemas.DeviceCreate,
 
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return mdevice.Device.create_dev(db, device)
 
 
@@ -156,6 +163,7 @@ def create_device(device: schemas.DeviceCreate,
     },
 })
 def update_device(
+    response: Response,
     device_id: int,
     device_data: schemas.DeviceCreate,
     current_concierge: User = Depends(
@@ -171,6 +179,7 @@ def update_device(
     logger.info(f"PUT request to update device")
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return mdevice.Device.update_dev(db, device_id, device_data)
 
 
@@ -197,6 +206,7 @@ def update_device(
     },
 })
 def delete_device(
+    response: Response,
     device_id: int,
     current_concierge: User = Depends(
         oauth2.get_current_concierge),
@@ -211,4 +221,5 @@ def delete_device(
     logger.info(f"DELETE request to delete device with ID {device_id}")
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return mdevice.Device.delete_dev(db, device_id)

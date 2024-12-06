@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from app import database, oauth2, schemas
@@ -61,7 +61,8 @@ router = APIRouter(
                  },
              }
              )
-def approve_session_login(session_id: int = Path(description="Unique identifier of the session that contains operations awaiting approval."),
+def approve_session_login(response: Response,
+                          session_id: int = Path(description="Unique identifier of the session that contains operations awaiting approval."),
                           db: Session = Depends(database.get_db),
                           concierge_credentials: OAuth2PasswordRequestForm = Depends(),
                           current_concierge: User = Depends(oauth2.get_current_concierge)):
@@ -73,6 +74,7 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
     Once approved, the operations are transferred from the unapproved state to the approved operations data.
     """
     logger.info(f"POST request to approve session by login and password")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     auth_service = securityService.AuthorizationService(db)
     auth_service.authenticate_user_login(
         concierge_credentials.username, concierge_credentials.password, "concierge")
@@ -131,6 +133,7 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
              }
              )
 def approve_session_card(
+    response: Response,
     card_data: schemas.CardId,
     session_id: int = Path(
         description="Unique identifier of the session that contains operations awaiting approval."),
@@ -145,7 +148,7 @@ def approve_session_card(
     Once approved, the operations are transferred from the unapproved state to the approved operations data.
     """
     logger.info(f"POST request to approve session by card")
-
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     auth_service = securityService.AuthorizationService(db)
     auth_service.authenticate_user_card(card_data, "concierge")
 
@@ -158,12 +161,14 @@ def approve_session_card(
 
 
 @router.post("/reject/session/{session_id}")
-def reject_session(session_id: int = Path(description="Unique identifier of the session"),
+def reject_session(response: Response,
+                   session_id: int = Path(description="Unique identifier of the session"),
                    db: Session = Depends(database.get_db),
                    current_concierge: User = Depends(oauth2.get_current_concierge)):
     """
     """
     logger.info(f"POST request to reject session by login and password")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     moperation.UserSession.end_session(db, session_id, reject=True)
 
     return moperation.UnapprovedOperation.delete_all_for_session(db, session_id)
@@ -186,7 +191,8 @@ def reject_session(session_id: int = Path(description="Unique identifier of the 
         }
     },
 })
-def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
+def start_login_session(response: Response,
+                        user_credentials: OAuth2PasswordRequestForm = Depends(),
                         current_concierge: muser.User = Depends(
                             oauth2.get_current_concierge),
                         db: Session = Depends(database.get_db)) -> schemas.SessionOut:
@@ -199,6 +205,7 @@ def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
     """
     logger.info(
         f"POST request to start new session by user using login and password")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     auth_service = securityService.AuthorizationService(db)
 
     user = auth_service.authenticate_user_login(
@@ -223,7 +230,8 @@ def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
         }
     },
 })
-def start_card_session(card_id: schemas.CardId,
+def start_card_session(response: Response,
+                       card_id: schemas.CardId,
                        current_concierge: muser.User = Depends(
                            oauth2.get_current_concierge),
                        db: Session = Depends(database.get_db)) -> schemas.SessionOut:
@@ -235,6 +243,7 @@ def start_card_session(card_id: schemas.CardId,
     for the user and assigns it to the current concierge.
     """
     logger.info(f"POST request to start new session by user using card")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     auth_service = securityService.AuthorizationService(db)
     user = auth_service.authenticate_user_card(card_id, "employee")
     return moperation.UserSession.create_session(db, user.id, current_concierge.id)
@@ -252,7 +261,8 @@ def start_card_session(card_id: schemas.CardId,
         }
     },
 })
-def start_unauthorized_session(unauthorized_id: int,
+def start_unauthorized_session(response: Response,
+                               unauthorized_id: int,
                                current_concierge: muser.User = Depends(
                                    oauth2.get_current_concierge),
                                db: Session = Depends(database.get_db)) -> schemas.Session:
@@ -265,6 +275,7 @@ def start_unauthorized_session(unauthorized_id: int,
     """
     logger.info(
         f"POST request to start new session by unauthorized user with ID {unauthorized_id}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     user = db.query(muser.UnauthorizedUser).filter_by(
         id=unauthorized_id).first()
     if not user:
@@ -276,10 +287,12 @@ def start_unauthorized_session(unauthorized_id: int,
 
 
 @router.get("/session/{session_id}", response_model=schemas.Session)
-def get_session_id(session_id: int,
+def get_session_id(response: Response,
+                   session_id: int,
                    current_concierge: muser.User = Depends(
                        oauth2.get_current_concierge),
                    db: Session = Depends(database.get_db)) -> schemas.Session:
     logger.info(
         f"GET request to retrieve session with ID {session_id}.")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return moperation.UserSession.get_session_id(db, session_id)

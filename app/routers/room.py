@@ -1,4 +1,4 @@
-from fastapi import Depends, APIRouter, status
+from fastapi import Depends, APIRouter, status, Response
 from typing import Sequence, Optional
 from app.schemas import RoomOut, Room
 from app import database, oauth2
@@ -39,7 +39,8 @@ router = APIRouter(
                     }
                 }
             })
-def get_rooms(current_concierge: User = Depends(oauth2.get_current_concierge),
+def get_rooms(response: Response,
+              current_concierge: User = Depends(oauth2.get_current_concierge),
               number: Optional[str] = None,
               db: Session = Depends(database.get_db)) -> Sequence[RoomOut]:
     """
@@ -47,7 +48,7 @@ def get_rooms(current_concierge: User = Depends(oauth2.get_current_concierge),
     only returns the room with the matching number.
     """
     logger.info(f"GET request to retrieve rooms filtered by number {number}")
-
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return mdevice.Room.get_rooms(db, number)
 
 
@@ -91,7 +92,8 @@ def get_rooms(current_concierge: User = Depends(oauth2.get_current_concierge),
                     }
                 }
             })
-def get_room_id(room_id: int,
+def get_room_id(response: Response,
+                room_id: int,
                 current_concierge: User = Depends(
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)) -> RoomOut:
@@ -99,7 +101,7 @@ def get_room_id(room_id: int,
     Retrieves a room by its ID from the database.
     """
     logger.info(f"GET request to retrieve room by ID: {room_id}")
-
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return mdevice.Room.get_room_id(db, room_id)
 
 
@@ -128,7 +130,8 @@ def get_room_id(room_id: int,
                      }
                  }
              })
-def create_room(room_data: Room,
+def create_room(response: Response,
+                room_data: Room,
                 current_concierge: User = Depends(
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)) -> RoomOut:
@@ -136,6 +139,7 @@ def create_room(room_data: Room,
     Creates a new room in the database.
     """
     logger.info(f"POST request to create room with number: {room_data.number}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mdevice.Room.create_room(db, room_data)
@@ -191,7 +195,8 @@ def create_room(room_data: Room,
                      }
                  }
              })
-def update_room(room_id: int,
+def update_room(response: Response,
+                room_id: int,
                 room_data: Room,
                 current_concierge: User = Depends(
                     oauth2.get_current_concierge),
@@ -201,7 +206,7 @@ def update_room(room_id: int,
     """
     logger.info(
         f"POST request to update room with ID: {room_id}")
-
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mdevice.Room.update_room(db, room_id, room_data)
@@ -247,7 +252,8 @@ def update_room(room_id: int,
                        }
                    }
                })
-def delete_room(room_id: int,
+def delete_room(response: Response,
+                room_id: int,
                 current_concierge: User = Depends(
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)):
@@ -255,7 +261,7 @@ def delete_room(room_id: int,
     Deletes a room by its ID from the database.
     """
     logger.info(f"DELETE request to delete room with ID: {room_id}")
-
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mdevice.Room.delete_room(db, room_id)

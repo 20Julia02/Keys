@@ -76,6 +76,7 @@ def create_or_get_unauthorized_user(user: schemas.UnauthorizedUserNote,
     """
     logger.info(
         f"POST request to retrieve unauthorized user if exists or create new one if not")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     new_user, created = muser.UnauthorizedUser.create_or_get_unauthorized_user(
         db, user.name, user.surname, user.email)
 
@@ -133,7 +134,8 @@ def create_or_get_unauthorized_user(user: schemas.UnauthorizedUserNote,
                     }
                 }
             })
-def get_all_unathorized_users(current_concierge: muser.User = Depends(oauth2.get_current_concierge),
+def get_all_unathorized_users(response: Response,
+                              current_concierge: muser.User = Depends(oauth2.get_current_concierge),
                               db: Session = Depends(database.get_db)) -> Sequence[schemas.UnauthorizedUserOut]:
     """
     Retrieves all unauthorized users from the database.
@@ -141,6 +143,7 @@ def get_all_unathorized_users(current_concierge: muser.User = Depends(oauth2.get
     """
     logger.info(
         f"GET request to retrieve unauthorized users")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return muser.UnauthorizedUser.get_all_unathorized_users(db)
 
 
@@ -197,7 +200,8 @@ def get_all_unathorized_users(current_concierge: muser.User = Depends(oauth2.get
                     }
                 }
             })
-def get_unathorized_user(user_id: int,
+def get_unathorized_user(response: Response,
+                         user_id: int,
                          current_concierge: muser.User = Depends(
                              oauth2.get_current_concierge),
                          db: Session = Depends(database.get_db)) -> schemas.UnauthorizedUserOut:
@@ -207,12 +211,14 @@ def get_unathorized_user(user_id: int,
     """
     logger.info(
         f"GET request to retrieve unauthorized user with ID: {user_id}.")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return muser.UnauthorizedUser.get_unathorized_user(db, user_id)
 
 
 @router.get("/email/{email}",
             response_model=schemas.UnauthorizedUserOut)
-def get_unathorized_user_email(email: str,
+def get_unathorized_user_email(response: Response,
+                               email: str,
                                current_concierge: muser.User = Depends(
                                    oauth2.get_current_concierge),
                                 db: Session = Depends(database.get_db)) -> schemas.UnauthorizedUserOut:
@@ -222,6 +228,7 @@ def get_unathorized_user_email(email: str,
     """
     logger.info(
         f"GET request to retrieve unauthorized user with email: {email}.")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return muser.UnauthorizedUser.get_unathorized_user_email(db, email)
 
 
@@ -278,7 +285,8 @@ def get_unathorized_user_email(email: str,
                      }
                  }
              })
-def update_unauthorized_user(user_id: int,
+def update_unauthorized_user(response: Response,
+                             user_id: int,
                              user_data: schemas.UnauthorizedUser,
                              db: Session = Depends(database.get_db),
                              current_concierge: muser.User = Depends(
@@ -289,6 +297,7 @@ def update_unauthorized_user(user_id: int,
     """
     logger.info(
         f"POST request to update unauthorized user with user_id {user_id}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return muser.UnauthorizedUser.update_unauthorized_user(db, user_id, user_data)
 
 
@@ -332,7 +341,8 @@ def update_unauthorized_user(user_id: int,
                        }
                    }
                })
-def delete_unauthorized_user(user_id: int,
+def delete_unauthorized_user(response: Response,
+                             user_id: int,
                              db: Session = Depends(database.get_db),
                              current_concierge: muser.User = Depends(oauth2.get_current_concierge)):
     """
@@ -341,4 +351,5 @@ def delete_unauthorized_user(user_id: int,
     """
     logger.info(
         f"DELETE request to delete unauthorized user with ID: {user_id}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return muser.UnauthorizedUser.delete_unauthorized_user(db, user_id)

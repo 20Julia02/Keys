@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status, Depends, APIRouter
+from fastapi import HTTPException, status, Depends, APIRouter, Response
 from typing import Optional, Sequence, Literal
 from app import database, oauth2, schemas
 import app.models.device as mdevice
@@ -17,9 +17,10 @@ router = APIRouter(
 
 @router.post("/change-status", response_model=schemas.DevOperationOrDetailResponse)
 def change_status(
+    response: Response,
     request: schemas.ChangeStatus,
     db: Session = Depends(database.get_db),
-    current_concierge: int = Depends(oauth2.get_current_concierge),
+    current_concierge: User = Depends(oauth2.get_current_concierge),
 ) -> schemas.DevOperationOrDetailResponse:
     """
     Changes the status of a device based on the session, user permissions, and an optional force flag.
@@ -40,7 +41,7 @@ def change_status(
     a new unapproved operation is created for further validation.
     """
     logger.info(f"POST request to change device status")
-
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     device = mdevice.Device.get_dev_by_code(db, request.device_code)
     session = moperation.UserSession.get_session_id(db, request.session_id)
 
@@ -77,23 +78,24 @@ def change_status(
     )
     operation = moperation.UnapprovedOperation.create_unapproved_operation(
         db, operation_data)
-
     return operation
 
 
 @router.get("/users/{user_id}", response_model=Sequence[schemas.DevOperationOut])
 def get_devs_owned_by_user(user_id: int,
+                           response: Response,
                            current_concierge: User = Depends(
                                oauth2.get_current_concierge),
                            db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
     logger.info(
         f"GET request to retrieve the device owned by user: {user_id}")
-
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return moperation.DeviceOperation.get_last_operation_user_id(db, user_id)
 
 
 @router.get("/unapproved", response_model=Sequence[schemas.DevOperationOut])
-def get_unapproved_operations(session_id: Optional[int] = None,
+def get_unapproved_operations(response: Response,
+                              session_id: Optional[int] = None,
                               operation_type: Optional[Literal["pobranie",
                                                                "zwrot"]] = None,
                               current_concierge: User = Depends(
@@ -101,34 +103,41 @@ def get_unapproved_operations(session_id: Optional[int] = None,
                               db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
     logger.info(
         f"GET request to retrieve the unapproved operations with operation_type: {operation_type}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return moperation.UnapprovedOperation.get_unapproved_filtered(db, session_id, operation_type)
 
 
 @router.get("/", response_model=Sequence[schemas.DevOperationOut])
-def get_operations_filtered(session_id: Optional[int] = None,
+def get_operations_filtered(response: Response,
+                            session_id: Optional[int] = None,
                             current_concierge: User = Depends(
         oauth2.get_current_concierge),
         db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
     logger.info(
         f"GET request to retrieve the operations with session ID: {session_id}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return moperation.DeviceOperation.get_all_operations(db, session_id)
 
 
 @router.get("/{operation_id}", response_model=schemas.DevOperationOut)
-def get_operation_id(operation_id: int,
+def get_operation_id(response: Response,
+                     operation_id: int,
                      current_concierge: User = Depends(
                          oauth2.get_current_concierge),
                      db: Session = Depends(database.get_db)) -> schemas.DevOperationOut:
     logger.info(
         f"GET request to retrieve the operations by ID: {operation_id}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return moperation.DeviceOperation.get_operation_id(db, operation_id)
 
 
 @router.get("/device/{device_id}", response_model=schemas.DevOperationOut | None)
-def get_last_dev_operation_or_none(device_id: int,
+def get_last_dev_operation_or_none(response: Response,
+                                   device_id: int,
                                    current_concierge: User = Depends(
                                        oauth2.get_current_concierge),
                                    db: Session = Depends(database.get_db)) -> schemas.DevOperationOut | None:
     logger.info(
         f"GET request to retrieve the operations for device with ID: {device_id}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return moperation.DeviceOperation.get_last_dev_operation_or_none(db, device_id)

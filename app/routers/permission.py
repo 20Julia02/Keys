@@ -1,5 +1,5 @@
 import datetime
-from fastapi import Depends, APIRouter, status
+from fastapi import Depends, APIRouter, status, Response
 from app.schemas import PermissionOut, PermissionCreate
 from app import database, oauth2
 from sqlalchemy.orm import Session
@@ -17,7 +17,7 @@ router = APIRouter(
 
 
 @router.get("/", response_model=Sequence[PermissionOut])
-def get_permissions(
+def get_permissions(response: Response,
     user_id: Optional[int] = None,
     room_id: Optional[int] = None,
     date: Optional[datetime.date] = None,
@@ -27,6 +27,7 @@ def get_permissions(
 ) -> Sequence[PermissionOut]:
     logger.info(
         f"GET request to retrieve permissions by user_id: {user_id}, room_id: {room_id}, date: {date}, start_time: {start_time}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return mpermission.Permission.get_permissions(db, user_id, room_id, date, start_time)
 
 
@@ -70,7 +71,8 @@ def get_permissions(
                      }
                  }
              })
-def create_permission(permission_data: PermissionCreate,
+def create_permission(response: Response,
+                      permission_data: PermissionCreate,
                       db: Session = Depends(database.get_db),
                       current_concierge: User = Depends(oauth2.get_current_concierge)) -> PermissionOut:
     """
@@ -78,6 +80,7 @@ def create_permission(permission_data: PermissionCreate,
     """
     logger.info(
         f"POST request to create permission")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mpermission.Permission.create_permission(db, permission_data)
@@ -132,7 +135,8 @@ def create_permission(permission_data: PermissionCreate,
                      }
                  }
              })
-def update_permission(permission_id: int,
+def update_permission(response: Response,
+                      permission_id: int,
                       permission_data: PermissionCreate,
                       db: Session = Depends(database.get_db),
                       current_concierge: User = Depends(oauth2.get_current_concierge)) -> PermissionOut:
@@ -141,6 +145,7 @@ def update_permission(permission_id: int,
     """
     logger.info(
         f"POST request to update permission with ID {permission_id}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mpermission.Permission.update_permission(db, permission_id, permission_data)
@@ -173,13 +178,15 @@ def update_permission(permission_id: int,
                        }
                    }
                })
-def delete_permission(permission_id: int,
+def delete_permission(response: Response,
+                      permission_id: int,
                       db: Session = Depends(database.get_db),
                       current_concierge: User = Depends(oauth2.get_current_concierge)):
     """
     Deletes a permission by its ID from the database.
     """
     logger.info(f"DELETE request to delete permission with ID {permission_id}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mpermission.Permission.delete_permission(db, permission_id)
@@ -187,6 +194,7 @@ def delete_permission(permission_id: int,
 
 @router.get("/active", response_model=Sequence[PermissionOut])
 def get_active_permissions(
+    response: Response,
     user_id: int,
     date: Optional[datetime.date] = datetime.datetime.now().date(),
     time: Optional[datetime.time] = datetime.datetime.now().time(),
@@ -195,4 +203,5 @@ def get_active_permissions(
 ) -> Sequence[PermissionOut]:
     logger.info(
         f"GET request to retrieve active permissions for user ID {user_id} at date: {date} and time: {time}")
+    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
     return mpermission.Permission.get_active_permissions(db, user_id, date, time)
