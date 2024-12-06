@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status, Depends, APIRouter, Response
+from fastapi import HTTPException, status, Depends, APIRouter, Response, Query
 from typing import Optional, Sequence, Literal
 from app import database, oauth2, schemas
 import app.models.device as mdevice
@@ -39,6 +39,8 @@ def change_status(
             Otherwise, the unapproved operation is removed.
     - If the operation is not a repeated scan, the user is entitled, or the `force` flag is set, 
     a new unapproved operation is created for further validation.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"POST request to change device status")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -87,6 +89,13 @@ def get_devs_owned_by_user(user_id: int,
                            current_concierge: User = Depends(
                                oauth2.get_current_concierge),
                            db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
+    """
+    Retrieve a list of devices owned by a specific user.
+
+    This endpoint fetches the devices associated with a given user ID.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
+    """
     logger.info(
         f"GET request to retrieve the device owned by user: {user_id}")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -97,10 +106,21 @@ def get_devs_owned_by_user(user_id: int,
 def get_unapproved_operations(response: Response,
                               session_id: Optional[int] = None,
                               operation_type: Optional[Literal["pobranie",
-                                                               "zwrot"]] = None,
+                                                               "zwrot"]] = Query(
+        None, description="Filter operations by type. Possible values: 'pobranie', 'zwrot'."
+    ),
                               current_concierge: User = Depends(
                                   oauth2.get_current_concierge),
                               db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
+    """
+    Retrieve a list of unapproved operations.
+
+    This endpoint fetches operations that have not yet been approved, optionally filtered
+    by session ID and operation type. Supported operation types include "pobranie" (issue)
+    and "zwrot" (return).
+    
+    The operation ensures that the requesting user is authenticated and updates their access token.
+    """
     logger.info(
         f"GET request to retrieve the unapproved operations with operation_type: {operation_type}")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -113,6 +133,14 @@ def get_operations_filtered(response: Response,
                             current_concierge: User = Depends(
         oauth2.get_current_concierge),
         db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
+    """
+    Retrieve all operations with optional filtering by session ID.
+
+    This endpoint fetches all operations from the database. If a session ID is provided,
+    only operations linked to that session are returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
+    """
     logger.info(
         f"GET request to retrieve the operations with session ID: {session_id}")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -125,6 +153,14 @@ def get_operation_id(response: Response,
                      current_concierge: User = Depends(
                          oauth2.get_current_concierge),
                      db: Session = Depends(database.get_db)) -> schemas.DevOperationOut:
+    """
+    Retrieve details of a specific operation by its unique ID.
+
+    This endpoint fetches detailed information about a single operation, identified
+    by its unique ID.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
+    """
     logger.info(
         f"GET request to retrieve the operations by ID: {operation_id}")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -137,6 +173,14 @@ def get_last_dev_operation_or_none(response: Response,
                                    current_concierge: User = Depends(
                                        oauth2.get_current_concierge),
                                    db: Session = Depends(database.get_db)) -> schemas.DevOperationOut | None:
+    """
+    Retrieve the most recent operation for a specific device.
+
+    This endpoint fetches the latest operation associated with a given device ID.
+    If no operations exist for the device, the response will be `None`.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
+    """
     logger.info(
         f"GET request to retrieve the operations for device with ID: {device_id}")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)

@@ -44,8 +44,12 @@ def get_rooms(response: Response,
               number: Optional[str] = None,
               db: Session = Depends(database.get_db)) -> Sequence[RoomOut]:
     """
-    Retrieves a list of rooms from the database. If `room_number` is specified, 
-    only returns the room with the matching number.
+    Retrieve a list of rooms from the database.
+
+    This endpoint fetches all rooms stored in the database. If a specific `number` 
+    is provided, it filters and returns the room with the matching number.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"GET request to retrieve rooms filtered by number {number}")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -98,7 +102,12 @@ def get_room_id(response: Response,
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)) -> RoomOut:
     """
-    Retrieves a room by its ID from the database.
+    Retrieve a room by its ID.
+
+    This endpoint fetches a room from the database using the provided `room_id`. 
+    If the room does not exist, a 404 error is returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"GET request to retrieve room by ID: {room_id}")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -136,7 +145,13 @@ def create_room(response: Response,
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)) -> RoomOut:
     """
-    Creates a new room in the database.
+    Create a new room in the database.
+
+    This endpoint creates a new room using the provided data. If a room with the 
+    specified number already exists, a 400 error is returned. The requesting user must 
+    have the 'admin' role to perform this action.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"POST request to create room with number: {room_data.number}")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -202,7 +217,13 @@ def update_room(response: Response,
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)) -> RoomOut:
     """
-    Updates an existing room in the database.
+    Update an existing room in the database.
+
+    This endpoint updates the details of an existing room using the provided `room_id`. 
+    If the room does not exist, a 404 error is returned. The requesting user must have 
+    the 'admin' role to perform this action.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"POST request to update room with ID: {room_id}")
@@ -258,7 +279,12 @@ def delete_room(response: Response,
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)):
     """
-    Deletes a room by its ID from the database.
+    Delete a room by its ID from the database.
+
+    This endpoint removes a room using the specified `room_id`. If the room does not exist, 
+    a 404 error is returned. The requesting user must have the 'admin' role to perform this action.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"DELETE request to delete room with ID: {room_id}")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)

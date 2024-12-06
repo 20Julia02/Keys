@@ -34,6 +34,8 @@ def get_user_notes_filtered(
 
     This endpoint fetches notes associated with users and allows filtering by a specific user ID.
     If no notes match the criteria, a 404 response is returned with an appropriate error message.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve user notes filtered by user ID: {user_id}")
@@ -63,6 +65,8 @@ def get_user_notes_id(
 
     This endpoint fetches a note linked to a user, identified by the provided note ID.
     If the note does not exist, a 404 response is returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve user notes filtered by note ID: {note_id}")
@@ -92,6 +96,8 @@ def add_user_note(note_data: schemas.UserNoteCreate,
 
     This endpoint allows adding notes to a user by providing necessary data in the request body.
     Upon successful creation, the newly created note is returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info("POST request to create user note")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -141,6 +147,8 @@ def edit_user_note(note_id: int,
 
     This endpoint allows modifying an existing note. If the new content is `None`, the note is deleted.
     If the note does not exist, a 404 response is returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info("PUT request to edit user note")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -170,6 +178,8 @@ def get_devices_notes_filtered(
 
     This endpoint fetches notes linked to devices and allows filtering by device ID.
     If no notes match the criteria, a 404 response is returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve device notes filtered by user ID: {device_id}.")
@@ -198,9 +208,9 @@ def get_device_notes_id(
     Retrieve a specific device-related note by its unique ID.
 
     This endpoint fetches a note associated with a device, identified by its unique ID.
-    It ensures that the requesting user is authenticated and updates their session token.
-
     If the note does not exist in the database, a 404 error is returned with a descriptive message.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve device notes filtered by note ID: {note_id}.")
@@ -229,11 +239,12 @@ def add_device_note(note_data: schemas.DeviceNote,
     Create a new note associated with a specific device.
 
     This endpoint allows authenticated users to add a note to a device. The note is 
-    linked to the specified device and stored in the database. The note's content 
-    and related metadata must be provided in the request body.
+    linked to the specified device and stored in the database.
 
     Upon successful creation, the newly added note is returned. If an error occurs 
-    during the database operation, a 500 error is returned.
+    during the database operation, an error is returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info("POST request to create device note")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -285,8 +296,7 @@ def edit_device_note(note_id: int,
     The updated content is provided in the request body. If the updated content is `None`, 
     the note is deleted from the database.
 
-    If the note does not exist, a 404 error is returned. A 500 error is returned 
-    if there is an issue during the database operation.
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info("PUT request to edit device note")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -324,6 +334,8 @@ def delete_device_note(note_id: int,
 
     This endpoint removes a specific note from the database. If the note does not exist,
     a 404 response is returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"DELETE request to delete device note with ID: {note_id}")

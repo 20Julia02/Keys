@@ -67,11 +67,17 @@ def approve_session_login(response: Response,
                           concierge_credentials: OAuth2PasswordRequestForm = Depends(),
                           current_concierge: User = Depends(oauth2.get_current_concierge)):
     """
-    Approve a session and its associated operations using login credentials for authentication.
+    Approve a session and its associated operations using login credentials.
 
-    This endpoint finalizes an session, allowing a concierge to approve operations
-    which modifies devices during the session. The concierge must authenticate via login credentials before approval.
-    Once approved, the operations are transferred from the unapproved state to the approved operations data.
+    This endpoint finalizes a session, allowing a concierge to approve operations 
+    that modify devices during the session. Authentication is performed using login 
+    credentials (username and password). Once approved, the operations are moved 
+    from the unapproved state to the approved operations data.
+
+    If the session ID is invalid or there are no unapproved operations, appropriate 
+    error messages are returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"POST request to approve session by login and password")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -141,11 +147,17 @@ def approve_session_card(
     current_concierge: User = Depends(oauth2.get_current_concierge)
 ) -> Sequence[schemas.DevOperationOut]:
     """
-    Approve a session and its associated operations using card code.
+    Approve a session and its associated operations using a card ID.
 
-    This endpoint finalizes an session, allowing a concierge to approve operations
-    which modifies devices during the session. The concierge must authenticate via card before approval.
-    Once approved, the operations are transferred from the unapproved state to the approved operations data.
+    This endpoint finalizes a session, allowing a concierge to approve operations 
+    that modify devices during the session. Authentication is performed using the 
+    concierge's card ID. Once approved, the operations are moved from the unapproved 
+    state to the approved operations data.
+
+    If the session ID is invalid or there are no unapproved operations, appropriate 
+    error messages are returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"POST request to approve session by card")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -166,6 +178,15 @@ def reject_session(response: Response,
                    db: Session = Depends(database.get_db),
                    current_concierge: User = Depends(oauth2.get_current_concierge)):
     """
+    Reject a session and its associated operations.
+
+    This endpoint allows a concierge to reject all operations within a session, 
+    effectively canceling the session. The associated unapproved operations are 
+    deleted, and the session is marked as rejected.
+
+    If the session ID is invalid, an appropriate error message is returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"POST request to reject session by login and password")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -197,11 +218,15 @@ def start_login_session(response: Response,
                             oauth2.get_current_concierge),
                         db: Session = Depends(database.get_db)) -> schemas.SessionOut:
     """
-    Start an session by authenticating a user with credentials (username and password).
+    Start a session for a user using login credentials.
 
-    This endpoint allows a concierge to initiate an session for a user by verifying
-    their login credentials. Once authenticated, the system creates an session for
-    the user and assigns it to the current concierge.
+    This endpoint allows a concierge to create a session for a user by authenticating 
+    them with their username and password. Once authenticated, the session is assigned 
+    to the current concierge and is ready for operations.
+
+    If the authentication fails, an error message is returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"POST request to start new session by user using login and password")
@@ -236,11 +261,15 @@ def start_card_session(response: Response,
                            oauth2.get_current_concierge),
                        db: Session = Depends(database.get_db)) -> schemas.SessionOut:
     """
-    Start an session by authenticating a user with a card ID.
+    Start a session for a user using a card ID.
 
-    This endpoint allows a concierge to initiate an session for a user
-    by verifying their card ID. Once authenticated, the system creates an session
-    for the user and assigns it to the current concierge.
+    This endpoint allows a concierge to create a session for a user by authenticating 
+    them with their card ID. Once authenticated, the session is assigned to the current 
+    concierge and is ready for operations.
+
+    If the authentication fails, an error message is returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"POST request to start new session by user using card")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -267,11 +296,15 @@ def start_unauthorized_session(response: Response,
                                    oauth2.get_current_concierge),
                                db: Session = Depends(database.get_db)) -> schemas.Session:
     """
-    Start a session for an unauthorized user by their ID.
+    Start a session for an unauthorized user.
 
-    This endpoint allows a concierge to initiate a session for an unauthorized user.
-    The unauthorized user is identified by their unique ID, and the session is assigned
-    to the current concierge if the user exists in the system.
+    This endpoint allows a concierge to create a session for an unauthorized user 
+    identified by their unique ID. If the unauthorized user exists in the database, 
+    the session is assigned to the current concierge.
+
+    If the unauthorized user ID is invalid, a 404 error is returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"POST request to start new session by unauthorized user with ID {unauthorized_id}")
@@ -292,6 +325,17 @@ def get_session_id(response: Response,
                    current_concierge: muser.User = Depends(
                        oauth2.get_current_concierge),
                    db: Session = Depends(database.get_db)) -> schemas.Session:
+    """
+    Retrieve details of a specific session by its ID.
+
+    This endpoint fetches detailed information about a session, including its status, 
+    associated operations, and the user responsible for it. The session is identified 
+    by its unique ID.
+
+    If the session ID is invalid, an appropriate error message is returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
+    """
     logger.info(
         f"GET request to retrieve session with ID {session_id}.")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)

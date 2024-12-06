@@ -1,5 +1,5 @@
 import datetime
-from fastapi import Depends, APIRouter, status, Response
+from fastapi import Depends, APIRouter, status, Response, Query
 from app.schemas import PermissionOut, PermissionCreate
 from app import database, oauth2
 from sqlalchemy.orm import Session
@@ -20,11 +20,27 @@ router = APIRouter(
 def get_permissions(response: Response,
     user_id: Optional[int] = None,
     room_id: Optional[int] = None,
-    date: Optional[datetime.date] = None,
-    start_time: Optional[datetime.time] = None,
+    date: Optional[datetime.date] = Query(
+        None, 
+        description="Filter permissions by date. Format: YYYY-MM-DD.", 
+        example="2024-12-31"
+    ),
+    start_time: Optional[datetime.time] = Query(
+        None, 
+        description="Filter permissions by start time. Format: HH:MM:SS.", 
+        example="14:30:00"
+    ),
     current_concierge: User = Depends(oauth2.get_current_concierge),
     db: Session = Depends(database.get_db)
 ) -> Sequence[PermissionOut]:
+    """
+    Retrieve permissions with optional filtering.
+
+    This endpoint fetches permissions based on provided filters such as user ID, room ID, date, 
+    and start time. If no filters are provided, all permissions are returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
+    """
     logger.info(
         f"GET request to retrieve permissions by user_id: {user_id}, room_id: {room_id}, date: {date}, start_time: {start_time}")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -76,7 +92,12 @@ def create_permission(response: Response,
                       db: Session = Depends(database.get_db),
                       current_concierge: User = Depends(oauth2.get_current_concierge)) -> PermissionOut:
     """
-    Creates a new permission in the database.
+    Create a new permission in the database.
+
+    This endpoint allows creating a permission with specific details such as user ID, 
+    room ID, date, and time. The requesting user must have the 'admin' role.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"POST request to create permission")
@@ -141,7 +162,12 @@ def update_permission(response: Response,
                       db: Session = Depends(database.get_db),
                       current_concierge: User = Depends(oauth2.get_current_concierge)) -> PermissionOut:
     """
-    Updates an existing permission in the database.
+    Update an existing permission in the database.
+
+    This endpoint modifies a permission's details, such as time or room ID, based on the provided
+    permission ID. The requesting user must have the 'admin' role.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"POST request to update permission with ID {permission_id}")
@@ -183,7 +209,12 @@ def delete_permission(response: Response,
                       db: Session = Depends(database.get_db),
                       current_concierge: User = Depends(oauth2.get_current_concierge)):
     """
-    Deletes a permission by its ID from the database.
+    Delete a permission from the database by its ID.
+
+    This endpoint removes a permission identified by the given ID. The requesting user must have 
+    the 'admin' role. If the ID does not exist, a 404 error is returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"DELETE request to delete permission with ID {permission_id}")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -201,6 +232,15 @@ def get_active_permissions(
     db: Session = Depends(database.get_db),
     current_concierge: User = Depends(oauth2.get_current_concierge)
 ) -> Sequence[PermissionOut]:
+    """
+    Retrieve active permissions for a specific user.
+
+    This endpoint fetches all active permissions for a user at a given date and time. If no 
+    date or time is specified, the current date and time are used. Active permissions are 
+    those that are valid for the specified time.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
+    """
     logger.info(
         f"GET request to retrieve active permissions for user ID {user_id} at date: {date} and time: {time}")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)

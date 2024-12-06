@@ -69,10 +69,16 @@ def create_or_get_unauthorized_user(user: schemas.UnauthorizedUserNote,
                                         oauth2.get_current_concierge)
                                     ) -> schemas.UnauthorizedUserOut:
     """
-    Checks whether an unauthorised user with a given email exists in the database.
-    If so and his name and surname matches those in the database it returns an existing user, 
-    if the email was not in the database it creates a new user. If the email address was registered 
-    and the user provides a different first and last name than in the database, the error is raised.
+    Create a new unauthorized user or retrieve an existing one.
+
+    This endpoint checks if an unauthorized user with the given email exists in the database:
+    - If the user exists and the name and surname match, the existing user is returned.
+    - If the user does not exist, a new unauthorized user is created and returned.
+    - If the email exists but the provided name and surname do not match, an error is raised.
+
+    Additionally, a note can be attached to the user if provided in the request.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"POST request to retrieve unauthorized user if exists or create new one if not")
@@ -138,8 +144,12 @@ def get_all_unathorized_users(response: Response,
                               current_concierge: muser.User = Depends(oauth2.get_current_concierge),
                               db: Session = Depends(database.get_db)) -> Sequence[schemas.UnauthorizedUserOut]:
     """
-    Retrieves all unauthorized users from the database.
-    Raises an exception if no users are found.
+    Retrieve all unauthorized users from the database.
+
+    This endpoint fetches a list of all unauthorized users stored in the database.
+    If no users are found, an exception is raised.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve unauthorized users")
@@ -206,8 +216,12 @@ def get_unathorized_user(response: Response,
                              oauth2.get_current_concierge),
                          db: Session = Depends(database.get_db)) -> schemas.UnauthorizedUserOut:
     """
-    Retrieves an unauthorized user by their ID.
-    Raises an exception if the user is not found.
+    Retrieve an unauthorized user by their ID.
+
+    This endpoint fetches an unauthorized user based on their unique ID. If the user
+    does not exist, an exception is raised with a descriptive error message.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve unauthorized user with ID: {user_id}.")
@@ -223,8 +237,12 @@ def get_unathorized_user_email(response: Response,
                                    oauth2.get_current_concierge),
                                 db: Session = Depends(database.get_db)) -> schemas.UnauthorizedUserOut:
     """
-    Retrieves an unauthorized user by their email.
-    Raises an exception if the user is not found.
+    Retrieve an unauthorized user by their email.
+
+    This endpoint fetches an unauthorized user based on their email address. If the user
+    does not exist, an exception is raised with a descriptive error message.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve unauthorized user with email: {email}.")
@@ -293,7 +311,12 @@ def update_unauthorized_user(response: Response,
                                  oauth2.get_current_concierge)
                              ) -> schemas.UnauthorizedUserOut:
     """
-    Updates an unauthorized user's information.
+    Update an unauthorized user's information.
+
+    This endpoint updates the details of an unauthorized user identified by their unique ID.
+    If the user does not exist, an exception is raised with a descriptive error message.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"POST request to update unauthorized user with user_id {user_id}")
@@ -346,8 +369,12 @@ def delete_unauthorized_user(response: Response,
                              db: Session = Depends(database.get_db),
                              current_concierge: muser.User = Depends(oauth2.get_current_concierge)):
     """
-    Deletes an unauthorized user by their ID from the database.
-    Raises an exception if the user is not found.
+    Delete an unauthorized user by their ID.
+
+    This endpoint removes an unauthorized user from the database using their unique ID.
+    If the user does not exist, an exception is raised with a descriptive error message.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"DELETE request to delete unauthorized user with ID: {user_id}")

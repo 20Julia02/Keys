@@ -57,8 +57,12 @@ def get_all_users(response: Response,
                   current_concierge: muser.User = Depends(oauth2.get_current_concierge),
                   db: Session = Depends(database.get_db)) -> Sequence[UserOut]:
     """
-    Retrieves all users from the database.
-    If no users are found, raises an exception.
+    Retrieve all users from the database.
+
+    This endpoint fetches a list of all users stored in the database. If no users are found,
+    an exception is raised with a descriptive error message.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve users")
@@ -127,8 +131,12 @@ def get_user(response: Response,
                  oauth2.get_current_concierge),
              db: Session = Depends(database.get_db)) -> UserOut:
     """
-    Retrieves a user by their ID from the database.
-    Raises an exception if the user is not found.
+    Retrieve a user by their ID from the database.
+
+    This endpoint fetches details of a user identified by their unique ID. If the user does not exist, 
+    an exception is raised with a descriptive error message.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve user with ID: {user_id}")
@@ -182,7 +190,13 @@ def create_user(response: Response,
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)) -> UserOut:
     """
-    Creates a new user in the database.
+    Create a new user in the database.
+
+    This endpoint allows the creation of a new user with the provided details. If the input 
+    data is invalid, a 400 error is returned. Upon successful creation, the new user's details 
+    are returned.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info("POST request to create user")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
@@ -238,7 +252,12 @@ def delete_user(response: Response,
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)):
     """
-    Deletes a user by their ID from the database.
+    Delete a user by their ID from the database.
+
+    This endpoint removes a user from the database using their unique ID. If the user does not exist, 
+    an exception is raised with a descriptive error message.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"DELETE request to delete user with ID: {user_id}")
@@ -308,7 +327,12 @@ def update_user(response: Response,
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)) -> UserOut:
     """
-    Updates a user's information in the database.
+    Update a user's information in the database.
+
+    This endpoint updates the details of a user identified by their unique ID. If the user does not exist, 
+    an exception is raised with a descriptive error message.
+
+    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"POST request to edit user with ID: {user_id}")
     oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
