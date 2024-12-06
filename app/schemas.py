@@ -9,21 +9,10 @@ class CardId(BaseModel):
     card_id: str
 
 
-class RefreshToken(BaseModel):
-    refresh_token: str
-
-    model_config = ConfigDict(from_attributes=True)
-
-
 class AccessToken(BaseModel):
     access_token: str
 
     model_config = ConfigDict(from_attributes=True)
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-    refresh_token: str
 
 
 class TokenData(BaseModel):
