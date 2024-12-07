@@ -15,7 +15,33 @@ router = APIRouter(
 )
 
 
-@router.post("/change-status", response_model=schemas.DevOperationOrDetailResponse)
+@router.post("/change-status", response_model=schemas.DevOperationOrDetailResponse, responses={
+    500: {
+        "description": "If an error occurs while deleting the unapproved operation or if an error occurs while committing the transaction.",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "An internal error occurred while deleting operation"
+                }
+            }
+        }
+    },
+    404: {
+        "description": "If no device with the given code exists or if no session with the given ID exists",
+        "content": {
+            "application/json": {
+                "example": {
+                    "device_not_found": {
+                        "detail": "Device not found"
+                    },
+                    "session_not_found": {
+                        "detail": "Session doesn't exist"
+                    }
+                }
+            }
+        }
+    },
+})
 def change_status(
     response: Response,
     request: schemas.ChangeStatus,
@@ -83,7 +109,18 @@ def change_status(
     return operation
 
 
-@router.get("/users/{user_id}", response_model=Sequence[schemas.DevOperationOut])
+@router.get("/users/{user_id}", response_model=Sequence[schemas.DevOperationOut], responses={
+    404: {
+        "description": "If no operations are found for the specified user and type",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "No operations that match given criteria found"
+                }
+            }
+        }
+    },
+})
 def get_devs_owned_by_user(user_id: int,
                            response: Response,
                            current_concierge: User = Depends(
@@ -102,7 +139,18 @@ def get_devs_owned_by_user(user_id: int,
     return moperation.DeviceOperation.get_last_operation_user_id(db, user_id)
 
 
-@router.get("/unapproved", response_model=Sequence[schemas.DevOperationOut])
+@router.get("/unapproved", response_model=Sequence[schemas.DevOperationOut], responses={
+    404: {
+        "description": "If no unapproved operations match the given criteria",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "No unapproved operations found for this session"
+                }
+            }
+        }
+    },
+})
 def get_unapproved_operations(response: Response,
                               session_id: Optional[int] = None,
                               operation_type: Optional[Literal["pobranie",
@@ -127,7 +175,18 @@ def get_unapproved_operations(response: Response,
     return moperation.UnapprovedOperation.get_unapproved_filtered(db, session_id, operation_type)
 
 
-@router.get("/", response_model=Sequence[schemas.DevOperationOut])
+@router.get("/", response_model=Sequence[schemas.DevOperationOut], responses={
+    404: {
+        "description": "If no operations are found",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "There is no operation"
+                }
+            }
+        }
+    },
+})
 def get_operations_filtered(response: Response,
                             session_id: Optional[int] = None,
                             current_concierge: User = Depends(
@@ -147,7 +206,18 @@ def get_operations_filtered(response: Response,
     return moperation.DeviceOperation.get_all_operations(db, session_id)
 
 
-@router.get("/{operation_id}", response_model=schemas.DevOperationOut)
+@router.get("/{operation_id}", response_model=schemas.DevOperationOut, responses={
+    404: {
+        "description": "If no operation with the given ID exists",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Operation doesn't exist"
+                }
+            }
+        }
+    },
+})
 def get_operation_id(response: Response,
                      operation_id: int,
                      current_concierge: User = Depends(

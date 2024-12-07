@@ -15,25 +15,8 @@ router = APIRouter(
 @router.get("/",
             response_model=Sequence[UserOut],
             responses={
-                200: {
-                    "description": "List of all users.",
-                    "content": {
-                        "application/json": {
-                            "example": [
-                                {
-                                    "id": 1,
-                                    "name": "John",
-                                    "surname": "Doe",
-                                    "role": "employee",
-                                    "faculty": "Geodesy and Cartography",
-                                    "photo_url": "http://example.com/photo.jpg"
-                                }
-                            ]
-                        }
-                    },
-                },
                 404: {
-                    "description": "No users found in the database.",
+                    "description": "If no users are found in the database.",
                     "content": {
                         "application/json": {
                             "example": {
@@ -42,16 +25,6 @@ router = APIRouter(
                         }
                     }
                 },
-                500: {
-                    "description": "Internal server error occurred.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "detail": "Internal server error"
-                            }
-                        }
-                    }
-                }
             })
 def get_all_users(response: Response,
                   current_concierge: muser.User = Depends(oauth2.get_current_concierge),
@@ -73,53 +46,12 @@ def get_all_users(response: Response,
 @router.get("/{user_id}",
             response_model=UserOut,
             responses={
-                200: {
-                    "description": "Data of the user with the specified ID.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "id": 1,
-                                "name": "John",
-                                "surname": "Doe",
-                                "role": "employee",
-                                "faculty": "Geodesy and Cartography",
-                                "photo_url": "http://example.com/photo.jpg"
-                            }
-                        }
-                    },
-                },
                 404: {
-                    "description": "User with the specified ID not found.",
+                    "description": "If no user with the given ID exists in the database.",
                     "content": {
                         "application/json": {
                             "example": {
-                                "detail": "User with id: {user_id} doesn't exist"
-                            }
-                        }
-                    }
-                },
-                422: {
-                    "description": "Validation error: User ID must be an integer.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "detail": [
-                                    {
-                                        "loc": ["path", "user_id"],
-                                        "msg": "User ID must be an integer",
-                                        "type": "type_error.integer"
-                                    }
-                                ]
-                            }
-                        }
-                    }
-                },
-                500: {
-                    "description": "Internal server error occurred.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "detail": "Internal server error"
+                                "detail": "User doesn't exist"
                             }
                         }
                     }
@@ -148,37 +80,12 @@ def get_user(response: Response,
              response_model=UserOut,
              status_code=status.HTTP_201_CREATED,
              responses={
-                 201: {
-                     "description": "User created successfully.",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                 "id": 1,
-                                 "name": "John",
-                                 "surname": "Doe",
-                                 "role": "employee",
-                                 "faculty": "Geodesy and Cartography",
-                                 "photo_url": "http://example.com/photo.jpg"
-                             }
-                         }
-                     }
-                 },
-                 400: {
-                     "description": "Bad request. Invalid input data.",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                 "detail": "Invalid input data"
-                             }
-                         }
-                     }
-                 },
                  500: {
-                     "description": "Internal server error occurred.",
+                     "description": "If an error occurs during the commit process.",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": "Internal server error"
+                                "detail": "An internal error occurred while creating user"
                              }
                          }
                      }
@@ -206,41 +113,22 @@ def create_user(response: Response,
 @router.delete("/{user_id}",
                status_code=status.HTTP_204_NO_CONTENT,
                responses={
-                   204: {
-                       "description": "User deleted successfully."
-                   },
                    404: {
-                       "description": "User with the specified ID not found.",
+                       "description": "If no user with the given ID exists in the database.",
                        "content": {
                            "application/json": {
                                "example": {
-                                   "detail": "User with id: {user_id} doesn't exist"
-                               }
-                           }
-                       }
-                   },
-                   422: {
-                       "description": "Validation error: User ID must be an integer.",
-                       "content": {
-                           "application/json": {
-                               "example": {
-                                   "detail": [
-                                       {
-                                           "loc": ["path", "user_id"],
-                                           "msg": "User ID must be an integer",
-                                           "type": "type_error.integer"
-                                       }
-                                   ]
+                                   "detail": "User doesn't exist"
                                }
                            }
                        }
                    },
                    500: {
-                       "description": "Internal server error occurred.",
+                       "description": "If an error occurs during the commit process.",
                        "content": {
                            "application/json": {
                                "example": {
-                                   "detail": "Internal server error"
+                                   "detail": "An internal error occurred while deleting user"
                                }
                            }
                        }
@@ -268,53 +156,22 @@ def delete_user(response: Response,
 @router.post("/{user_id}",
              response_model=UserOut,
              responses={
-                 200: {
-                     "description": "User updated successfully.",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                 "id": 1,
-                                 "name": "John",
-                                 "surname": "Doe",
-                                 "role": "employee",
-                                 "faculty": "Geodesy and Cartography",
-                                 "photo_url": "http://example.com/photo.jpg"
-                             }
-                         }
-                     }
-                 },
                  404: {
-                     "description": "User with the specified ID not found.",
+                     "description": "If no user with the given ID exists in the database.",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": "User with id: {user_id} doesn't exist"
-                             }
-                         }
-                     }
-                 },
-                 422: {
-                     "description": "Validation error: User ID must be an integer.",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                 "detail": [
-                                    {
-                                        "loc": ["path", "user_id"],
-                                        "msg": "User ID must be an integer",
-                                        "type": "type_error.integer"
-                                    }
-                                 ]
+                                 "detail": "User not found"
                              }
                          }
                      }
                  },
                  500: {
-                     "description": "Internal server error occurred.",
+                     "description": "If an error occurs during the commit process.",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": "Internal server error"
+                                 "detail": "An internal error occurred while updating user"
                              }
                          }
                      }

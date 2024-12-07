@@ -296,6 +296,10 @@ class Permission(Base):
 
         Returns:
             List[Permission]: A list of active permissions for the user at the specified date and time.
+        
+        Raises:
+            HTTPException: 
+                - 404 Not Found: If no permissions are found that match the given criteria.
         """
         logger.info(f"Checking active permissions for user with ID {user_id}")
         logger.debug(
@@ -324,7 +328,13 @@ class Permission(Base):
         )
 
         permissions = query.all()
-
+        if not permissions:
+            logger.warning("No permissions found that match given criteria")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No permissions found that match given criteria"
+            )
+        
         logger.debug(
             f"Found {len(permissions)} permissions for user with ID {user_id} at the specified time")
         return permissions

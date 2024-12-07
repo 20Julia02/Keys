@@ -19,21 +19,11 @@ router = APIRouter(
             response_model=Sequence[RoomOut],
             responses={
                 404: {
-                    "description": "No rooms found that match the specified number.",
+                    "description": "If no rooms are found in the database.",
                     "content": {
                         "application/json": {
                             "example": {
                                 "detail": "No rooms found"
-                            }
-                        }
-                    }
-                },
-                500: {
-                    "description": "An internal server error occurred.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "detail": "Internal server error"
                             }
                         }
                     }
@@ -60,41 +50,15 @@ def get_rooms(response: Response,
             response_model=RoomOut,
             responses={
                 404: {
-                    "description": "Room with the specified ID not found.",
+                    "description": "If no room with the given ID exists in the database",
                     "content": {
                         "application/json": {
                             "example": {
-                                "detail": "Room with id: {room_id} doesn't exist"
+                                "detail": "Room not found"
                             }
                         }
                     }
                 },
-                422: {
-                    "description": "Validation error: Room ID must be an integer.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "detail": [
-                                    {
-                                        "loc": ["path", "room_id"],
-                                        "msg": "Room ID must be an integer",
-                                        "type": "type_error.integer"
-                                    }
-                                ]
-                            }
-                        }
-                    }
-                },
-                500: {
-                    "description": "An internal server error occurred.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "detail": "Internal server error"
-                            }
-                        }
-                    }
-                }
             })
 def get_room_id(response: Response,
                 room_id: int,
@@ -118,22 +82,22 @@ def get_room_id(response: Response,
              response_model=RoomOut,
              status_code=status.HTTP_201_CREATED,
              responses={
-                 400: {
-                     "description": "Room with the specified number already exists.",
+                 403: {
+                     "description": "If the user does not have the required role or higher.",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": "Room with number '101' already exists."
+                                 "detail": "You cannot perform this operation without the appropriate role"
                              }
                          }
                      }
                  },
                  500: {
-                     "description": "An internal server error occurred.",
+                     "description": "If an internal error occurs during the commit",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": "Internal server error"
+                                 "detail": "An internal error occurred while creating room."
                              }
                          }
                      }
@@ -163,48 +127,42 @@ def create_room(response: Response,
 @router.post("/{room_id}",
              response_model=RoomOut,
              responses={
-                 400: {
-                     "description": "Room with the specified number already exists.",
+                 403: {
+                     "description": "If the user does not have the required role or higher.",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": "Room with number '101' already exists."
+                                 "detail": "You cannot perform this operation without the appropriate role"
                              }
                          }
                      }
                  },
                  404: {
-                     "description": "Room with the specified ID not found.",
+                     "description": "If the room is not found.",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": "Room with id: {room_id} doesn't exist"
+                                 "detail": "Room not found"
                              }
                          }
                      }
                  },
-                 422: {
-                     "description": "Validation error: Room ID must be an integer.",
+                 400: {
+                     "description": "If a room with the new number already exists.",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": [
-                                    {
-                                        "loc": ["path", "room_id"],
-                                        "msg": "Room ID must be an integer",
-                                        "type": "type_error.integer"
-                                    }
-                                 ]
+                                 "detail": "Room with this number already exists."
                              }
                          }
                      }
                  },
                  500: {
-                     "description": "An internal server error occurred.",
+                     "description": "If an internal error occurs during the commit.",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": "Internal server error"
+                                 "detail": "An internal error occurred while updating room"
                              }
                          }
                      }
@@ -236,38 +194,32 @@ def update_room(response: Response,
 @router.delete("/{room_id}",
                status_code=status.HTTP_204_NO_CONTENT,
                responses={
+                   403: {
+                     "description": "If the user does not have the required role or higher.",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                 "detail": "You cannot perform this operation without the appropriate role"
+                             }
+                         }
+                     }
+                 },
                    404: {
-                       "description": "Room with the specified ID not found.",
+                       "description": "If the room with the given ID does not exist.",
                        "content": {
                            "application/json": {
                                "example": {
-                                   "detail": "Room with id: {room_id} doesn't exist"
-                               }
-                           }
-                       }
-                   },
-                   422: {
-                       "description": "Validation error: Room ID must be an integer.",
-                       "content": {
-                           "application/json": {
-                               "example": {
-                                   "detail": [
-                                       {
-                                           "loc": ["path", "room_id"],
-                                           "msg": "Room ID must be an integer",
-                                           "type": "type_error.integer"
-                                       }
-                                   ]
+                                   "detail": "Room doesn't exist"
                                }
                            }
                        }
                    },
                    500: {
-                       "description": "An internal server error occurred.",
+                       "description": "If an internal error occurs during the commit.",
                        "content": {
                            "application/json": {
                                "example": {
-                                   "detail": "Internal server error"
+                                   "detail": "An internal error occurred while deleting room"
                                }
                            }
                        }

@@ -20,22 +20,25 @@ router = APIRouter(
              response_model=Sequence[schemas.DevOperationOut],
              responses={
                  403: {
-                     "description": "Authentication failed due to incorrect login credentials.",
+                     "description": "If the credentials are invalid, the user does not have the required role or higher or the user does not have the required role or if the session was already ended",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "invalid_card_code": {
+                                 "invalid_credentials": {
                                      "detail": "Invalid credential"
                                  },
                                  "not_entitled": {
                                      "detail": "You cannot perform this operation without the concierge role"
+                                 },
+                                 "session_ended": {
+                                     "detail": "Session has been allready ended."
                                  }
                              }
                          }
                      }
                  },
                  404: {
-                     "description": "Session not found or no unapproved operations for the session.",
+                     "description": "If the session with the given ID does not exist or if no unapproved operations match the given criteria.",
                      "content": {
                          "application/json": {
                              "example": {
@@ -50,12 +53,18 @@ router = APIRouter(
                      }
                  },
                  500: {
-                     "description": "Internal server error occurred during the operation transfer process..",
+                     "description": "If an error occurs during the commit",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": "Error during operation transfer"
+                             "operation_transfer": {
+                                     "detail": "An internal error occurred during operation transfer"
+                                 },
+                                 "creating_operation": {
+                                     "detail": "An internal error occurred while creating operation"
+                                 }
                              }
+                             
                          }
                      }
                  },
@@ -94,7 +103,7 @@ def approve_session_login(response: Response,
              response_model=Sequence[schemas.DevOperationOut],
              responses={
                  403: {
-                     "description": "Authentication failed due to incorrect login credentials.",
+                     "description": "If the card code are invalid, the user does not have the required role or higher or the user does not have the required role or if the session was already ended",
                      "content": {
                          "application/json": {
                              "example": {
@@ -104,15 +113,15 @@ def approve_session_login(response: Response,
                                  "not_entitled": {
                                      "detail": "You cannot perform this operation without the concierge role"
                                  },
-                                 "session_already_approved": {
-                                     "detail": "Session has been allready ended with status potwierdzona"
+                                 "session_ended": {
+                                     "detail": "Session has been allready ended."
                                  }
                              }
                          }
                      }
                  },
                  404: {
-                     "description": "Session not found or no unapproved operations for the session.",
+                     "description": "If the session with the given ID does not exist or if no unapproved operations match the given criteria.",
                      "content": {
                          "application/json": {
                              "example": {
@@ -127,12 +136,18 @@ def approve_session_login(response: Response,
                      }
                  },
                  500: {
-                     "description": "Internal server error occurred during the operation transfer process..",
+                     "description": "If an error occurs during the commit",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": "Error during operation transfer"
+                             "operation_transfer": {
+                                     "detail": "An internal error occurred during operation transfer"
+                                 },
+                                 "creating_operation": {
+                                     "detail": "An internal error occurred while creating operation"
+                                 }
                              }
+                             
                          }
                      }
                  },
@@ -172,7 +187,44 @@ def approve_session_card(
     return operations
 
 
-@router.post("/reject/session/{session_id}")
+@router.post("/reject/session/{session_id}", responses={
+                 403: {
+                     "description": "If the session was already ended",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                     "detail": "Session has been allready ended."
+                             }
+                         }
+                     }
+                 },
+                 404: {
+                     "description": "If the session with the given ID does not exist or if no unapproved operations match the given criteria.",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                 "session_not_found": {
+                                     "detail": "Session not found"
+                                 },
+                                 "no_operations_found": {
+                                     "detail": "No unapproved operations found for this session"
+                                 }
+                             }
+                         }
+                     }
+                 },
+                 500: {
+                     "description": "If an error occurs during the commit.",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                     "detail": "An internal error occurred while deleting unapproved operations"
+                             }
+                             
+                         }
+                     }
+                 },
+})
 def reject_session(response: Response,
                    session_id: int = Path(description="Unique identifier of the session"),
                    db: Session = Depends(database.get_db),
@@ -196,21 +248,31 @@ def reject_session(response: Response,
 
 
 @router.post("/start-session/login", response_model=schemas.SessionOut, responses={
-    403: {
-        "description": "Authentication failed due to incorrect login credentials.",
-        "content": {
-            "application/json": {
-                "example": {
-                    "invalid_card_code": {
-                        "detail": "Invalid credentials"
-                    },
-                    "not_entitled": {
-                        "detail": "You cannot perform this operation without the employee role"
-                    }
-                }
+     403: {
+            "description": "If the credentials are invalid or the user does not have the required role",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                 "invalid_card_code": {
+                                     "detail": "Invalid credentials"
+                                 },
+                                 "not_entitled": {
+                                     "detail": "You cannot perform this operation without the concierge role"
+                                 }
+                             }
+                         }
             }
-        }
-    },
+            },
+     500: {
+            "description": "If an error occurs while committing the transaction",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                    "detail": "An internal error occurred while creating session"
+                             }
+                         }
+            }
+            },
 })
 def start_login_session(response: Response,
                         user_credentials: OAuth2PasswordRequestForm = Depends(),
@@ -239,21 +301,31 @@ def start_login_session(response: Response,
 
 
 @router.post("/start-session/card", response_model=schemas.SessionOut, responses={
-    403: {
-        "description": "Authentication failed due to incorrect login credentials.",
-        "content": {
-            "application/json": {
-                "example": {
-                    "invalid_card_code": {
-                        "detail": "Invalid credentials"
-                    },
-                    "not_entitled": {
-                        "detail": "You cannot perform this operation without the employee role"
-                    }
-                }
+     403: {
+            "description": "If the card code are invalid or the user does not have the required role",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                 "invalid_card_code": {
+                                     "detail": "Invalid credentials"
+                                 },
+                                 "not_entitled": {
+                                     "detail": "You cannot perform this operation without the concierge role"
+                                 }
+                             }
+                         }
             }
-        }
-    },
+            },
+     500: {
+            "description": "If an error occurs while committing the transaction",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                    "detail": "An internal error occurred while creating session"
+                             }
+                         }
+            }
+            },
 })
 def start_card_session(response: Response,
                        card_id: schemas.CardId,
@@ -279,16 +351,26 @@ def start_card_session(response: Response,
 
 
 @router.post("/start-session/unauthorized/{unauthorized_id}", response_model=schemas.Session, responses={
-    404: {
-        "description": "Unauthorized user not found.",
-        "content": {
-            "application/json": {
-                "example": {
-                    "detail": "Unauthorized user with id 123 not found"
-                }
+     404: {
+            "description": "If no unauthorized user with the given ID exists",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                     "detail": "Unauthorized user not found"
+                                 },
+                         }
             }
-        }
-    },
+            },
+     500: {
+            "description": "If an error occurs while committing the transaction",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                    "detail": "An internal error occurred while creating session"
+                             }
+                         }
+            }
+            },
 })
 def start_unauthorized_session(response: Response,
                                unauthorized_id: int,
@@ -319,7 +401,18 @@ def start_unauthorized_session(response: Response,
     return moperation.UserSession.create_session(db, unauthorized_id, current_concierge.id)
 
 
-@router.get("/session/{session_id}", response_model=schemas.Session)
+@router.get("/session/{session_id}", response_model=schemas.Session, responses={
+    404: {
+        "description": "If no session with the given ID exists.",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Session doesn't exist"
+                }
+            }
+        }
+    },
+})
 def get_session_id(response: Response,
                    session_id: int,
                    current_concierge: muser.User = Depends(

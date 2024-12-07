@@ -16,7 +16,18 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=Sequence[PermissionOut])
+@router.get("/", response_model=Sequence[PermissionOut], responses={
+    404: {
+        "description": "If no permissions are found that match the given criteria",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "No permissions found that match given criteria"
+                }
+            }
+        }
+    },
+})
 def get_permissions(response: Response,
     user_id: Optional[int] = None,
     room_id: Optional[int] = None,
@@ -51,37 +62,22 @@ def get_permissions(response: Response,
              response_model=PermissionOut,
              status_code=status.HTTP_201_CREATED,
              responses={
-                 201: {
-                     "description": "Permission created successfully.",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                 "id": 1,
-                                 "user_id": 1,
-                                 "room_id": 1,
-                                 "date": "2024-11-12",
-                                 "start_time": "14:30",
-                                 "end_time": "15:30"
-                             }
-                         }
-                     }
-                 },
-                 400: {
-                     "description": "A permission already exists for the specified room and time.",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                 "detail": "A permission already exists for the specified room and time."
-                             }
-                         }
-                     }
-                 },
                  500: {
                      "description": "An internal server error occurred.",
                      "content": {
                          "application/json": {
                              "example": {
                                  "detail": "Internal server error"
+                             }
+                         }
+                     }
+                 },
+                 403: {
+                     "description": "If the user does not have the required role or higher",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                 "detail": "You cannot perform this operation without the appropriate role"
                              }
                          }
                      }
@@ -110,47 +106,32 @@ def create_permission(response: Response,
 @router.post("/update/{permission_id}",
              response_model=PermissionOut,
              responses={
-                 200: {
-                     "description": "Permission updated successfully.",
+                 403: {
+                     "description": "If the user does not have the required role or higher",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "id": 1,
-                                 "user_id": 1,
-                                 "room_id": 1,
-                                 "date": "2024-11-12",
-                                 "start_time": "14:30",
-                                 "end_time": "15:30"
-                             }
-                         }
-                     }
-                 },
-                 400: {
-                     "description": "A permission already exists for the specified room and time.",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                 "detail": "A permission already exists for the specified room and time."
+                                 "detail": "You cannot perform this operation without the appropriate role"
                              }
                          }
                      }
                  },
                  404: {
-                     "description": "Permission with the specified ID not found.",
+                     "description": "If permission with the specified ID not found.",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": "Permission with id: {permission_id} doesn't exist"
+                                 "detail": "Permission doesn't exist"
                              }
                          }
                      }
                  },
                  500: {
-                     "description": "An internal server error occurred.",
+                     "description": "If an error occurs during the commit process",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": "Internal server error"
+                                 "detail": "An internal error occurred while updating permission"
                              }
                          }
                      }
@@ -180,25 +161,32 @@ def update_permission(response: Response,
 @router.delete("/{permission_id}",
                status_code=status.HTTP_204_NO_CONTENT,
                responses={
-                   204: {
-                       "description": "Permission deleted successfully."
-                   },
                    404: {
-                       "description": "Permission with the specified ID not found.",
+                       "description": "If the permission with the given ID does not exist",
                        "content": {
                            "application/json": {
                                "example": {
-                                   "detail": "Permission with id: {permission_id} doesn't exist"
+                                   "detail": "Permission doesn't exist"
+                               }
+                           }
+                       }
+                   },
+                   403: {
+                       "description": "If the user does not have the required role or higher",
+                       "content": {
+                           "application/json": {
+                               "example": {
+                                   "detail": "You cannot perform this operation without the appropriate role"
                                }
                            }
                        }
                    },
                    500: {
-                       "description": "An internal server error occurred.",
+                       "description": "If an error occurs during the commit process",
                        "content": {
                            "application/json": {
                                "example": {
-                                   "detail": "Internal server error"
+                                   "detail": "An internal error occurred while deleting permission"
                                }
                            }
                        }
@@ -223,7 +211,18 @@ def delete_permission(response: Response,
     return mpermission.Permission.delete_permission(db, permission_id)
 
 
-@router.get("/active", response_model=Sequence[PermissionOut])
+@router.get("/active", response_model=Sequence[PermissionOut], responses={
+    404: {
+        "description": "If no permissions are found that match the given criteria",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "No permissions found that match given criteria"
+                }
+            }
+        }
+    },
+})
 def get_active_permissions(
     response: Response,
     user_id: int,

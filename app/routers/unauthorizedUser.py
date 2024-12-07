@@ -41,8 +41,8 @@ router = APIRouter(
                          }
                      }
                  },
-                 403: {
-                     "description": "A user with this email already exists but has a different first or last name.",
+                 409: {
+                     "description": " If a user with the same email exists but the name or surname does not match",
                      "content": {
                          "application/json": {
                              "example": {
@@ -52,11 +52,11 @@ router = APIRouter(
                      }
                  },
                  500: {
-                     "description": "An internal server error occurred.",
+                     "description": "If an error occurs during the commit process.",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": "Internal server error"
+                                 "detail": "An internal error occurred while creating unauthorized user"
                              }
                          }
                      }
@@ -104,23 +104,8 @@ def create_or_get_unauthorized_user(user: schemas.UnauthorizedUserNote,
 @router.get("/",
             response_model=Sequence[schemas.UnauthorizedUserOut],
             responses={
-                200: {
-                    "description": "List of all unauthorized users.",
-                    "content": {
-                        "application/json": {
-                            "example": [
-                                {
-                                    "id": 1,
-                                    "name": "John",
-                                    "surname": "Doe",
-                                    "email": "john.doe@example.com",
-                                }
-                            ]
-                        }
-                    }
-                },
                 404: {
-                    "description": "No unauthorized users found in the database.",
+                    "description": "If no unauthorized users are found in the database.",
                     "content": {
                         "application/json": {
                             "example": {
@@ -129,16 +114,6 @@ def create_or_get_unauthorized_user(user: schemas.UnauthorizedUserNote,
                         }
                     }
                 },
-                500: {
-                    "description": "An internal server error occurred.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "detail": "Internal server error"
-                            }
-                        }
-                    }
-                }
             })
 def get_all_unathorized_users(response: Response,
                               current_concierge: muser.User = Depends(oauth2.get_current_concierge),
@@ -160,55 +135,16 @@ def get_all_unathorized_users(response: Response,
 @router.get("/{user_id}",
             response_model=schemas.UnauthorizedUserOut,
             responses={
-                200: {
-                    "description": "Data of the unauthorized user with the specified ID.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "id": 1,
-                                "name": "John",
-                                "surname": "Doe",
-                                "email": "john.doe@example.com",
-                            }
-                        }
-                    }
-                },
                 404: {
-                    "description": "Unauthorized user with the specified ID not found.",
+                    "description": "If no unauthorized user with the given ID exists in the database.",
                     "content": {
                         "application/json": {
                             "example": {
-                                "detail": "Unauthorized user with id: {user_id} doesn't exist"
+                                "detail": "Unauthorized user doesn't exist"
                             }
                         }
                     }
                 },
-                422: {
-                    "description": "Validation error: User ID must be an integer.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "detail": [
-                                    {
-                                        "loc": ["path", "user_id"],
-                                        "msg": "User ID must be an integer",
-                                        "type": "type_error.integer"
-                                    }
-                                ]
-                            }
-                        }
-                    }
-                },
-                500: {
-                    "description": "An internal server error occurred.",
-                    "content": {
-                        "application/json": {
-                            "example": {
-                                "detail": "Internal server error"
-                            }
-                        }
-                    }
-                }
             })
 def get_unathorized_user(response: Response,
                          user_id: int,
@@ -230,7 +166,19 @@ def get_unathorized_user(response: Response,
 
 
 @router.get("/email/{email}",
-            response_model=schemas.UnauthorizedUserOut)
+            response_model=schemas.UnauthorizedUserOut,
+            responses={
+                404: {
+                    "description": "If no unauthorized user with the given email exists in the database.",
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "detail": "Unauthorized user doesn't exist"
+                            }
+                        }
+                    }
+                },
+            })
 def get_unathorized_user_email(response: Response,
                                email: str,
                                current_concierge: muser.User = Depends(
@@ -253,51 +201,22 @@ def get_unathorized_user_email(response: Response,
 @router.post("/{user_id}",
              response_model=schemas.UnauthorizedUserOut,
              responses={
-                 200: {
-                     "description": "Unauthorized user updated successfully.",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                 "id": 1,
-                                 "name": "John",
-                                 "surname": "Doe",
-                                 "email": "john.doe@example.com",
-                             }
-                         }
-                     }
-                 },
                  404: {
-                     "description": "Unauthorized user with the specified ID not found.",
+                     "description": "If no unauthorized user with the given ID exists in the database.",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": "Unauthorized user with id: {user_id} doesn't exist"
-                             }
-                         }
-                     }
-                 },
-                 422: {
-                     "description": "Validation error: User ID must be an integer.",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                 "detail": [
-                                    {
-                                        "loc": ["path", "user_id"],
-                                        "msg": "User ID must be an integer",
-                                        "type": "type_error.integer"
-                                    }
-                                 ]
+                                 "detail": "Unauthorized user not found"
                              }
                          }
                      }
                  },
                  500: {
-                     "description": "Internal server error occurred.",
+                     "description": "If an error occurs during the commit process.",
                      "content": {
                          "application/json": {
                              "example": {
-                                 "detail": "Internal server error"
+                                 "detail": "An internal error occurred while updating unauthorized user"
                              }
                          }
                      }
@@ -326,44 +245,28 @@ def update_unauthorized_user(response: Response,
 
 @router.delete("/{user_id}",
                status_code=status.HTTP_204_NO_CONTENT,
-               responses={
-                   404: {
-                       "description": "Unauthorized user with the specified ID not found.",
-                       "content": {
-                           "application/json": {
-                               "example": {
-                                   "detail": "Unauthorized user with id: {user_id} doesn't exist"
-                               }
-                           }
-                       }
-                   },
-                   422: {
-                       "description": "Validation error: User ID must be an integer.",
-                       "content": {
-                           "application/json": {
-                               "example": {
-                                   "detail": [
-                                       {
-                                           "loc": ["path", "user_id"],
-                                           "msg": "User ID must be an integer",
-                                           "type": "type_error.integer"
-                                       }
-                                   ]
-                               }
-                           }
-                       }
-                   },
-                   500: {
-                       "description": "An internal server error occurred.",
-                       "content": {
-                           "application/json": {
-                               "example": {
-                                   "detail": "Internal server error"
-                               }
-                           }
-                       }
-                   }
-               })
+             responses={
+                 404: {
+                     "description": "If no unauthorized user with the given ID exists in the database.",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                 "detail": "Unauthorized user not found"
+                             }
+                         }
+                     }
+                 },
+                 500: {
+                     "description": "If an error occurs during the commit process.",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                 "detail": "An internal error occurred while deleting unauthorized user"
+                             }
+                         }
+                     }
+                 }
+             })
 def delete_unauthorized_user(response: Response,
                              user_id: int,
                              db: Session = Depends(database.get_db),
