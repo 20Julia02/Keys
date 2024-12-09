@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
@@ -8,13 +8,14 @@ from app.services import securityService
 from app.config import logger
 from fastapi import Response
 from fastapi.responses import JSONResponse
+from fastapi import Request
 
 router = APIRouter(
     tags=['Authentication']
 )
 
 
-@router.post("/login", responses={
+@router.post("/login", response_model=schemas.Token, responses={
     403: {
         "description": "Credentials are invalid or the user does not have the required role.",
         "content": {
@@ -35,13 +36,9 @@ router = APIRouter(
 def login(response: Response,
           concierge_credentials: OAuth2PasswordRequestForm = Depends(),
           db: Session = Depends(database.get_db),
-          ):
+          ) -> schemas.Token:
     """
-    Authenticate a concierge using their login credentials.
-
-    This endpoint verifies the provided username and password against the database. 
-    If the credentials are valid and the user has the "concierge" role, 
-    an access token is generated and set as a cookie in the response.
+    Authenticate a concierge using their login credentials (username and password).
     """
     logger.info(f"POST request to login user by login and password")
 
@@ -49,12 +46,12 @@ def login(response: Response,
     concierge = auth_service.authenticate_user_login(concierge_credentials.username,
                                                      concierge_credentials.password, "concierge")
 
-    oauth2.set_access_token_cookie(response, concierge.id, concierge.role.value, db)
-    return
+    token_service = securityService.TokenService(db)
+    tokens = token_service.generate_tokens(concierge.id, concierge.role.value)
+    return tokens
 
 
-
-@router.post("/login/card", response_model=schemas.AccessToken, responses={
+@router.post("/login/card", response_model=schemas.Token, responses={
     403: {
         "description": "Credentials are invalid or the user does not have the required role.",
         "content": {
@@ -74,22 +71,20 @@ def login(response: Response,
 )
 def card_login(response: Response,
                card_code: schemas.CardId,
-               db: Session = Depends(database.get_db)) -> schemas.AccessToken:
+               db: Session = Depends(database.get_db)) -> schemas.Token:
     """
-    AAuthenticate a concierge using their card ID.
-
-    This endpoint allows a concierge to log in by providing their card ID. 
-    If the card ID is valid and the user has the "concierge" role, 
-    an access token is generated, set as a cookie, and returned in the response.
+    Authenticate a concierge using their card ID.
+    This endpoint allows a concierge to authenticate by providing their card ID.
+    Upon successful authentication, the system generates and returns both an access token
+    and a refresh token for future API requests and token refreshing.
     """
     logger.info(f"POST request to login user by card")
     auth_service = securityService.AuthorizationService(db)
     concierge = auth_service.authenticate_user_card(card_code, "concierge")
 
-    access_token = oauth2.set_access_token_cookie(response, concierge.id, concierge.role.value, db)
-    
-    return schemas.AccessToken(access_token=access_token)
-
+    token_service = securityService.TokenService(db)
+    tokens = token_service.generate_tokens(concierge.id, concierge.role.value)
+    return tokens
 
 
 @router.get("/concierge", response_model=schemas.UserOut, responses={
@@ -119,17 +114,54 @@ def card_login(response: Response,
         },
     },
 })
-def get_current_user(current_concierge: muser.User = Depends(oauth2.get_current_concierge),
+def get_current_user(token: str = Depends(oauth2.get_current_concierge_token),
                      db: Session = Depends(database.get_db)) -> schemas.UserOut:
     """
-    Retrieve the details of the currently authenticated user.
-
-    This endpoint uses the provided access token to identify the currently logged-in user.
-    It fetches and returns the user's information from the database.
+    Get the current logged-in user based on the provided token.
+    This endpoint returns the details of the user who is currently authenticated.
+    It verifies the provided token and retrieves the user's data.
     """
     logger.info(f"GET request to retrieve current user information")
 
-    return current_concierge
+    token_service = securityService.TokenService(db)
+    token_data = token_service.verify_concierge_token(token)
+    if token_data.id is None:
+        logger.warning(f"Token is missing user_id.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    user = muser.User.get_user_id(db, token_data.id)
+    return user
+
+
+@router.post("/refresh", response_model=schemas.AccessToken, responses={
+    401: {
+        "description": "Token is invalid or is missing required data.",
+        "content": {
+            "application/json": {
+                "example": {
+                    "missing_data":{"detail": "Invalid token"},
+                    "invalid_token":{"detail": "Failed to verify token"}
+                }
+            }
+        },
+    },
+})
+def refresh_token(request: Request, 
+                  db: Session = Depends(database.get_db)) -> schemas.AccessToken:
+    """
+    Refresh the access token using a valid refresh token.
+    """
+    logger.info(f"POST request to refresh tokens")
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token missing")
+    token_service = securityService.TokenService(db)
+    auth_service = securityService.AuthorizationService(db)
+
+    token_data = auth_service.get_current_concierge(refresh_token)
+    access_token = token_service.create_token({"user_id": token_data.id, "user_role": token_data.role.value}, "access")
+    return schemas.AccessToken(access_token=access_token)
 
 @router.post("/logout", responses={
     401: {
@@ -155,19 +187,17 @@ def get_current_user(current_concierge: muser.User = Depends(oauth2.get_current_
     },
 })
 def logout(response: Response,
+            refresh_token: schemas.RefreshToken, 
            access_token: str = Depends(oauth2.get_current_concierge_token),
            db: Session = Depends(database.get_db)) -> JSONResponse:
     """
-    Log out the currently authenticated user.
-
-    This endpoint blacklists the user's current access token to prevent further usage. 
-    It also removes the refresh token cookie from the response.
+    Log out the concierge by blacklisting their tokens.
     """
     logger.info(f"POST request to logout user")
     token_service = securityService.TokenService(db)
 
     token_service.add_token_to_blacklist(access_token)
+    token_service.add_token_to_blacklist(refresh_token.refresh_token)
 
     response.delete_cookie("refresh_token")
-
     return JSONResponse({"detail": "User logged out successfully"})

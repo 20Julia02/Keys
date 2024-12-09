@@ -47,11 +47,10 @@ def get_devices_filtered(response: Response,
     such as type, version, or room number. If no devices match the criteria, 
     a 404 response is returned with a descriptive error message.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve devices by type {dev_type}, version {dev_version} and room number {room_number}.")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     devices = mdevice.Device.get_dev_with_details(
         db, dev_type, dev_version, room_number)
     return [schemas.DeviceOutWithNote.model_validate(device) for device in devices]
@@ -80,10 +79,9 @@ def get_dev_code(response: Response,
     If the device does not exist in the database, 
     a 404 response is returned with an appropriate error message.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"GET request to retrieve device by code {dev_code}.")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return mdevice.Device.get_dev_by_code(db, dev_code)
 
 
@@ -110,10 +108,9 @@ def get_dev_id(response: Response,
     If the device does not exist in the database, 
     a 404 response is returned with an appropriate error message.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"GET request to retrieve device with Id {dev_id}.")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return mdevice.Device.get_dev_by_id(db, dev_id)
 
 
@@ -152,10 +149,9 @@ def create_device(response: Response,
     If the user lacks the required role or if an error occurs during the database operation, 
     the appropriate error response is returned.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"POST request to create device")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
 
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
@@ -204,10 +200,9 @@ def update_device(
     If the user does not have the required role or if an error occurs during the 
     update operation, an appropriate error response is returned.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"PUT request to update device")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
 
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
@@ -251,10 +246,9 @@ def delete_device(
     the required role or if an error occurs during the operation, an error response 
     is returned with the appropriate message.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"DELETE request to delete device with ID {device_id}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
 
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)

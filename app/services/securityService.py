@@ -126,6 +126,27 @@ class TokenService:
         logger.debug(
             f"Given token is verified and data are extracted: {token_data}")
         return token_data
+    
+    def generate_tokens(self,
+                        user_id: int,
+                        role: str) -> schemas.Token:
+        """
+        Generates a pair of JWT tokens (access and refresh) for a user, based on their user ID and role.
+        Args:
+            user_id (int): The ID of the user for whom tokens are generated.
+            role (str): The role of the user, which will be included in the token payload.
+        Returns:
+            Token: An object containing the access token, refresh token, and token type.
+        """
+        logger.info("Generating a pair of JWT tokens (access and refresh)")
+        access_token = self.create_token(
+            {"user_id": user_id, "user_role": role}, "access")
+        refresh_token = self.create_token(
+            {"user_id": user_id, "user_role": role}, "refresh")
+        tokens = schemas.Token(access_token=access_token,
+                               refresh_token=refresh_token, token_type="bearer")
+        logger.debug("Tokens created")
+        return tokens
 
     def is_token_blacklisted(self,
                              token: str) -> bool:

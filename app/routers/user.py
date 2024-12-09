@@ -35,11 +35,10 @@ def get_all_users(response: Response,
     This endpoint fetches a list of all users stored in the database. If no users are found,
     an exception is raised with a descriptive error message.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve users")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return muser.User.get_all_users(db)
 
 
@@ -68,11 +67,10 @@ def get_user(response: Response,
     This endpoint fetches details of a user identified by their unique ID. If the user does not exist, 
     an exception is raised with a descriptive error message.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve user with ID: {user_id}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return muser.User.get_user_id(db, user_id)
 
 
@@ -103,10 +101,9 @@ def create_user(response: Response,
     data is invalid, a 400 error is returned. Upon successful creation, the new user's details 
     are returned.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info("POST request to create user")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return muser.User.create_user(db, user_data)
 
 
@@ -145,11 +142,10 @@ def delete_user(response: Response,
     This endpoint removes a user from the database using their unique ID. If the user does not exist, 
     an exception is raised with a descriptive error message.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"DELETE request to delete user with ID: {user_id}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return muser.User.delete_user(db, user_id)
 
 
@@ -189,8 +185,7 @@ def update_user(response: Response,
     This endpoint updates the details of a user identified by their unique ID. If the user does not exist, 
     an exception is raised with a descriptive error message.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"POST request to edit user with ID: {user_id}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return muser.User.update_user(db, user_id, user_data)

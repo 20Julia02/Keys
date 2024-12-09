@@ -50,11 +50,10 @@ def get_permissions(response: Response,
     This endpoint fetches permissions based on provided filters such as user ID, room ID, date, 
     and start time. If no filters are provided, all permissions are returned.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve permissions by user_id: {user_id}, room_id: {room_id}, date: {date}, start_time: {start_time}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return mpermission.Permission.get_permissions(db, user_id, room_id, date, start_time)
 
 
@@ -93,11 +92,10 @@ def create_permission(response: Response,
     This endpoint allows creating a permission with specific details such as user ID, 
     room ID, date, and time. The requesting user must have the 'admin' role.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"POST request to create permission")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mpermission.Permission.create_permission(db, permission_data)
@@ -148,11 +146,10 @@ def update_permission(response: Response,
     This endpoint modifies a permission's details, such as time or room ID, based on the provided
     permission ID. The requesting user must have the 'admin' role.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"POST request to update permission with ID {permission_id}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mpermission.Permission.update_permission(db, permission_id, permission_data)
@@ -202,10 +199,9 @@ def delete_permission(response: Response,
     This endpoint removes a permission identified by the given ID. The requesting user must have 
     the 'admin' role. If the ID does not exist, a 404 error is returned.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"DELETE request to delete permission with ID {permission_id}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mpermission.Permission.delete_permission(db, permission_id)
@@ -238,9 +234,8 @@ def get_active_permissions(
     date or time is specified, the current date and time are used. Active permissions are 
     those that are valid for the specified time.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve active permissions for user ID {user_id} at date: {date} and time: {time}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return mpermission.Permission.get_active_permissions(db, user_id, date, time)

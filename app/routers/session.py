@@ -86,10 +86,9 @@ def approve_session_login(response: Response,
     If the session ID is invalid or there are no unapproved operations, appropriate 
     error messages are returned.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"POST request to approve session by login and password")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     auth_service = securityService.AuthorizationService(db)
     auth_service.authenticate_user_login(
         concierge_credentials.username, concierge_credentials.password, "concierge")
@@ -172,10 +171,9 @@ def approve_session_card(
     If the session ID is invalid or there are no unapproved operations, appropriate 
     error messages are returned.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"POST request to approve session by card")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     auth_service = securityService.AuthorizationService(db)
     auth_service.authenticate_user_card(card_data, "concierge")
 
@@ -238,10 +236,9 @@ def reject_session(response: Response,
 
     If the session ID is invalid, an appropriate error message is returned.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"POST request to reject session by login and password")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     moperation.UserSession.end_session(db, session_id, reject=True)
 
     return moperation.UnapprovedOperation.delete_all_for_session(db, session_id)
@@ -288,11 +285,10 @@ def start_login_session(response: Response,
 
     If the authentication fails, an error message is returned.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"POST request to start new session by user using login and password")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     auth_service = securityService.AuthorizationService(db)
 
     user = auth_service.authenticate_user_login(
@@ -341,10 +337,9 @@ def start_card_session(response: Response,
 
     If the authentication fails, an error message is returned.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"POST request to start new session by user using card")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     auth_service = securityService.AuthorizationService(db)
     user = auth_service.authenticate_user_card(card_id, "employee")
     return moperation.UserSession.create_session(db, user.id, current_concierge.id)
@@ -386,11 +381,10 @@ def start_unauthorized_session(response: Response,
 
     If the unauthorized user ID is invalid, a 404 error is returned.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"POST request to start new session by unauthorized user with ID {unauthorized_id}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     user = db.query(muser.UnauthorizedUser).filter_by(
         id=unauthorized_id).first()
     if not user:
@@ -427,9 +421,8 @@ def get_session_id(response: Response,
 
     If the session ID is invalid, an appropriate error message is returned.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve session with ID {session_id}.")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return moperation.UserSession.get_session_id(db, session_id)

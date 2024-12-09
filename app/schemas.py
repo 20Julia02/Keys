@@ -15,6 +15,18 @@ class AccessToken(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    refresh_token: str
+
+
+class RefreshToken(BaseModel):
+    refresh_token: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class TokenData(BaseModel):
     id: Optional[int] = None
     role: Optional[Literal["administrator", "portier",

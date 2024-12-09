@@ -66,10 +66,9 @@ def change_status(
     - If the operation is not a repeated scan, the user is entitled, or the `force` flag is set, 
     a new unapproved operation is created for further validation.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"POST request to change device status")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     device = mdevice.Device.get_dev_by_code(db, request.device_code)
     session = moperation.UserSession.get_session_id(db, request.session_id)
 
@@ -131,11 +130,10 @@ def get_devs_owned_by_user(user_id: int,
 
     This endpoint fetches the devices associated with a given user ID.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve the device owned by user: {user_id}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return moperation.DeviceOperation.get_last_operation_user_id(db, user_id)
 
 
@@ -167,11 +165,10 @@ def get_unapproved_operations(response: Response,
     by session ID and operation type. Supported operation types include "pobranie" (issue)
     and "zwrot" (return).
     
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve the unapproved operations with operation_type: {operation_type}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return moperation.UnapprovedOperation.get_unapproved_filtered(db, session_id, operation_type)
 
 
@@ -198,11 +195,10 @@ def get_operations_filtered(response: Response,
     This endpoint fetches all operations from the database. If a session ID is provided,
     only operations linked to that session are returned.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve the operations with session ID: {session_id}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return moperation.DeviceOperation.get_all_operations(db, session_id)
 
 
@@ -229,11 +225,10 @@ def get_operation_id(response: Response,
     This endpoint fetches detailed information about a single operation, identified
     by its unique ID.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve the operations by ID: {operation_id}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return moperation.DeviceOperation.get_operation_id(db, operation_id)
 
 
@@ -249,9 +244,8 @@ def get_last_dev_operation_or_none(response: Response,
     This endpoint fetches the latest operation associated with a given device ID.
     If no operations exist for the device, the response will be `None`.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve the operations for device with ID: {device_id}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return moperation.DeviceOperation.get_last_dev_operation_or_none(db, device_id)

@@ -39,10 +39,9 @@ def get_rooms(response: Response,
     This endpoint fetches all rooms stored in the database. If a specific `number` 
     is provided, it filters and returns the room with the matching number.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"GET request to retrieve rooms filtered by number {number}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return mdevice.Room.get_rooms(db, number)
 
 
@@ -71,10 +70,9 @@ def get_room_id(response: Response,
     This endpoint fetches a room from the database using the provided `room_id`. 
     If the room does not exist, a 404 error is returned.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"GET request to retrieve room by ID: {room_id}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return mdevice.Room.get_room_id(db, room_id)
 
 
@@ -115,10 +113,9 @@ def create_room(response: Response,
     specified number already exists, a 400 error is returned. The requesting user must 
     have the 'admin' role to perform this action.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"POST request to create room with number: {room_data.number}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mdevice.Room.create_room(db, room_data)
@@ -181,11 +178,10 @@ def update_room(response: Response,
     If the room does not exist, a 404 error is returned. The requesting user must have 
     the 'admin' role to perform this action.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"POST request to update room with ID: {room_id}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mdevice.Room.update_room(db, room_id, room_data)
@@ -236,10 +232,9 @@ def delete_room(response: Response,
     This endpoint removes a room using the specified `room_id`. If the room does not exist, 
     a 404 error is returned. The requesting user must have the 'admin' role to perform this action.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(f"DELETE request to delete room with ID: {room_id}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     auth_service = securityService.AuthorizationService(db)
     auth_service.entitled_or_error(muser.UserRole.admin, current_concierge)
     return mdevice.Room.delete_room(db, room_id)

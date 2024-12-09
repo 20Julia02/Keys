@@ -78,11 +78,10 @@ def create_or_get_unauthorized_user(user: schemas.UnauthorizedUserNote,
 
     Additionally, a note can be attached to the user if provided in the request.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"POST request to retrieve unauthorized user if exists or create new one if not")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     new_user, created = muser.UnauthorizedUser.create_or_get_unauthorized_user(
         db, user.name, user.surname, user.email)
 
@@ -124,11 +123,10 @@ def get_all_unathorized_users(response: Response,
     This endpoint fetches a list of all unauthorized users stored in the database.
     If no users are found, an exception is raised.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve unauthorized users")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return muser.UnauthorizedUser.get_all_unathorized_users(db)
 
 
@@ -157,11 +155,10 @@ def get_unathorized_user(response: Response,
     This endpoint fetches an unauthorized user based on their unique ID. If the user
     does not exist, an exception is raised with a descriptive error message.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve unauthorized user with ID: {user_id}.")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return muser.UnauthorizedUser.get_unathorized_user(db, user_id)
 
 
@@ -190,11 +187,10 @@ def get_unathorized_user_email(response: Response,
     This endpoint fetches an unauthorized user based on their email address. If the user
     does not exist, an exception is raised with a descriptive error message.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"GET request to retrieve unauthorized user with email: {email}.")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return muser.UnauthorizedUser.get_unathorized_user_email(db, email)
 
 
@@ -235,11 +231,10 @@ def update_unauthorized_user(response: Response,
     This endpoint updates the details of an unauthorized user identified by their unique ID.
     If the user does not exist, an exception is raised with a descriptive error message.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"POST request to update unauthorized user with user_id {user_id}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return muser.UnauthorizedUser.update_unauthorized_user(db, user_id, user_data)
 
 
@@ -277,9 +272,8 @@ def delete_unauthorized_user(response: Response,
     This endpoint removes an unauthorized user from the database using their unique ID.
     If the user does not exist, an exception is raised with a descriptive error message.
 
-    The operation ensures that the requesting user is authenticated and updates their access token.
     """
     logger.info(
         f"DELETE request to delete unauthorized user with ID: {user_id}")
-    oauth2.set_access_token_cookie(response, current_concierge.id, current_concierge.role.value, db)
+    
     return muser.UnauthorizedUser.delete_unauthorized_user(db, user_id)
