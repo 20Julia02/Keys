@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status, Depends, APIRouter, Response, Query
+from fastapi import HTTPException, status, Depends, APIRouter, Query
 from typing import Optional, Sequence, Literal
 from app import database, oauth2, schemas
 import app.models.device as mdevice
@@ -43,7 +43,6 @@ router = APIRouter(
     },
 })
 def change_status(
-    response: Response,
     request: schemas.ChangeStatus,
     db: Session = Depends(database.get_db),
     current_concierge: User = Depends(oauth2.get_current_concierge),
@@ -121,8 +120,7 @@ def change_status(
     },
 })
 def get_devs_owned_by_user(user_id: int,
-                           response: Response,
-                           current_concierge: User = Depends(
+                                                  current_concierge: User = Depends(
                                oauth2.get_current_concierge),
                            db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
     """
@@ -149,8 +147,7 @@ def get_devs_owned_by_user(user_id: int,
         }
     },
 })
-def get_unapproved_operations(response: Response,
-                              session_id: Optional[int] = None,
+def get_unapproved_operations(                          session_id: Optional[int] = None,
                               operation_type: Optional[Literal["pobranie",
                                                                "zwrot"]] = Query(
         None, description="Filter operations by type. Possible values: 'pobranie', 'zwrot'."
@@ -184,10 +181,9 @@ def get_unapproved_operations(response: Response,
         }
     },
 })
-def get_operations_filtered(response: Response,
-                            session_id: Optional[int] = None,
+def get_operations_filtered(session_id: Optional[int] = None,
                             current_concierge: User = Depends(
-        oauth2.get_current_concierge),
+                                 oauth2.get_current_concierge),
         db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
     """
     Retrieve all operations with optional filtering by session ID.
@@ -214,10 +210,9 @@ def get_operations_filtered(response: Response,
         }
     },
 })
-def get_operation_id(response: Response,
-                     operation_id: int,
+def get_operation_id(operation_id: int,
                      current_concierge: User = Depends(
-                         oauth2.get_current_concierge),
+                          oauth2.get_current_concierge),
                      db: Session = Depends(database.get_db)) -> schemas.DevOperationOut:
     """
     Retrieve details of a specific operation by its unique ID.
@@ -233,8 +228,7 @@ def get_operation_id(response: Response,
 
 
 @router.get("/device/{device_id}", response_model=schemas.DevOperationOut | None)
-def get_last_dev_operation_or_none(response: Response,
-                                   device_id: int,
+def get_last_dev_operation_or_none(                               device_id: int,
                                    current_concierge: User = Depends(
                                        oauth2.get_current_concierge),
                                    db: Session = Depends(database.get_db)) -> schemas.DevOperationOut | None:

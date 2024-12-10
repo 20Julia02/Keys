@@ -6,7 +6,6 @@ from app import database, oauth2, schemas
 import app.models.user as muser
 from app.services import securityService
 from app.config import logger
-from fastapi import Response
 from fastapi.responses import JSONResponse
 from fastapi import Request
 
@@ -33,8 +32,7 @@ router = APIRouter(
     },
 }
 )
-def login(response: Response,
-          concierge_credentials: OAuth2PasswordRequestForm = Depends(),
+def login(      concierge_credentials: OAuth2PasswordRequestForm = Depends(),
           db: Session = Depends(database.get_db),
           ) -> schemas.Token:
     """
@@ -69,8 +67,7 @@ def login(response: Response,
     },
 }
 )
-def card_login(response: Response,
-               card_code: schemas.CardId,
+def card_login(           card_code: schemas.CardId,
                db: Session = Depends(database.get_db)) -> schemas.Token:
     """
     Authenticate a concierge using their card ID.
@@ -186,8 +183,7 @@ def refresh_token(request: Request,
         }
     },
 })
-def logout(response: Response,
-            refresh_token: schemas.RefreshToken, 
+def logout(refresh_token: schemas.RefreshToken, 
            access_token: str = Depends(oauth2.get_current_concierge_token),
            db: Session = Depends(database.get_db)) -> JSONResponse:
     """
@@ -199,5 +195,4 @@ def logout(response: Response,
     token_service.add_token_to_blacklist(access_token)
     token_service.add_token_to_blacklist(refresh_token.refresh_token)
 
-    response.delete_cookie("refresh_token")
     return JSONResponse({"detail": "User logged out successfully"})

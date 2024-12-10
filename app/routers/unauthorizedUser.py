@@ -62,9 +62,9 @@ router = APIRouter(
                      }
                  }
              })
-def create_or_get_unauthorized_user(user: schemas.UnauthorizedUserNote,
-                                    response: Response,
-                                    db: Session = Depends(database.get_db),
+def create_or_get_unauthorized_user(response: Response,
+                                    user: schemas.UnauthorizedUserNote,
+                                                                    db: Session = Depends(database.get_db),
                                     current_concierge: muser.User = Depends(
                                         oauth2.get_current_concierge)
                                     ) -> schemas.UnauthorizedUserOut:
@@ -114,8 +114,7 @@ def create_or_get_unauthorized_user(user: schemas.UnauthorizedUserNote,
                     }
                 },
             })
-def get_all_unathorized_users(response: Response,
-                              current_concierge: muser.User = Depends(oauth2.get_current_concierge),
+def get_all_unathorized_users(                          current_concierge: muser.User = Depends(oauth2.get_current_concierge),
                               db: Session = Depends(database.get_db)) -> Sequence[schemas.UnauthorizedUserOut]:
     """
     Retrieve all unauthorized users from the database.
@@ -144,8 +143,7 @@ def get_all_unathorized_users(response: Response,
                     }
                 },
             })
-def get_unathorized_user(response: Response,
-                         user_id: int,
+def get_unathorized_user(                     user_id: int,
                          current_concierge: muser.User = Depends(
                              oauth2.get_current_concierge),
                          db: Session = Depends(database.get_db)) -> schemas.UnauthorizedUserOut:
@@ -176,8 +174,7 @@ def get_unathorized_user(response: Response,
                     }
                 },
             })
-def get_unathorized_user_email(response: Response,
-                               email: str,
+def get_unathorized_user_email(                           email: str,
                                current_concierge: muser.User = Depends(
                                    oauth2.get_current_concierge),
                                 db: Session = Depends(database.get_db)) -> schemas.UnauthorizedUserOut:
@@ -218,8 +215,7 @@ def get_unathorized_user_email(response: Response,
                      }
                  }
              })
-def update_unauthorized_user(response: Response,
-                             user_id: int,
+def update_unauthorized_user(                         user_id: int,
                              user_data: schemas.UnauthorizedUser,
                              db: Session = Depends(database.get_db),
                              current_concierge: muser.User = Depends(
@@ -262,8 +258,7 @@ def update_unauthorized_user(response: Response,
                      }
                  }
              })
-def delete_unauthorized_user(response: Response,
-                             user_id: int,
+def delete_unauthorized_user(                         user_id: int,
                              db: Session = Depends(database.get_db),
                              current_concierge: muser.User = Depends(oauth2.get_current_concierge)):
     """

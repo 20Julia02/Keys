@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.config import logger
 import app.models.user as muser
-from fastapi import Response
+
 
 router = APIRouter(
     prefix="/devices",
@@ -27,8 +27,7 @@ router = APIRouter(
         }
     },
 })
-def get_devices_filtered(response: Response,
-                         current_concierge: User = Depends(oauth2.get_current_concierge),
+def get_devices_filtered(                     current_concierge: User = Depends(oauth2.get_current_concierge),
                          dev_type: Optional[Literal["klucz",
                                                     "mikrofon", "pilot"]] = Query(
         None, description="Filter devices by type. Possible values: 'klucz', 'mikrofon', 'pilot'."
@@ -68,8 +67,7 @@ def get_devices_filtered(response: Response,
         }
     },
 })
-def get_dev_code(response: Response,
-                 dev_code: str,
+def get_dev_code(             dev_code: str,
                  current_concierge: User = Depends(
                      oauth2.get_current_concierge),
                  db: Session = Depends(database.get_db)) -> schemas.DeviceOut:
@@ -97,8 +95,7 @@ def get_dev_code(response: Response,
         }
     },
 })
-def get_dev_id(response: Response,
-               dev_id: int,
+def get_dev_id(           dev_id: int,
                current_concierge: User = Depends(
                    oauth2.get_current_concierge),
                db: Session = Depends(database.get_db)) -> schemas.DeviceOut:
@@ -136,8 +133,7 @@ def get_dev_id(response: Response,
         }
     },
 })
-def create_device(response: Response,
-                  device: schemas.DeviceCreate,
+def create_device(              device: schemas.DeviceCreate,
                   db: Session = Depends(database.get_db),
                   current_concierge: User = Depends(oauth2.get_current_concierge)) -> schemas.DeviceOut:
     """
@@ -158,7 +154,7 @@ def create_device(response: Response,
     return mdevice.Device.create_dev(db, device)
 
 
-@router.put("/{device_id}", response_model=schemas.DeviceOut, responses={
+@router.post("/{device_id}", response_model=schemas.DeviceOut, responses={
     500: {
         "description": "If an error occurs during the commit",
         "content": {
@@ -181,7 +177,6 @@ def create_device(response: Response,
     },
 })
 def update_device(
-    response: Response,
     device_id: int,
     device_data: schemas.DeviceCreate,
     current_concierge: User = Depends(
@@ -201,7 +196,7 @@ def update_device(
     update operation, an appropriate error response is returned.
 
     """
-    logger.info(f"PUT request to update device")
+    logger.info(f"POST request to update device")
     
 
     auth_service = securityService.AuthorizationService(db)
@@ -232,7 +227,6 @@ def update_device(
     },
 })
 def delete_device(
-    response: Response,
     device_id: int,
     current_concierge: User = Depends(
         oauth2.get_current_concierge),

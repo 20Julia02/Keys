@@ -1,4 +1,4 @@
-from fastapi import Depends, APIRouter, status, Response
+from fastapi import Depends, APIRouter, status
 from typing import Sequence
 from app.schemas import UserOut, UserCreate
 from app import database, oauth2
@@ -26,8 +26,7 @@ router = APIRouter(
                     }
                 },
             })
-def get_all_users(response: Response,
-                  current_concierge: muser.User = Depends(oauth2.get_current_concierge),
+def get_all_users(              current_concierge: muser.User = Depends(oauth2.get_current_concierge),
                   db: Session = Depends(database.get_db)) -> Sequence[UserOut]:
     """
     Retrieve all users from the database.
@@ -56,8 +55,7 @@ def get_all_users(response: Response,
                     }
                 }
             })
-def get_user(response: Response,
-             user_id: int,
+def get_user(         user_id: int,
              current_concierge: muser.User = Depends(
                  oauth2.get_current_concierge),
              db: Session = Depends(database.get_db)) -> UserOut:
@@ -89,8 +87,7 @@ def get_user(response: Response,
                      }
                  }
              })
-def create_user(response: Response,
-                user_data: UserCreate,
+def create_user(            user_data: UserCreate,
                 current_concierge: muser.User = Depends(
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)) -> UserOut:
@@ -131,8 +128,7 @@ def create_user(response: Response,
                        }
                    }
                })
-def delete_user(response: Response,
-                user_id: int,
+def delete_user(            user_id: int,
                 current_concierge: muser.User = Depends(
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)):
@@ -173,8 +169,7 @@ def delete_user(response: Response,
                      }
                  }
              })
-def update_user(response: Response,
-                user_id: int,
+def update_user(            user_id: int,
                 user_data: UserCreate,
                 current_concierge: muser.User = Depends(
                     oauth2.get_current_concierge),

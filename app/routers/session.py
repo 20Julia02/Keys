@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from app import database, oauth2, schemas
@@ -14,6 +14,186 @@ from app.config import logger
 router = APIRouter(
     tags=['Session']
 )
+
+
+@router.post("/start-session/login", response_model=schemas.SessionOut, responses={
+     403: {
+            "description": "If the credentials are invalid or the user does not have the required role",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                 "invalid_card_code": {
+                                     "detail": "Invalid credentials"
+                                 },
+                                 "not_entitled": {
+                                     "detail": "You cannot perform this operation without the concierge role"
+                                 }
+                             }
+                         }
+            }
+            },
+     500: {
+            "description": "If an error occurs while committing the transaction",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                    "detail": "An internal error occurred while creating session"
+                             }
+                         }
+            }
+            },
+})
+def start_login_session(                    user_credentials: OAuth2PasswordRequestForm = Depends(),
+                        current_concierge: muser.User = Depends(
+                            oauth2.get_current_concierge),
+                        db: Session = Depends(database.get_db)) -> schemas.SessionOut:
+    """
+    Start a session for a user using login credentials.
+
+    This endpoint allows a concierge to create a session for a user by authenticating 
+    them with their username and password. Once authenticated, the session is assigned 
+    to the current concierge and is ready for operations.
+
+    If the authentication fails, an error message is returned.
+
+    """
+    logger.info(
+        f"POST request to start new session by user using login and password")
+    
+    auth_service = securityService.AuthorizationService(db)
+
+    user = auth_service.authenticate_user_login(
+        user_credentials.username, user_credentials.password, "employee")
+    return moperation.UserSession.create_session(db, user.id, current_concierge.id)
+
+
+@router.post("/start-session/card", response_model=schemas.SessionOut, responses={
+     403: {
+            "description": "If the card code are invalid or the user does not have the required role",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                 "invalid_card_code": {
+                                     "detail": "Invalid credentials"
+                                 },
+                                 "not_entitled": {
+                                     "detail": "You cannot perform this operation without the concierge role"
+                                 }
+                             }
+                         }
+            }
+            },
+     500: {
+            "description": "If an error occurs while committing the transaction",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                    "detail": "An internal error occurred while creating session"
+                             }
+                         }
+            }
+            },
+})
+def start_card_session(                   card_id: schemas.CardId,
+                       current_concierge: muser.User = Depends(
+                           oauth2.get_current_concierge),
+                       db: Session = Depends(database.get_db)) -> schemas.SessionOut:
+    """
+    Start a session for a user using a card ID.
+
+    This endpoint allows a concierge to create a session for a user by authenticating 
+    them with their card ID. Once authenticated, the session is assigned to the current 
+    concierge and is ready for operations.
+
+    If the authentication fails, an error message is returned.
+
+    """
+    logger.info(f"POST request to start new session by user using card")
+    
+    auth_service = securityService.AuthorizationService(db)
+    user = auth_service.authenticate_user_card(card_id, "employee")
+    return moperation.UserSession.create_session(db, user.id, current_concierge.id)
+
+
+@router.post("/start-session/unauthorized/{unauthorized_id}", response_model=schemas.Session, responses={
+     404: {
+            "description": "If no unauthorized user with the given ID exists",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                     "detail": "Unauthorized user not found"
+                                 },
+                         }
+            }
+            },
+     500: {
+            "description": "If an error occurs while committing the transaction",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                    "detail": "An internal error occurred while creating session"
+                             }
+                         }
+            }
+            },
+})
+def start_unauthorized_session(                           unauthorized_id: int,
+                               current_concierge: muser.User = Depends(
+                                   oauth2.get_current_concierge),
+                               db: Session = Depends(database.get_db)) -> schemas.Session:
+    """
+    Start a session for an unauthorized user.
+
+    This endpoint allows a concierge to create a session for an unauthorized user 
+    identified by their unique ID. If the unauthorized user exists in the database, 
+    the session is assigned to the current concierge.
+
+    If the unauthorized user ID is invalid, a 404 error is returned.
+
+    """
+    logger.info(
+        f"POST request to start new session by unauthorized user with ID {unauthorized_id}")
+    
+    user = db.query(muser.UnauthorizedUser).filter_by(
+        id=unauthorized_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="Unauthorized user not found"
+        )
+    return moperation.UserSession.create_session(db, unauthorized_id, current_concierge.id)
+
+
+@router.get("/session/{session_id}", response_model=schemas.Session, responses={
+    404: {
+        "description": "If no session with the given ID exists.",
+        "content": {
+            "application/json": {
+                "example": {
+                    "detail": "Session doesn't exist"
+                }
+            }
+        }
+    },
+})
+def get_session_id(               session_id: int,
+                   current_concierge: muser.User = Depends(
+                       oauth2.get_current_concierge),
+                   db: Session = Depends(database.get_db)) -> schemas.Session:
+    """
+    Retrieve details of a specific session by its ID.
+
+    This endpoint fetches detailed information about a session, including its status, 
+    associated operations, and the user responsible for it. The session is identified 
+    by its unique ID.
+
+    If the session ID is invalid, an appropriate error message is returned.
+
+    """
+    logger.info(
+        f"GET request to retrieve session with ID {session_id}.")
+    
+    return moperation.UserSession.get_session_id(db, session_id)
 
 
 @router.post("/approve/login/session/{session_id}",
@@ -70,8 +250,7 @@ router = APIRouter(
                  },
              }
              )
-def approve_session_login(response: Response,
-                          session_id: int = Path(description="Unique identifier of the session that contains operations awaiting approval."),
+def approve_session_login(session_id: int = Path(description="Unique identifier of the session that contains operations awaiting approval."),
                           db: Session = Depends(database.get_db),
                           concierge_credentials: OAuth2PasswordRequestForm = Depends(),
                           current_concierge: User = Depends(oauth2.get_current_concierge)):
@@ -153,7 +332,6 @@ def approve_session_login(response: Response,
              }
              )
 def approve_session_card(
-    response: Response,
     card_data: schemas.CardId,
     session_id: int = Path(
         description="Unique identifier of the session that contains operations awaiting approval."),
@@ -223,8 +401,7 @@ def approve_session_card(
                      }
                  },
 })
-def reject_session(response: Response,
-                   session_id: int = Path(description="Unique identifier of the session"),
+def reject_session(session_id: int = Path(description="Unique identifier of the session"),
                    db: Session = Depends(database.get_db),
                    current_concierge: User = Depends(oauth2.get_current_concierge)):
     """
@@ -244,185 +421,4 @@ def reject_session(response: Response,
     return moperation.UnapprovedOperation.delete_all_for_session(db, session_id)
 
 
-@router.post("/start-session/login", response_model=schemas.SessionOut, responses={
-     403: {
-            "description": "If the credentials are invalid or the user does not have the required role",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                 "invalid_card_code": {
-                                     "detail": "Invalid credentials"
-                                 },
-                                 "not_entitled": {
-                                     "detail": "You cannot perform this operation without the concierge role"
-                                 }
-                             }
-                         }
-            }
-            },
-     500: {
-            "description": "If an error occurs while committing the transaction",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                    "detail": "An internal error occurred while creating session"
-                             }
-                         }
-            }
-            },
-})
-def start_login_session(response: Response,
-                        user_credentials: OAuth2PasswordRequestForm = Depends(),
-                        current_concierge: muser.User = Depends(
-                            oauth2.get_current_concierge),
-                        db: Session = Depends(database.get_db)) -> schemas.SessionOut:
-    """
-    Start a session for a user using login credentials.
 
-    This endpoint allows a concierge to create a session for a user by authenticating 
-    them with their username and password. Once authenticated, the session is assigned 
-    to the current concierge and is ready for operations.
-
-    If the authentication fails, an error message is returned.
-
-    """
-    logger.info(
-        f"POST request to start new session by user using login and password")
-    
-    auth_service = securityService.AuthorizationService(db)
-
-    user = auth_service.authenticate_user_login(
-        user_credentials.username, user_credentials.password, "employee")
-    return moperation.UserSession.create_session(db, user.id, current_concierge.id)
-
-
-@router.post("/start-session/card", response_model=schemas.SessionOut, responses={
-     403: {
-            "description": "If the card code are invalid or the user does not have the required role",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                 "invalid_card_code": {
-                                     "detail": "Invalid credentials"
-                                 },
-                                 "not_entitled": {
-                                     "detail": "You cannot perform this operation without the concierge role"
-                                 }
-                             }
-                         }
-            }
-            },
-     500: {
-            "description": "If an error occurs while committing the transaction",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                    "detail": "An internal error occurred while creating session"
-                             }
-                         }
-            }
-            },
-})
-def start_card_session(response: Response,
-                       card_id: schemas.CardId,
-                       current_concierge: muser.User = Depends(
-                           oauth2.get_current_concierge),
-                       db: Session = Depends(database.get_db)) -> schemas.SessionOut:
-    """
-    Start a session for a user using a card ID.
-
-    This endpoint allows a concierge to create a session for a user by authenticating 
-    them with their card ID. Once authenticated, the session is assigned to the current 
-    concierge and is ready for operations.
-
-    If the authentication fails, an error message is returned.
-
-    """
-    logger.info(f"POST request to start new session by user using card")
-    
-    auth_service = securityService.AuthorizationService(db)
-    user = auth_service.authenticate_user_card(card_id, "employee")
-    return moperation.UserSession.create_session(db, user.id, current_concierge.id)
-
-
-@router.post("/start-session/unauthorized/{unauthorized_id}", response_model=schemas.Session, responses={
-     404: {
-            "description": "If no unauthorized user with the given ID exists",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                     "detail": "Unauthorized user not found"
-                                 },
-                         }
-            }
-            },
-     500: {
-            "description": "If an error occurs while committing the transaction",
-                     "content": {
-                         "application/json": {
-                             "example": {
-                                    "detail": "An internal error occurred while creating session"
-                             }
-                         }
-            }
-            },
-})
-def start_unauthorized_session(response: Response,
-                               unauthorized_id: int,
-                               current_concierge: muser.User = Depends(
-                                   oauth2.get_current_concierge),
-                               db: Session = Depends(database.get_db)) -> schemas.Session:
-    """
-    Start a session for an unauthorized user.
-
-    This endpoint allows a concierge to create a session for an unauthorized user 
-    identified by their unique ID. If the unauthorized user exists in the database, 
-    the session is assigned to the current concierge.
-
-    If the unauthorized user ID is invalid, a 404 error is returned.
-
-    """
-    logger.info(
-        f"POST request to start new session by unauthorized user with ID {unauthorized_id}")
-    
-    user = db.query(muser.UnauthorizedUser).filter_by(
-        id=unauthorized_id).first()
-    if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="Unauthorized user not found"
-        )
-    return moperation.UserSession.create_session(db, unauthorized_id, current_concierge.id)
-
-
-@router.get("/session/{session_id}", response_model=schemas.Session, responses={
-    404: {
-        "description": "If no session with the given ID exists.",
-        "content": {
-            "application/json": {
-                "example": {
-                    "detail": "Session doesn't exist"
-                }
-            }
-        }
-    },
-})
-def get_session_id(response: Response,
-                   session_id: int,
-                   current_concierge: muser.User = Depends(
-                       oauth2.get_current_concierge),
-                   db: Session = Depends(database.get_db)) -> schemas.Session:
-    """
-    Retrieve details of a specific session by its ID.
-
-    This endpoint fetches detailed information about a session, including its status, 
-    associated operations, and the user responsible for it. The session is identified 
-    by its unique ID.
-
-    If the session ID is invalid, an appropriate error message is returned.
-
-    """
-    logger.info(
-        f"GET request to retrieve session with ID {session_id}.")
-    
-    return moperation.UserSession.get_session_id(db, session_id)

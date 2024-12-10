@@ -475,9 +475,8 @@ class UnauthorizedUser(BaseUser):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="Unauthorized user not found")
 
-        user.name = user_data.name
-        user.surname = user_data.surname
-        user.email = user_data.email
+        for key, value in user_data.model_dump().items():
+            setattr(user, key, value)
 
         if commit:
             try:

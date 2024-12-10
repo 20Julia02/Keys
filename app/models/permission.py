@@ -164,7 +164,7 @@ class Permission(Base):
         """
         logger.info("Creating a new permission")
 
-        new_permission = cls(**permission_data)
+        new_permission = cls(**permission_data.model_dump())
         db.add(new_permission)
         if commit:
             try:

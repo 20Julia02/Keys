@@ -115,9 +115,9 @@ def test_permission(db: Session, test_user: muser.User, test_room: mdevice.Room)
         end_time = datetime.datetime.combine(
             now.date(), datetime.time(23, 59))
 
-    assert start_time.date() == now.date(), "Start time must be today"
-    assert end_time.date() == now.date(), "End time must be today"
-    assert end_time > start_time, "End time must be greater than start time"
+    assert start_time.date() == now.date()
+    assert end_time.date() == now.date()
+    assert end_time > start_time
 
     permission = mpermission.Permission(
         user_id=test_user.id,
@@ -131,6 +131,36 @@ def test_permission(db: Session, test_user: muser.User, test_room: mdevice.Room)
     db.refresh(permission)
     return permission
 
+@pytest.fixture(scope="module")
+def test_permission_2(db: Session, 
+                      test_user: muser.User, 
+                      test_room_2: mdevice.Room) -> mpermission.Permission:
+    now = datetime.datetime.now()
+    start_time = (now - datetime.timedelta(hours=1))
+    end_time = (now + datetime.timedelta(hours=1))
+    if start_time.date() < now.date():
+        start_time = datetime.datetime.combine(
+            now.date(), datetime.time(0, 0))
+
+    if end_time.date() > now.date():
+        end_time = datetime.datetime.combine(
+            now.date(), datetime.time(23, 59))
+
+    assert start_time.date() == now.date()
+    assert end_time.date() == now.date()
+    assert end_time > start_time
+
+    permission = mpermission.Permission(
+        user_id=test_user.id,
+        room_id=test_room_2.id,
+        date=datetime.date.today(),
+        start_time=start_time.time(),
+        end_time=end_time.time()
+    )
+    db.add(permission)
+    db.commit()
+    db.refresh(permission)
+    return permission
 
 @pytest.fixture(scope="module")
 def test_session(db: Session, test_user: muser.User, test_concierge: muser.User) -> moperation.UserSession:
@@ -162,7 +192,7 @@ def test_device(db: Session, test_room: mdevice.Room) -> mdevice.Device:
 
 
 @pytest.fixture(scope="module")
-def test_device_mikrofon(db: Session, test_room_2: mdevice.Room) -> mdevice.Device:
+def test_device_microphone(db: Session, test_room_2: mdevice.Room) -> mdevice.Device:
     device = mdevice.Device(
         dev_type="mikrofon",
         room_id=test_room_2.id,

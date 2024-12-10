@@ -1,4 +1,4 @@
-from fastapi import Depends, APIRouter, status, Response
+from fastapi import Depends, APIRouter, status
 from typing import Sequence, Optional
 from app.schemas import RoomOut, Room
 from app import database, oauth2
@@ -29,8 +29,7 @@ router = APIRouter(
                     }
                 }
             })
-def get_rooms(response: Response,
-              current_concierge: User = Depends(oauth2.get_current_concierge),
+def get_rooms(current_concierge: User = Depends(oauth2.get_current_concierge),
               number: Optional[str] = None,
               db: Session = Depends(database.get_db)) -> Sequence[RoomOut]:
     """
@@ -38,7 +37,6 @@ def get_rooms(response: Response,
 
     This endpoint fetches all rooms stored in the database. If a specific `number` 
     is provided, it filters and returns the room with the matching number.
-
     """
     logger.info(f"GET request to retrieve rooms filtered by number {number}")
     
@@ -59,8 +57,7 @@ def get_rooms(response: Response,
                     }
                 },
             })
-def get_room_id(response: Response,
-                room_id: int,
+def get_room_id(room_id: int,
                 current_concierge: User = Depends(
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)) -> RoomOut:
@@ -69,7 +66,6 @@ def get_room_id(response: Response,
 
     This endpoint fetches a room from the database using the provided `room_id`. 
     If the room does not exist, a 404 error is returned.
-
     """
     logger.info(f"GET request to retrieve room by ID: {room_id}")
     
@@ -101,8 +97,7 @@ def get_room_id(response: Response,
                      }
                  }
              })
-def create_room(response: Response,
-                room_data: Room,
+def create_room(room_data: Room,
                 current_concierge: User = Depends(
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)) -> RoomOut:
@@ -112,7 +107,6 @@ def create_room(response: Response,
     This endpoint creates a new room using the provided data. If a room with the 
     specified number already exists, a 400 error is returned. The requesting user must 
     have the 'admin' role to perform this action.
-
     """
     logger.info(f"POST request to create room with number: {room_data.number}")
     
@@ -165,8 +159,7 @@ def create_room(response: Response,
                      }
                  }
              })
-def update_room(response: Response,
-                room_id: int,
+def update_room(room_id: int,
                 room_data: Room,
                 current_concierge: User = Depends(
                     oauth2.get_current_concierge),
@@ -177,7 +170,6 @@ def update_room(response: Response,
     This endpoint updates the details of an existing room using the provided `room_id`. 
     If the room does not exist, a 404 error is returned. The requesting user must have 
     the 'admin' role to perform this action.
-
     """
     logger.info(
         f"POST request to update room with ID: {room_id}")
@@ -221,8 +213,7 @@ def update_room(response: Response,
                        }
                    }
                })
-def delete_room(response: Response,
-                room_id: int,
+def delete_room(room_id: int,
                 current_concierge: User = Depends(
                     oauth2.get_current_concierge),
                 db: Session = Depends(database.get_db)):
@@ -231,7 +222,6 @@ def delete_room(response: Response,
 
     This endpoint removes a room using the specified `room_id`. If the room does not exist, 
     a 404 error is returned. The requesting user must have the 'admin' role to perform this action.
-
     """
     logger.info(f"DELETE request to delete room with ID: {room_id}")
     

@@ -133,7 +133,7 @@ class UserSession(Base):
             logger.error(
                 f"Session with id {session_id} has been allready ended with status {session.status}")
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                detail="Session has been allready ended.")
+                                detail="Session has been allready ended")
         if commit:
             try:
                 db.commit()
@@ -623,7 +623,7 @@ class DeviceOperation(Base):
         operations_query = db.query(DeviceOperation)
         if session_id:
             logger.debug(f"Filtering operations by session ID: {session_id}")
-            operations_query.filter(DeviceOperation.session_id == session_id)
+            operations_query = operations_query.filter(DeviceOperation.session_id == session_id)
         operations = operations_query.all()
         if not operations:
             logger.warning(f"No operations found")
@@ -676,8 +676,11 @@ class DeviceOperation(Base):
         Returns:
             Optional[DeviceOperation]: The last DeviceOperation object for the specified device, or None if no operations exist.
         """
+        from app.models.device import Device
         logger.info(
             f"Attempting to retrieve last operation for device with ID: {device_id}")
+        Device.get_dev_by_id(db, device_id)
+        
         subquery = (
             db.query(func.max(DeviceOperation.timestamp))
             .filter(DeviceOperation.device_id == device_id)

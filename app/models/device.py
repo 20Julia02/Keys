@@ -122,7 +122,7 @@ class Room(Base):
                 f"Attempted to create room with duplicate number '{room_data.number}'.")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Room with this number already exists."
+                detail="Room with this number already exists"
             )
 
         new_room = Room(number=room_data.number)

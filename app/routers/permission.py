@@ -1,5 +1,5 @@
 import datetime
-from fastapi import Depends, APIRouter, status, Response, Query
+from fastapi import Depends, APIRouter, status, Query
 from app.schemas import PermissionOut, PermissionCreate
 from app import database, oauth2
 from sqlalchemy.orm import Session
@@ -28,8 +28,7 @@ router = APIRouter(
         }
     },
 })
-def get_permissions(response: Response,
-    user_id: Optional[int] = None,
+def get_permissions(user_id: Optional[int] = None,
     room_id: Optional[int] = None,
     date: Optional[datetime.date] = Query(
         None, 
@@ -82,8 +81,7 @@ def get_permissions(response: Response,
                      }
                  }
              })
-def create_permission(response: Response,
-                      permission_data: PermissionCreate,
+def create_permission(                  permission_data: PermissionCreate,
                       db: Session = Depends(database.get_db),
                       current_concierge: User = Depends(oauth2.get_current_concierge)) -> PermissionOut:
     """
@@ -135,8 +133,7 @@ def create_permission(response: Response,
                      }
                  }
              })
-def update_permission(response: Response,
-                      permission_id: int,
+def update_permission(                  permission_id: int,
                       permission_data: PermissionCreate,
                       db: Session = Depends(database.get_db),
                       current_concierge: User = Depends(oauth2.get_current_concierge)) -> PermissionOut:
@@ -189,8 +186,7 @@ def update_permission(response: Response,
                        }
                    }
                })
-def delete_permission(response: Response,
-                      permission_id: int,
+def delete_permission(                  permission_id: int,
                       db: Session = Depends(database.get_db),
                       current_concierge: User = Depends(oauth2.get_current_concierge)):
     """
@@ -220,7 +216,6 @@ def delete_permission(response: Response,
     },
 })
 def get_active_permissions(
-    response: Response,
     user_id: int,
     date: Optional[datetime.date] = datetime.datetime.now().date(),
     time: Optional[datetime.time] = datetime.datetime.now().time(),
