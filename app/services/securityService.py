@@ -45,7 +45,13 @@ class PasswordService:
             bool: True if the passwords match, False otherwise.
         """
         logger.info("Verifing if given plain text matches the hashed one")
-        verified = self.pwd_context.verify(plain_text, hashed_text)
+        try:
+            verified = self.pwd_context.verify(plain_text, hashed_text)
+        except Exception as e:
+            logger.warning(
+                    f"Error while identifing hash: {e}")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                    detail="Password could not be identified")
         logger.debug(f"Text verified with response: {verified}")
         return verified
 

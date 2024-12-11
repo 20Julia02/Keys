@@ -149,9 +149,11 @@ class User(BaseUser):
             HTTPException: 
                 - 500 Internal Server Error: If an error occurs during the commit process.
         """
+        from app.services.securityService import PasswordService
         logger.info("Creating a new user")
         logger.debug(f"User data provided: {user_data}")
 
+        user_data.password = PasswordService().hash_password(user_data.password)
         new_user = cls(**user_data.model_dump())
         db.add(new_user)
         if commit:
@@ -235,6 +237,7 @@ class User(BaseUser):
                 - 404 Not Found: If no user with the given ID exists in the database.
                 - 500 Internal Server Error: If an error occurs during the commit process.
         """
+        from app.services.securityService import PasswordService
         logger.info(f"Attempting to update user with ID: {user_id}")
         logger.debug(f"New user data: {user_data}")
         user = db.query(User).filter(User.id == user_id).first()
@@ -243,14 +246,10 @@ class User(BaseUser):
             logger.warning(f"User with ID {user_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="User not found")
-        user.name = user_data.name
-        user.surname = user_data.surname
-        user.email = user_data.email
-        user.card_code = user_data.card_code
-        user.role = UserRole(user_data.role)
-        user.faculty = Faculty(user_data.faculty)
-        user.photo_url = user_data.photo_url
-        user.password = user_data.password
+        
+        user_data.password = PasswordService().hash_password(user_data.password)
+        for key, value in user_data.model_dump().items():
+            setattr(user, key, value)
 
         if commit:
             try:

@@ -24,10 +24,9 @@ router = APIRouter(
         }
     },
 })
-def get_user_notes_filtered(
-            user_id: Optional[int] = None,
-        current_concierge: muser.User = Depends(oauth2.get_current_concierge),
-        db: Session = Depends(database.get_db)) -> Sequence[schemas.UserNote]:
+def get_user_notes_filtered(user_id: Optional[int] = None,
+                             current_concierge: muser.User = Depends(oauth2.get_current_concierge),
+                             db: Session = Depends(database.get_db)) -> Sequence[schemas.UserNote]:
     """
     Retrieve all user-related notes stored in the database.
 
@@ -53,10 +52,9 @@ def get_user_notes_filtered(
         }
     },
 })
-def get_user_notes_id(
-            note_id: int,
-        current_concierge: muser.User = Depends(oauth2.get_current_concierge),
-        db: Session = Depends(database.get_db)) -> schemas.UserNote:
+def get_user_notes_id(note_id: int,
+                      current_concierge: muser.User = Depends(oauth2.get_current_concierge),
+                      db: Session = Depends(database.get_db)) -> schemas.UserNote:
     """
     Retrieve a specific user-related note by its unique ID.
 
@@ -83,7 +81,7 @@ def get_user_notes_id(
     },
 })
 def add_user_note(note_data: schemas.UserNoteCreate,
-                                current_concierge: muser.User = Depends(
+                  current_concierge: muser.User = Depends(
                       oauth2.get_current_concierge),
                   db: Session = Depends(database.get_db)) -> schemas.UserNote:
     """
@@ -131,7 +129,7 @@ def add_user_note(note_data: schemas.UserNoteCreate,
     },
 })
 def edit_user_note(note_id: int,
-                                  note_data: schemas.NoteUpdate,
+                   note_data: schemas.NoteUpdate,
                    current_concierge: muser.User = Depends(
                        oauth2.get_current_concierge),
                    db: Session = Depends(database.get_db)) -> schemas.UserNote:
@@ -159,8 +157,7 @@ def edit_user_note(note_id: int,
         }
     },
 })
-def get_devices_notes_filtered(
-                                                          device_id: Optional[int] = None,
+def get_devices_notes_filtered(device_id: Optional[int] = None,
                                current_concierge: muser.User = Depends(
                                    oauth2.get_current_concierge),
                                db: Session = Depends(database.get_db)) -> Sequence[schemas.DeviceNoteOut]:
@@ -189,10 +186,9 @@ def get_devices_notes_filtered(
         }
     },
 })
-def get_device_notes_id(
-            note_id: int,
-        current_concierge: muser.User = Depends(oauth2.get_current_concierge),
-        db: Session = Depends(database.get_db)) -> schemas.DeviceNote:
+def get_device_notes_id(note_id: int,
+                        current_concierge: muser.User = Depends(oauth2.get_current_concierge),
+                        db: Session = Depends(database.get_db)) -> schemas.DeviceNote:
     """
     Retrieve a specific device-related note by its unique ID.
 
@@ -219,7 +215,7 @@ def get_device_notes_id(
     },
 })
 def add_device_note(note_data: schemas.DeviceNote,
-                                    current_concierge: muser.User = Depends(
+                    current_concierge: muser.User = Depends(
                         oauth2.get_current_concierge),
                     db: Session = Depends(database.get_db)) -> schemas.DeviceNoteOut:
     """
@@ -270,7 +266,7 @@ def add_device_note(note_data: schemas.DeviceNote,
     },
 })
 def edit_device_note(note_id: int,
-                                      note_data: schemas.NoteUpdate,
+                     note_data: schemas.NoteUpdate,
                      current_concierge: muser.User = Depends(
                          oauth2.get_current_concierge),
                      db: Session = Depends(database.get_db)) -> schemas.DeviceNoteOut:
@@ -310,7 +306,7 @@ def edit_device_note(note_id: int,
     },
 })
 def delete_device_note(note_id: int,
-                                          db: Session = Depends(database.get_db),
+                       db: Session = Depends(database.get_db),
                        current_concierge: muser.User = Depends(oauth2.get_current_concierge)):
     """
     Delete a device note by its unique ID.

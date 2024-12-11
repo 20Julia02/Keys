@@ -81,7 +81,7 @@ def get_permissions(user_id: Optional[int] = None,
                      }
                  }
              })
-def create_permission(                  permission_data: PermissionCreate,
+def create_permission(permission_data: PermissionCreate,
                       db: Session = Depends(database.get_db),
                       current_concierge: User = Depends(oauth2.get_current_concierge)) -> PermissionOut:
     """
@@ -133,7 +133,7 @@ def create_permission(                  permission_data: PermissionCreate,
                      }
                  }
              })
-def update_permission(                  permission_id: int,
+def update_permission(permission_id: int,
                       permission_data: PermissionCreate,
                       db: Session = Depends(database.get_db),
                       current_concierge: User = Depends(oauth2.get_current_concierge)) -> PermissionOut:
@@ -186,7 +186,7 @@ def update_permission(                  permission_id: int,
                        }
                    }
                })
-def delete_permission(                  permission_id: int,
+def delete_permission(permission_id: int,
                       db: Session = Depends(database.get_db),
                       current_concierge: User = Depends(oauth2.get_current_concierge)):
     """

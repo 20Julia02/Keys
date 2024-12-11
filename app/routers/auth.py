@@ -32,7 +32,7 @@ router = APIRouter(
     },
 }
 )
-def login(      concierge_credentials: OAuth2PasswordRequestForm = Depends(),
+def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
           db: Session = Depends(database.get_db),
           ) -> schemas.Token:
     """
@@ -67,7 +67,7 @@ def login(      concierge_credentials: OAuth2PasswordRequestForm = Depends(),
     },
 }
 )
-def card_login(           card_code: schemas.CardId,
+def card_login(card_code: schemas.CardId,
                db: Session = Depends(database.get_db)) -> schemas.Token:
     """
     Authenticate a concierge using their card ID.

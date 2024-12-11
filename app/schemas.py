@@ -48,6 +48,7 @@ class UserOut(BaseModel):
     id: int
     name: str
     surname: str
+    email: str
     role: str
     faculty: Optional[str]
     photo_url: Optional[str] = None

@@ -43,7 +43,7 @@ router = APIRouter(
             }
             },
 })
-def start_login_session(                    user_credentials: OAuth2PasswordRequestForm = Depends(),
+def start_login_session(user_credentials: OAuth2PasswordRequestForm = Depends(),
                         current_concierge: muser.User = Depends(
                             oauth2.get_current_concierge),
                         db: Session = Depends(database.get_db)) -> schemas.SessionOut:
@@ -94,7 +94,7 @@ def start_login_session(                    user_credentials: OAuth2PasswordRequ
             }
             },
 })
-def start_card_session(                   card_id: schemas.CardId,
+def start_card_session(card_id: schemas.CardId,
                        current_concierge: muser.User = Depends(
                            oauth2.get_current_concierge),
                        db: Session = Depends(database.get_db)) -> schemas.SessionOut:
@@ -137,7 +137,7 @@ def start_card_session(                   card_id: schemas.CardId,
             }
             },
 })
-def start_unauthorized_session(                           unauthorized_id: int,
+def start_unauthorized_session(unauthorized_id: int,
                                current_concierge: muser.User = Depends(
                                    oauth2.get_current_concierge),
                                db: Session = Depends(database.get_db)) -> schemas.Session:
@@ -176,7 +176,7 @@ def start_unauthorized_session(                           unauthorized_id: int,
         }
     },
 })
-def get_session_id(               session_id: int,
+def get_session_id(session_id: int,
                    current_concierge: muser.User = Depends(
                        oauth2.get_current_concierge),
                    db: Session = Depends(database.get_db)) -> schemas.Session:

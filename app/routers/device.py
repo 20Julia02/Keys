@@ -27,7 +27,7 @@ router = APIRouter(
         }
     },
 })
-def get_devices_filtered(                     current_concierge: User = Depends(oauth2.get_current_concierge),
+def get_devices_filtered(current_concierge: User = Depends(oauth2.get_current_concierge),
                          dev_type: Optional[Literal["klucz",
                                                     "mikrofon", "pilot"]] = Query(
         None, description="Filter devices by type. Possible values: 'klucz', 'mikrofon', 'pilot'."
@@ -67,7 +67,7 @@ def get_devices_filtered(                     current_concierge: User = Depends(
         }
     },
 })
-def get_dev_code(             dev_code: str,
+def get_dev_code(dev_code: str,
                  current_concierge: User = Depends(
                      oauth2.get_current_concierge),
                  db: Session = Depends(database.get_db)) -> schemas.DeviceOut:
@@ -95,7 +95,7 @@ def get_dev_code(             dev_code: str,
         }
     },
 })
-def get_dev_id(           dev_id: int,
+def get_dev_id(dev_id: int,
                current_concierge: User = Depends(
                    oauth2.get_current_concierge),
                db: Session = Depends(database.get_db)) -> schemas.DeviceOut:
@@ -133,7 +133,7 @@ def get_dev_id(           dev_id: int,
         }
     },
 })
-def create_device(              device: schemas.DeviceCreate,
+def create_device(device: schemas.DeviceCreate,
                   db: Session = Depends(database.get_db),
                   current_concierge: User = Depends(oauth2.get_current_concierge)) -> schemas.DeviceOut:
     """
@@ -176,12 +176,11 @@ def create_device(              device: schemas.DeviceCreate,
         }
     },
 })
-def update_device(
-    device_id: int,
-    device_data: schemas.DeviceCreate,
-    current_concierge: User = Depends(
-        oauth2.get_current_concierge),
-    db: Session = Depends(database.get_db)
+def update_device(device_id: int,
+                  device_data: schemas.DeviceCreate,
+                  current_concierge: User = Depends(
+                      oauth2.get_current_concierge),
+                  db: Session = Depends(database.get_db)
 ) -> Sequence[schemas.DeviceOut]:
     """
     Update an existing device in the system.
@@ -226,11 +225,9 @@ def update_device(
         }
     },
 })
-def delete_device(
-    device_id: int,
-    current_concierge: User = Depends(
-        oauth2.get_current_concierge),
-    db: Session = Depends(database.get_db)
+def delete_device(device_id: int,
+                  current_concierge: User = Depends(oauth2.get_current_concierge),
+                  db: Session = Depends(database.get_db)
 ):
     """
     Delete a device from the database using its unique ID. This endpoint ensures that 

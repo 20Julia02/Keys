@@ -120,7 +120,7 @@ def change_status(
     },
 })
 def get_devs_owned_by_user(user_id: int,
-                                                  current_concierge: User = Depends(
+                           current_concierge: User = Depends(
                                oauth2.get_current_concierge),
                            db: Session = Depends(database.get_db)) -> Sequence[schemas.DevOperationOut]:
     """
@@ -147,7 +147,7 @@ def get_devs_owned_by_user(user_id: int,
         }
     },
 })
-def get_unapproved_operations(                          session_id: Optional[int] = None,
+def get_unapproved_operations(session_id: Optional[int] = None,
                               operation_type: Optional[Literal["pobranie",
                                                                "zwrot"]] = Query(
         None, description="Filter operations by type. Possible values: 'pobranie', 'zwrot'."
@@ -228,7 +228,7 @@ def get_operation_id(operation_id: int,
 
 
 @router.get("/device/{device_id}", response_model=schemas.DevOperationOut | None)
-def get_last_dev_operation_or_none(                               device_id: int,
+def get_last_dev_operation_or_none(device_id: int,
                                    current_concierge: User = Depends(
                                        oauth2.get_current_concierge),
                                    db: Session = Depends(database.get_db)) -> schemas.DevOperationOut | None:

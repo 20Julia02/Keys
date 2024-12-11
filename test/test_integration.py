@@ -735,7 +735,7 @@ def test_get_operations_no_results(db: Session,
                                    concierge_token: str):
     response = client.get("/operations?session_id=-5", 
                           headers={"Authorization": f"Bearer {concierge_token}"})
-    print(response.json())
+
     assert response.status_code == 404
     assert response.json()["detail"] == "There is no operation"
 
@@ -1376,6 +1376,8 @@ def test_reject_session_invalid_id(concierge_token: str):
 
 # unathorizedUser
 
+# create_or_get_unauthorized_user
+
 def test_create_unauthorized_user(test_concierge: muser.User,
                                   concierge_token: str):
     user_data = {
@@ -1434,189 +1436,374 @@ def test_get_all_unauthorized_users(test_concierge: muser.User,
     assert response.status_code == 200
     assert len(response.json()) >= 1
 
+#get_unathorized_user_id
 
-# def test_get_unauthorized_user_email(db: Session, 
-#                                      test_unauthorized_user: muser.UnauthorizedUser,
-#                                      concierge_token: str):
+def test_get_unauthorized_user_by_id(db: Session,
+                                     test_concierge: muser.User,
+                                     concierge_token: str):
+    user = muser.UnauthorizedUser(name="Unauthorized",
+                                  surname="User 2",
+                                  email="user123@gmail.com")
+    db.add(user)
+    db.commit()
+    db.refresh(user)
 
-#     email =test_unauthorized_user.email
-#     assert isinstance(email, str)
-
-#     response = client.get(f"unauthorized-users/email/{email}",
-#                            headers={"Authorization": f"Bearer {concierge_token}"})
-
-#     assert response.status_code == 200
-#     data = response.json()
-
-#     assert data["email"] == email
-#     assert data["name"] == test_unauthorized_user.name
-#     assert data["surname"] == test_unauthorized_user.surname
-
-
-# def test_update_unauthorized_user(db: Session, 
-#                                   test_unauthorized_user: muser.UnauthorizedUser, 
-#                                   concierge_token: str):
-
-#     user_id = test_unauthorized_user.id
-#     update_data = {
-#         "name": "Jane Updated",
-#         "surname": "Doe Updated",
-#         "email": "john.doe@example.com"
-#     }
-
-#     response = client.post(
-#         f"/unauthorized-users/{user_id}",
-#         json=update_data,
-#         headers={"Authorization": f"Bearer {concierge_token}"}
-#     )
-
-#     assert response.status_code == 200
-#     updated_user = response.json()
-#     assert updated_user["id"] == user_id
-#     assert updated_user["name"] == update_data["name"]
-#     assert updated_user["surname"] == update_data["surname"]
-#     assert updated_user["email"] == update_data["email"]
-
-#     db.refresh(test_unauthorized_user)
-#     assert test_unauthorized_user.name == update_data["name"]
-#     assert test_unauthorized_user.surname == update_data["surname"]
-#     assert test_unauthorized_user.email == update_data["email"]
+    response = client.get(
+        f"/unauthorized-users/{user.id}", headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 200
+    assert response.json()["surname"] == user.surname
 
 
-# def test_get_unauthorized_user_by_id(db: Session,
-#                                      test_concierge: muser.User,
-#                                      concierge_token: str):
-#     user = muser.UnauthorizedUser(name="Unauthorized",
-#                                   surname="User 2",
-#                                   email="user123@gmail.com")
-#     db.add(user)
-#     db.commit()
-#     db.refresh(user)
+def test_get_unauthorized_user_with_invalid_id(test_concierge: muser.User,
+                                               concierge_token: str):
+    response = client.get("/unauthorized-users/9999",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 404
+    assert response.json()[
+        "detail"] == "Unauthorized user doesn't exist"
 
-#     response = client.get(
-#         f"/unauthorized-users/{user.id}", headers={"Authorization": f"Bearer {concierge_token}"})
-#     assert response.status_code == 200
-#     assert response.json()["surname"] == user.surname
+# get_unathorized_user_email
 
+def test_get_unauthorized_user_email(db: Session, 
+                                     test_unauthorized_user: muser.UnauthorizedUser,
+                                     concierge_token: str):
 
-# def test_get_unauthorized_user_with_invalid_id(test_concierge: muser.User,
-#                                                concierge_token: str):
-#     response = client.get("/unauthorized-users/9999",
-#                           headers={"Authorization": f"Bearer {concierge_token}"})
-#     assert response.status_code == 404
-#     assert response.json()[
-#         "detail"] == "Unauthorized user doesn't exist"
+    email =test_unauthorized_user.email
+    assert isinstance(email, str)
 
+    response = client.get(f"unauthorized-users/email/{email}",
+                           headers={"Authorization": f"Bearer {concierge_token}"})
 
-# def test_delete_unauthorized_user_invalid_id(concierge_token: str):
-#     response = client.delete("/unauthorized-users/9999",
-#                              headers={"Authorization": f"Bearer {concierge_token}"})
-#     assert response.status_code == 404
-#     assert response.json()[
-#         "detail"] == "Unauthorized user doesn't exist"
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["email"] == email
+    assert data["name"] == test_unauthorized_user.name
+    assert data["surname"] == test_unauthorized_user.surname
 
 
-# def test_delete_unauthorized_user_valid(db: Session,
-#                                         concierge_token: str):
+def test_get_unauthorized_user_email_invalid(db: Session,
+                                     concierge_token: str):
 
-#     user = muser.UnauthorizedUser(name="Unauthorized",
-#                                   surname="User 2",
-#                                   email="2user2@kskk.cck")
-#     db.add(user)
-#     db.commit()
-#     db.refresh(user)
-#     response = client.delete(
-#         f"/unauthorized-users/{user.id}", headers={"Authorization": f"Bearer {concierge_token}"})
-#     assert response.status_code == 204
+    response = client.get(f"unauthorized-users/email/niepoprawny@example.pl",
+                           headers={"Authorization": f"Bearer {concierge_token}"})
 
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Unauthorized user doesn't exist"
 
-# def test_get_all_users(concierge_token: str):
-#     response = client.get("/users/", headers={"Authorization": f"Bearer {concierge_token}"})
-#     assert response.status_code == 200
-#     assert len(response.json()) >= 1
+# update_unauthorized_user
 
+def test_update_unauthorized_user(db: Session, 
+                                  test_unauthorized_user: muser.UnauthorizedUser, 
+                                  concierge_token: str):
 
-# def test_get_user_by_id(test_concierge: muser.User,
-#                         concierge_token: str):
-#     response = client.get(f"/users/{test_concierge.id}",
-#                           headers={"Authorization": f"Bearer {concierge_token}"})
-#     assert response.status_code == 200
-#     assert response.json()["surname"] == test_concierge.surname
+    user_id = test_unauthorized_user.id
+    update_data = {
+        "name": "Jane Updated",
+        "surname": "Doe Updated",
+        "email": "john.doe@example.com"
+    }
 
+    response = client.post(
+        f"/unauthorized-users/{user_id}",
+        json=update_data,
+        headers={"Authorization": f"Bearer {concierge_token}"}
+    )
 
-# def test_get_user_by_invalid_id(concierge_token: str):
-#     response = client.get(f"/users/{-1}",
-#                           headers={"Authorization": f"Bearer {concierge_token}"})
-#     assert response.status_code == 404
-#     assert response.json()["detail"] == "User doesn't exist"
+    assert response.status_code == 200
+    updated_user = response.json()
+    assert updated_user["id"] == user_id
+    assert updated_user["name"] == update_data["name"]
+    assert updated_user["surname"] == update_data["surname"]
+    assert updated_user["email"] == update_data["email"]
 
-
-# def test_login_with_correct_credentials(test_concierge: muser.User):
-#     login_data = {
-#         "username": test_concierge.email,
-#         "password": "password123"
-#     }
-#     response = client.post("/login", data=login_data)
-#     assert response.status_code == 200
+    db.refresh(test_unauthorized_user)
+    assert test_unauthorized_user.name == update_data["name"]
+    assert test_unauthorized_user.surname == update_data["surname"]
+    assert test_unauthorized_user.email == update_data["email"]
 
 
-# def test_login_with_incorrect_credentials(test_concierge: muser.User):
-#     login_data = {
-#         "username": test_concierge.email,
-#         "password": "wrongpassword"
-#     }
-#     response = client.post("/login", data=login_data)
-#     assert response.status_code == 403
-#     assert response.json()["detail"] == "Invalid credentials"
+def test_update_unauthorized_user_invalid(db: Session, 
+                                  test_unauthorized_user: muser.UnauthorizedUser, 
+                                  concierge_token: str):
+
+    user_id = test_unauthorized_user.id
+    update_data = {
+        "name": "Jane Updated",
+        "surname": "Doe Updated",
+    }
+
+    response = client.post(
+        f"/unauthorized-users/{user_id}",
+        json=update_data,
+        headers={"Authorization": f"Bearer {concierge_token}"}
+    )
+
+    assert response.status_code == 422
+     
+# delete_unauthorized_user
+
+def test_delete_unauthorized_user_invalid_id(concierge_token: str):
+    response = client.delete("/unauthorized-users/9999",
+                             headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 404
+    assert response.json()[
+        "detail"] == "Unauthorized user doesn't exist"
 
 
-# def test_login_without_all_credentials(test_concierge: muser.User):
-#     login_data = {
-#         "password": "wrongpassword"
-#     }
-#     response = client.post("/login", data=login_data)
-#     assert response.status_code == 422
+def test_delete_unauthorized_user_valid(db: Session,
+                                        concierge_token: str):
+
+    user = muser.UnauthorizedUser(name="Unauthorized",
+                                  surname="User 2",
+                                  email="2user2@kskk.cck")
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    response = client.delete(
+        f"/unauthorized-users/{user.id}", headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 204
+
+#users
+
+#get_all_users
+
+def test_get_all_users(concierge_token: str):
+    response = client.get("/users/", headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 200
+    assert len(response.json()) >= 1
+
+# get_user_id
+
+def test_get_user_by_id(test_concierge: muser.User,
+                        concierge_token: str):
+    response = client.get(f"/users/{test_concierge.id}",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 200
+    assert response.json()["surname"] == test_concierge.surname
 
 
-# def test_card_login_with_valid_card_id():
-#     card_data = {"card_id": "123456"}
-#     response = client.post("/login/card", json=card_data)
-#     assert response.status_code == 200
-#     assert "access_token" in response.json()
+def test_get_user_by_invalid_id(concierge_token: str):
+    response = client.get(f"/users/{-1}",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 404
+    assert response.json()["detail"] == "User doesn't exist"
+
+# create_user
+
+def test_create_user_success(concierge_token: str,
+                             test_user: muser.User):
+
+    user_data : dict[str, Any] = {
+        "email":"testuser123@example.com",
+        "password":"password456789",
+        "card_code":"7890123",
+        "role":"student",
+        "name":"New",
+        "surname":"User",
+        "faculty":"Geodezji i Kartografii"
+}
+    response = client.post("/users/", json=user_data,
+                           headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 201
 
 
-# def test_card_login_with_invalid_card_id():
-#     card_data = {"card_id": "invalid_card"}
-#     response = client.post("/login/card", json=card_data)
-#     assert response.status_code == 403
-#     assert response.json()["detail"] == "Invalid credentials"
+def test_create_user_invalid(concierge_token: str,
+                             test_user: muser.User):
+
+    user_data : dict[str, Any] = {
+        "email":"testuser123@example.com",
+        "password":"password456789",
+        "card_code":"7890123",
+        "role":"geodeta",
+        "name":"New",
+        "surname":"User",
+        "faculty":"Geodezji i Kartografii"
+}
+    response = client.post("/users/", json=user_data,
+                           headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 422
+
+def test_create_user_invalid_2(concierge_token: str,
+                             test_user: muser.User):
+
+    user_data : dict[str, Any] = {
+        "email":"testuser123@example.com",
+        "password":"password456789",
+        "card_code":"7890123",
+        "role":"student",
+        "name":"New",
+        "surname":"User",
+        "faculty":"Przykładowy Wydział"
+}
+    response = client.post("/users/", json=user_data,
+                           headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 500
 
 
-# def test_logout_with_valid_token(test_concierge: muser.User,
-#                                  concierge_refresh_token: str,
-#                                  concierge_token: str):
-#     response = client.post(
-#         "/logout", headers={"Authorization": f"Bearer {concierge_token}"},
-#         json={"refresh_token":concierge_refresh_token})
-#     assert response.status_code == 200
-#     assert response.json() == {"detail": "User logged out successfully"}
+def test_create_user_duplicated(concierge_token: str,
+                             test_user: muser.User):
+    user_data : dict[str, Any] = {
+        "email":"testuser123@example.com",
+        "password":"password456789",
+        "card_code":"7890123",
+        "role":"student",
+        "name":"New",
+        "surname":"User",
+        "faculty":"Geodezji i Kartografii"
+}
+    response = client.post("/users/", json=user_data,
+                           headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 500
+
+# delete_user
+
+def test_delete_user_invalid_id(test_permission: mpermission.Permission, 
+                                   concierge_token: str):
+    response = client.delete(f"/users/-5",
+                           headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 404
+    assert response.json()['detail'] == "User doesn't exist"
+
+def test_delete_user_success(test_user: muser.User,  
+                             concierge_token: str):
+    user_data : dict[str, Any] = {
+        "email":"testuser1234@example.com",
+        "password":"password456789",
+        "card_code":"789012345",
+        "role":"student",
+        "name":"New",
+        "surname":"User",
+        "faculty":"Geodezji i Kartografii"
+}
+    response = client.post("/users/", json=user_data,
+                           headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 201
+    response1 = client.delete(f"/users/{response.json()["id"]}",
+                           headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response1.status_code == 204
+
+# update_user
+
+def test_update_user_invalid_id(test_permission: mpermission.Permission, 
+                                   concierge_token: str,
+                                   test_user: muser.User,
+                                   test_room: mdevice.Room):
+    user_data : dict[str, Any] = {
+        "email":"testuser123@example.com",
+        "password":"password456789",
+        "card_code":"7890123",
+        "role":"student",
+        "name":"New",
+        "surname":"User",
+        "faculty":"Geodezji i Kartografii"
+    }
+    response = client.post(f"/users/update/-5", json=user_data,
+                           headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 404
+    assert response.json()['detail'] == "User not found"
 
 
-# def test_logout_with_invalid_token():
-#     response = client.post(
-#         "/logout", cookies={"access_token": "concierge_token"})
-#     assert response.status_code == 401
-#     assert response.json()["detail"] == "Not authenticated"
+def test_update_user_success(test_permission: mpermission.Permission, 
+                                   concierge_token: str,
+                                   test_user: muser.User,
+                                   test_room: mdevice.Room):
+    user_data : dict[str, Any] = {
+        "email":"testuser1234@example.com",
+        "password":"password456789",
+        "card_code":"789012345",
+        "role":"student",
+        "name":"New",
+        "surname": "portier",
+        "faculty":"Geodezji i Kartografii"
+    }
+    response = client.post(f"/users/update/{test_user.id}", json=user_data,
+                           headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 200
+    assert response.json()['email'] == "testuser1234@example.com"
+    assert response.json()['id'] == test_user.id
+
+# auth
+
+# login
+
+def test_login_with_correct_credentials(test_concierge: muser.User):
+    login_data = {
+        "username": test_concierge.email,
+        "password": "password123"
+    }
+    response = client.post("/login", data=login_data)
+    assert response.status_code == 200
 
 
-# def test_logout_with_blacklisted_token(test_concierge: muser.User,
-#                                        concierge_refresh_token: str,
-#                                        concierge_token: str):
-#     client.post(
-#         "/logout", headers={"Authorization": f"Bearer {concierge_token}"},
-#         json={"refresh_token":concierge_refresh_token})
-#     response2 = client.post(
-#         "/logout", headers={"Authorization": f"Bearer {concierge_token}"},
-#         json={"refresh_token":concierge_refresh_token})
-#     assert response2.status_code == 403
-#     assert response2.json()["detail"] == "Concierge is logged out"
+def test_login_with_incorrect_credentials(test_concierge: muser.User):
+    login_data = {
+        "username": test_concierge.email,
+        "password": "wrongpassword"
+    }
+    response = client.post("/login", data=login_data)
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Invalid credentials"
+
+
+def test_login_without_all_credentials(test_concierge: muser.User):
+    login_data = {
+        "password": "wrongpassword"
+    }
+    response = client.post("/login", data=login_data)
+    assert response.status_code == 422
+
+# card_login
+
+def test_card_login_with_valid_card_id():
+    card_data = {"card_id": "123456"}
+    response = client.post("/login/card", json=card_data)
+    assert response.status_code == 200
+    assert "access_token" in response.json()
+
+
+def test_card_login_with_invalid_card_id():
+    card_data = {"card_id": "invalid_card"}
+    response = client.post("/login/card", json=card_data)
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Password could not be identified"
+
+# get_current_user
+
+def test_get_current_user(test_concierge: muser.User,
+                          concierge_token: str):
+    response = client.get("/concierge",
+                          headers={"Authorization": f"Bearer {concierge_token}"})
+    assert response.status_code == 200
+    assert response.json()["surname"] == test_concierge.surname
+
+# logout
+
+def test_logout_with_valid_token(test_concierge: muser.User,
+                                 concierge_refresh_token: str,
+                                 concierge_token: str):
+    response = client.post(
+        "/logout", headers={"Authorization": f"Bearer {concierge_token}"},
+        json={"refresh_token":concierge_refresh_token})
+    assert response.status_code == 200
+    assert response.json() == {"detail": "User logged out successfully"}
+
+
+def test_logout_with_invalid_token():
+    response = client.post(
+        "/logout", cookies={"access_token": "concierge_token"})
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+def test_logout_with_blacklisted_token(test_concierge: muser.User,
+                                       concierge_refresh_token: str,
+                                       concierge_token: str):
+    client.post(
+        "/logout", headers={"Authorization": f"Bearer {concierge_token}"},
+        json={"refresh_token":concierge_refresh_token})
+    response2 = client.post(
+        "/logout", headers={"Authorization": f"Bearer {concierge_token}"},
+        json={"refresh_token":concierge_refresh_token})
+    assert response2.status_code == 403
+    assert response2.json()["detail"] == "Concierge is logged out"
