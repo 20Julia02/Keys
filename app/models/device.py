@@ -87,7 +87,7 @@ class Room(Base):
             logger.warning(f"Room with ID {room_id} not found.")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="Room not found")
-        logger.debug(f"Room retrieved: {room}")
+        logger.debug(f"Room retrieved")
         return room
 
     @classmethod
@@ -140,7 +140,7 @@ class Room(Base):
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail="An internal error occurred while creating room.")
 
-        logger.debug(f"New room added to the database: {new_room}")
+        logger.debug(f"New room added to the database")
         return new_room
 
     @classmethod
@@ -199,7 +199,7 @@ class Room(Base):
                 logger.error(f"Error updating room ID {room_id}: {e}")
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail="An internal error occurred while updating room")
-        logger.debug(f"Updated room in the database: {room}")
+        logger.debug(f"Updated room in the database")
         return room
 
     @classmethod
@@ -394,7 +394,7 @@ class Device(Base):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="No devices found matching criteria")
 
-        logger.debug(f"Devices found: {devices}")
+        logger.debug(f"Devices found")
         return devices
 
     @classmethod
@@ -421,7 +421,7 @@ class Device(Base):
             logger.warning(f"Device with ID {dev_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="Device not found")
-        logger.debug(f"Device retrieved: {device}")
+        logger.debug(f"Device retrieved")
         return device
 
     @classmethod
@@ -450,7 +450,7 @@ class Device(Base):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="Device not found")
 
-        logger.debug(f"Device retrieved: {device}")
+        logger.debug(f"Device retrieved")
         return device
 
     @classmethod
@@ -492,7 +492,7 @@ class Device(Base):
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail="An internal error occurred while creating device")
 
-        logger.debug(f"New device added to the database: {new_device}")
+        logger.debug(f"New device added to the database")
         return new_device
 
     @classmethod
@@ -652,7 +652,7 @@ class DeviceNote(Base):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="No device note found")
 
-        logger.debug(f"Retrieved note: {note}")
+        logger.debug(f"Retrieved note")
         return note
 
     @classmethod
@@ -734,7 +734,7 @@ class DeviceNote(Base):
         if note_data.note is None:
             logger.info(
                 f"Deleting device note with ID: {note_id} as new content is None.")
-            cls.delete_device_note(db, note_id)
+            cls.delete_dev_note(db, note_id)
             raise HTTPException(
                 status_code=status.HTTP_204_NO_CONTENT, detail="Note deleted")
 

@@ -175,7 +175,7 @@ class UserSession(Base):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="Session doesn't exist")
 
-        logger.debug(f"Retrieved session: {session}")
+        logger.debug(f"Retrieved session")
         return session
 
 
@@ -659,7 +659,7 @@ class DeviceOperation(Base):
             logger.warning(f"Operationwith ID {operation_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="Operation doesn't exist")
-        logger.debug(f"Retrieved operation: {operation}")
+        logger.debug(f"Retrieved operation")
         return operation
 
     @classmethod

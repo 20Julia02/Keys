@@ -124,7 +124,7 @@ class User(BaseUser):
                 f"User with ID {user_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="User doesn't exist")
-        logger.debug(f"User retrieved: {user}")
+        logger.debug(f"User retrieved")
         return user
 
     @classmethod
@@ -324,7 +324,7 @@ class UnauthorizedUser(BaseUser):
                 raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                                     detail="User with this email already exists but with a different name or surname")
             logger.debug(
-                f"Existing unauthorized user retrieved: {existing_user}")
+                f"Existing unauthorized user retrieved")
             return existing_user, False
 
         new_user = UnauthorizedUser(
@@ -372,7 +372,7 @@ class UnauthorizedUser(BaseUser):
                 "No unauthorized users found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="There is no unauthorized user in database")
-        logger.debug(f"Unauthorized users found: {users}")
+        logger.debug(f"Unauthorized users found")
         return users
 
     @classmethod
@@ -403,7 +403,7 @@ class UnauthorizedUser(BaseUser):
             logger.warning(f"Unauthorized user with ID {user_id} not found")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail="Unauthorized user doesn't exist")
-        logger.debug(f"Unauthorized user retrieved: {user}")
+        logger.debug(f"Unauthorized user retrieved")
         return user
     
     @classmethod
@@ -613,7 +613,7 @@ class UserNote(Base):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="There is no user note with this id")
 
-        logger.debug(f"Retrieved user note: {note}")
+        logger.debug(f"Retrieved user note")
         return note
 
     @classmethod
