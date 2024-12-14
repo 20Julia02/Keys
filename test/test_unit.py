@@ -15,7 +15,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 # device
 
-# get_rooms
+# Test get_rooms
 
 def test_get_rooms_no_rooms():
     db = MagicMock()
@@ -46,7 +46,7 @@ def test_get_rooms_with_specific_number():
     assert len(rooms) == 1
     assert rooms[0].number == "101"
 
-# get_room_id
+# Test get_room_id
 
 def test_get_room_id_not_found():
     db = MagicMock()
@@ -67,7 +67,7 @@ def test_get_room_id_found():
     assert room.id == 1
     assert room.number == "101"
 
-# create_room
+# Test create_room
 
 
 def test_create_room_success():
@@ -104,7 +104,7 @@ def test_create_room_commit_error():
     assert excinfo.value.detail == "An internal error occurred while creating room."
     db.rollback.assert_called_once()
 
-# update_room
+# Test update_room
 
 def test_update_room_success():
     db = MagicMock(spec=Session)
@@ -151,7 +151,7 @@ def test_update_room_commit_error():
     assert excinfo.value.detail == "An internal error occurred while updating room"
     db.rollback.assert_called_once()
 
-# delete_room
+# Test delete_room
 
 def test_delete_room_success():
     db = MagicMock(spec=Session)
@@ -185,7 +185,7 @@ def test_delete_room_commit_error():
     assert excinfo.value.detail == "An internal error occurred while deleting room"
     db.rollback.assert_called_once()
 
-# get_dev_with_details
+# Test get_dev_with_details
 
 def test_get_device_with_details_no_devices():
     db = MagicMock()
@@ -218,7 +218,7 @@ def test_get_device_with_details_with_criteria():
     assert len(devices) > 0
     assert "device_key_101" in [d.code for d in devices]
 
-# get_dev_by_id
+# Test get_dev_by_id
 
 def test_get_by_id_not_found():
     db = MagicMock()
@@ -239,7 +239,7 @@ def test_get_by_id_found():
     assert found_device.id == 1
     assert found_device.code == "device_key_101"
 
-# get_dev_by_code
+# Test get_dev_by_code
 
 def test_get_by_code_not_found():
     db = MagicMock()
@@ -260,7 +260,7 @@ def test_get_by_code_found():
         db, dev_code="device_key_101")
     assert found_device.code == "device_key_101"
 
-# create_dev
+# Test create_dev
 
 def test_create_dev_success():
     db = MagicMock(spec=Session)
@@ -283,7 +283,7 @@ def test_create_dev_commit_error():
     assert excinfo.value.detail == "An internal error occurred while creating device"
     db.rollback.assert_called_once()
 
-# update_dev
+# Test update_dev
 
 def test_update_dev_success():
     db = MagicMock(spec=Session)
@@ -318,7 +318,7 @@ def test_update_dev_commit_error():
     assert excinfo.value.detail == "An internal error occurred while updating device"
     db.rollback.assert_called_once()
 
-# delete_dev
+# Test delete_dev
 
 def test_delete_dev_success():
     db = MagicMock(spec=Session)
@@ -351,7 +351,7 @@ def test_delete_dev_commit_error():
     assert excinfo.value.detail == "An internal error occurred while deleting device"
     db.rollback.assert_called_once()
 
-# get_dev_notes
+# Test get_dev_notes
 
 def test_get_dev_notes_no_notes():
     db = MagicMock(spec=Session)
@@ -371,7 +371,7 @@ def test_get_dev_notes_with_notes():
     assert len(notes) == 1
     assert notes[0].note == "Test note"
 
-# get_device_note_id
+# Test get_device_note_id
 
 def test_get_device_note_id_found():
     db = MagicMock(spec=Session)
@@ -391,7 +391,7 @@ def test_get_device_note_id_not_found():
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "No device note found"
 
-# create_dev_note
+# Test create_dev_note
 
 def test_create_dev_note_success():
     db = MagicMock(spec=Session)
@@ -414,7 +414,7 @@ def test_create_dev_note_commit_error():
     assert excinfo.value.detail == "An internal error occurred while creating note"
     db.rollback.assert_called_once()
 
-# update_dev_note
+# Test update_dev_note
 
 def test_update_dev_note_success():
     db = MagicMock(spec=Session)
@@ -460,7 +460,7 @@ def test_update_dev_note_commit_error():
     assert excinfo.value.detail == "An internal error occurred while updating device note"
     db.rollback.assert_called_once()
 
-# delete_dev_note
+# Test delete_dev_note
 
 def test_delete_dev_note_success():
     db = MagicMock(spec=Session)
@@ -494,9 +494,8 @@ def test_delete_dev_note_commit_error():
     db.rollback.assert_called_once()
 
 # operation
-# create_session
 
-# create_session
+# Test create_session
 
 def test_create_session_success():
     db = MagicMock()
@@ -521,7 +520,7 @@ def test_create_session_commit_error():
     assert excinfo.value.detail == "An internal error occurred while creating session"
     db.rollback.assert_called_once()
 
-# end_session
+# Test end_session
 
 def test_end_session_success():
     db = MagicMock()
@@ -562,7 +561,7 @@ def test_end_session_already_ended():
     assert excinfo.value.status_code == 403
     assert excinfo.value.detail == "Session has been allready ended"
 
-# get_session_id
+# Test get_session_id
 
 def test_get_session_id_success():
     db = MagicMock()
@@ -1332,7 +1331,6 @@ def test_create_token():
     token = token_service.create_token(data, "access")
     assert token is not None
 
-
 def test_create_token_with_special_characters():
     db = MagicMock()
     token_service = TokenService(db)
@@ -1381,7 +1379,38 @@ def test_is_token_blacklisted_true():
     token_service = TokenService(db)
 
     assert token_service.is_token_blacklisted("blacklisted_token") is True
-# TODO add_token_to_blacklist, generate_tokens, get_current_concierge_token, authenticate_user_card
+
+
+
+@patch("app.services.securityService.AuthorizationService.get_current_concierge", return_value=MagicMock(id=1, role="admin"))
+@patch.object(TokenService, "is_token_blacklisted", return_value=False)
+def test_add_token_to_blacklist_not_blacklisted(
+    mock_is_blacklisted: MagicMock,
+    mock_get_current_concierge: MagicMock
+) -> None:
+    db: MagicMock = MagicMock()
+    token_service = TokenService(db)
+
+    with patch.object(db, "commit") as mock_commit, patch.object(db, "add") as mock_add:
+        response = token_service.add_token_to_blacklist("some_token")
+
+        mock_is_blacklisted.assert_called_once_with("some_token")
+        mock_get_current_concierge.assert_called_once_with("some_token")
+        mock_add.assert_called_once()
+        mock_commit.assert_called_once()
+
+        assert response.body == b'{"detail":"User logged out successfully"}'
+            
+def test_add_token_to_blacklist_already_blacklisted():
+    db = MagicMock()
+    token_service = TokenService(db)
+    token_service.is_token_blacklisted = MagicMock(return_value=True)
+
+    with pytest.raises(HTTPException) as exc:
+        token_service.add_token_to_blacklist("some_token")
+
+    assert exc.value.status_code == 403
+    assert exc.value.detail == "Concierge is logged out"
 
 # Test entitled_or_error
 
@@ -1415,6 +1444,15 @@ def test_get_current_concierge_blacklisted_token(mock_is_blacklisted: Any):
     assert excinfo.value.status_code == 403
     assert excinfo.value.detail == "Concierge is logged out"
 
+# Test get_current_concierge_token
+
+def test_get_current_concierge_token():
+    db = MagicMock()
+    with patch.object(AuthorizationService, "get_current_concierge", return_value=MagicMock(id=1, role="concierge")) as mock_get_concierge:
+        auth_service = AuthorizationService(db)
+        token = auth_service.get_current_concierge_token("valid_token")
+        assert token == "valid_token"
+        mock_get_concierge.assert_called_once_with("valid_token")
 
 @patch.object(TokenService, "is_token_blacklisted", return_value=False)
 @patch.object(TokenService, "verify_concierge_token")
@@ -1456,3 +1494,39 @@ def test_authenticate_user_login_failure(mock_verify_hashed: Any):
             "test@example.com", "wrongpassword", "concierge")
     assert excinfo.value.status_code == 403
     assert excinfo.value.detail == "Invalid credentials"
+
+
+def test_authenticate_user_card_success():
+    db: MagicMock = MagicMock()
+    password_service: MagicMock = MagicMock()
+
+    def mock_verify_hashed(card_id: str, card_code: str) -> bool:
+        return card_id == card_code
+
+    password_service.verify_hashed.side_effect = mock_verify_hashed
+    user: MagicMock = MagicMock(card_code="valid_card", role=UserRole.concierge)
+
+    query_mock: MagicMock = MagicMock()
+    query_mock.all.return_value = [user]
+    db.query.return_value.filter.return_value = query_mock
+
+    with patch("app.services.securityService.PasswordService", return_value=password_service):
+        auth_service: AuthorizationService = AuthorizationService(db)
+        result: User = auth_service.authenticate_user_card(schemas.CardId(card_id="valid_card"), "concierge")
+        assert result == user
+
+def test_authenticate_user_card_invalid_card():
+    db = MagicMock()
+    password_service = MagicMock()
+    password_service.verify_hashed.return_value = False
+
+    query_mock = MagicMock()
+    query_mock.all.return_value = []
+    db.query.return_value.filter.return_value = query_mock
+
+    with patch("app.services.securityService.PasswordService", return_value=password_service):
+        auth_service = AuthorizationService(db)
+        with pytest.raises(HTTPException) as exc:
+            auth_service.authenticate_user_card(schemas.CardId(card_id="invalid_card"), "concierge")
+        assert exc.value.status_code == 403
+        assert exc.value.detail == "Invalid credentials"
