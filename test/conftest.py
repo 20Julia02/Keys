@@ -13,10 +13,14 @@ import app.models.permission as mpermission
 import app.models.operation as moperation
 from app.services import securityService
 from app.models.base import Base
+from unittest.mock import MagicMock
 
 sys.path.append(os.path.abspath(os.path.join(
     os.path.dirname(__file__), '..', '..')))
 
+@pytest.fixture
+def mock_db():
+    return MagicMock()
 
 @pytest.fixture(scope="module")
 def db() -> Generator[Session, None, None]:
@@ -262,14 +266,6 @@ def concierge_token(db: Session, test_concierge: muser.User) -> str:
     token_service = securityService.TokenService(db)
     token_data: dict[str, Any] = {
         'user_id': test_concierge.id, 'user_role': test_concierge.role.value}
-    token = token_service.create_token(token_data, token_type="access")
+    token = token_service.create_token(token_data)
     return token
 
-
-@pytest.fixture(scope="module")
-def concierge_refresh_token(db: Session, test_concierge: muser.User) -> str:
-    token_service = securityService.TokenService(db)
-    token_data: dict[str, Any] = {
-        'user_id': test_concierge.id, 'user_role': test_concierge.role.value}
-    token = token_service.create_token(token_data, token_type="refresh")
-    return token

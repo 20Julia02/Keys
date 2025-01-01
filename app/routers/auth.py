@@ -7,14 +7,13 @@ import app.models.user as muser
 from app.services import securityService
 from app.config import logger
 from fastapi.responses import JSONResponse
-from fastapi import Request
 
 router = APIRouter(
     tags=['Authentication']
 )
 
 
-@router.post("/login", response_model=schemas.Token, responses={
+@router.post("/login", response_model=schemas.AccessToken, responses={
     403: {
         "description": "Credentials are invalid or the user does not have the required role.",
         "content": {
@@ -34,7 +33,7 @@ router = APIRouter(
 )
 def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
           db: Session = Depends(database.get_db),
-          ) -> schemas.Token:
+          ) -> schemas.AccessToken:
     """
     Authenticate a concierge using their login credentials (username and password).
     """
@@ -45,11 +44,11 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
                                                      concierge_credentials.password, "concierge")
 
     token_service = securityService.TokenService(db)
-    tokens = token_service.generate_tokens(concierge.id, concierge.role.value)
-    return tokens
+    tokens = token_service.create_token({"user_id": concierge.id, "user_role": concierge.role.value})
+    return schemas.AccessToken(access_token=tokens)
 
 
-@router.post("/login/card", response_model=schemas.Token, responses={
+@router.post("/login/card", response_model=schemas.AccessToken, responses={
     403: {
         "description": "Credentials are invalid or the user does not have the required role.",
         "content": {
@@ -68,7 +67,7 @@ def login(concierge_credentials: OAuth2PasswordRequestForm = Depends(),
 }
 )
 def card_login(card_code: schemas.CardId,
-               db: Session = Depends(database.get_db)) -> schemas.Token:
+               db: Session = Depends(database.get_db)) -> schemas.AccessToken:
     """
     Authenticate a concierge using their card ID.
     This endpoint allows a concierge to authenticate by providing their card ID.
@@ -80,8 +79,8 @@ def card_login(card_code: schemas.CardId,
     concierge = auth_service.authenticate_user_card(card_code, "concierge")
 
     token_service = securityService.TokenService(db)
-    tokens = token_service.generate_tokens(concierge.id, concierge.role.value)
-    return tokens
+    tokens = token_service.create_token({"user_id": concierge.id, "user_role": concierge.role.value})
+    return schemas.AccessToken(access_token=tokens)
 
 
 @router.get("/concierge", response_model=schemas.UserOut, responses={
@@ -95,16 +94,13 @@ def card_login(card_code: schemas.CardId,
             }
         },
     },
-    404: {
+    204: {
         "description": "No user with the given ID exists in the database.",
         "content": {
             "application/json": {
                 "example": {
-                    "user_not_found":{
+                    "user_not_found": {
                         "detail": "User doesn't exist"
-                    },
-                    "missing_data":{
-                        "detail": "Invalid token"
                     }
                 }
             }
@@ -137,28 +133,23 @@ def get_current_user(token: str = Depends(oauth2.get_current_concierge_token),
         "content": {
             "application/json": {
                 "example": {
-                    "missing_data":{"detail": "Invalid token"},
-                    "invalid_token":{"detail": "Failed to verify token"}
+                    "missing_data": {"detail": "Invalid token"},
+                    "invalid_token": {"detail": "Failed to verify token"}
                 }
             }
         },
     },
 })
-def refresh_token(request: Request, 
+def refresh_token(access_token: schemas.AccessToken,
                   db: Session = Depends(database.get_db)) -> schemas.AccessToken:
     """
-    Refresh the access token using a valid refresh token.
+    Create a new access token from validated data from existing one.
     """
-    logger.info(f"POST request to refresh tokens")
-    refresh_token = request.cookies.get("refresh_token")
-    if not refresh_token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token missing")
     token_service = securityService.TokenService(db)
-    auth_service = securityService.AuthorizationService(db)
+    token_data = token_service.verify_concierge_token(access_token.access_token)
+    new_token = token_service.create_token({"user_id": token_data.id, "user_role": token_data.role})
+    return schemas.AccessToken(access_token=new_token)
 
-    token_data = auth_service.get_current_concierge(refresh_token)
-    access_token = token_service.create_token({"user_id": token_data.id, "user_role": token_data.role.value}, "access")
-    return schemas.AccessToken(access_token=access_token)
 
 @router.post("/logout", responses={
     401: {
@@ -166,8 +157,8 @@ def refresh_token(request: Request,
         "content": {
             "application/json": {
                 "example": {
-                    "missing_data":{"detail": "Invalid token"},
-                    "invalid_token":{"detail": "Failed to verify token"}
+                    "missing_data": {"detail": "Invalid token"},
+                    "invalid_token": {"detail": "Failed to verify token"}
                 }
             }
         }
@@ -183,8 +174,7 @@ def refresh_token(request: Request,
         }
     },
 })
-def logout(refresh_token: schemas.RefreshToken, 
-           access_token: str = Depends(oauth2.get_current_concierge_token),
+def logout(access_token: str = Depends(oauth2.get_current_concierge_token),
            db: Session = Depends(database.get_db)) -> JSONResponse:
     """
     Log out the concierge by blacklisting their tokens.
@@ -193,6 +183,5 @@ def logout(refresh_token: schemas.RefreshToken,
     token_service = securityService.TokenService(db)
 
     token_service.add_token_to_blacklist(access_token)
-    token_service.add_token_to_blacklist(refresh_token.refresh_token)
 
     return JSONResponse({"detail": "User logged out successfully"})

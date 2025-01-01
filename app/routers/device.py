@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.config import logger
 import app.models.user as muser
-
+from fastapi import HTTPException
 
 router = APIRouter(
     prefix="/devices",
@@ -16,7 +16,7 @@ router = APIRouter(
 
 
 @router.get("/", response_model=List[schemas.DeviceOutWithNote], responses={
-    404: {
+    204: {
         "description": "If no devices match the specified criteria.",
         "content": {
             "application/json": {
@@ -56,7 +56,7 @@ def get_devices_filtered(current_concierge: User = Depends(oauth2.get_current_co
 
 
 @router.get("/code/{dev_code}", response_model=schemas.DeviceOut, responses={
-    404: {
+    204: {
         "description": "If no device with the given code exists",
         "content": {
             "application/json": {
@@ -79,12 +79,18 @@ def get_dev_code(dev_code: str,
 
     """
     logger.info(f"GET request to retrieve device by code {dev_code}.")
+
+    device = mdevice.Device.get_dev_by_code(db, dev_code)
     
-    return mdevice.Device.get_dev_by_code(db, dev_code)
+    if not device:
+            logger.warning(f"Device with code {dev_code} not found.")
+            raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
+    
+    return device
 
 
 @router.get("/{dev_id}", response_model=schemas.DeviceOut, responses={
-    404: {
+    204: {
         "description": "If no device with the given ID exists",
         "content": {
             "application/json": {
@@ -107,8 +113,13 @@ def get_dev_id(dev_id: int,
 
     """
     logger.info(f"GET request to retrieve device with Id {dev_id}.")
-    
-    return mdevice.Device.get_dev_by_id(db, dev_id)
+    device = mdevice.Device.get_dev_by_id(db, dev_id)
+    if not device:
+        logger.warning(f"Device with ID {dev_id} not found")
+        raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
+    logger.debug(f"Device retrieved")
+
+    return device
 
 
 @router.post("/", response_model=schemas.DeviceOut, status_code=status.HTTP_201_CREATED, responses={

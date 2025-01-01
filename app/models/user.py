@@ -86,15 +86,14 @@ class User(BaseUser):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If no users are found in the database.
+                - 204 No Content: If no users are found in the database.
         """
 
         logger.info("Fetching users from the database.")
         users = db.query(User).all()
         if (not users):
             logger.warning(f"No users found")
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="There is no user in the database")
+            raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
         logger.debug(
             f"Retrieved {len(users)} users that match given criteria.")
         return users
@@ -115,15 +114,14 @@ class User(BaseUser):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If no user with the given ID exists in the database.
+                - 204 No Content: If no user with the given ID exists in the database.
         """
         logger.info(f"Attempting to retrieve user with ID: {user_id}")
         user = db.query(User).filter(User.id == user_id).first()
         if (not user):
             logger.warning(
                 f"User with ID {user_id} not found")
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="User doesn't exist")
+            raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
         logger.debug(f"User retrieved")
         return user
 
@@ -362,7 +360,7 @@ class UnauthorizedUser(BaseUser):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If no unauthorized users are found in the database.
+                - 204 No Content: If no unauthorized users are found in the database.
         """
         logger.info("Retrieving all unauthorized users")
 
@@ -370,8 +368,7 @@ class UnauthorizedUser(BaseUser):
         if (not users):
             logger.warning(
                 "No unauthorized users found")
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="There is no unauthorized user in database")
+            raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
         logger.debug(f"Unauthorized users found")
         return users
 
@@ -393,7 +390,7 @@ class UnauthorizedUser(BaseUser):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If no unauthorized user with the given ID exists in the database.
+                - 204 No Content: If no unauthorized user with the given ID exists in the database.
         """
         logger.info(
             f"Attempting to retrieve unauthorized user with ID: {user_id}")
@@ -401,8 +398,7 @@ class UnauthorizedUser(BaseUser):
             UnauthorizedUser.id == user_id).first()
         if not user:
             logger.warning(f"Unauthorized user with ID {user_id} not found")
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="Unauthorized user doesn't exist")
+            raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
         logger.debug(f"Unauthorized user retrieved")
         return user
     
@@ -424,7 +420,7 @@ class UnauthorizedUser(BaseUser):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If no unauthorized user with the given email exists in the database.
+                - 204 No Content: If no unauthorized user with the given email exists in the database.
         """
         logger.info(
             f"Attempting to retrieve unauthorized user with email: {email}")
@@ -432,8 +428,7 @@ class UnauthorizedUser(BaseUser):
             UnauthorizedUser.email == email).first()
         if not user:
             logger.warning(f"Unauthorized user with email {email} not found")
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="Unauthorized user doesn't exist")
+            raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
         logger.debug(f"Unauthorized user retrieved: {user}")
         return user
 
@@ -568,7 +563,7 @@ class UserNote(Base):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If no user notes are found that match the given criteria.
+                - 204 No Content: If no user notes are found that match the given criteria.
         """
         logger.info("Attempting to retrieve user notes.")
         logger.debug(f"Filtering notes by user ID: {user_id}")
@@ -580,8 +575,7 @@ class UserNote(Base):
         if not notes:
             logger.warning(f"No user notes found that match given criteria")
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No user notes found")
+                status_code=status.HTTP_204_NO_CONTENT)
         logger.debug(
             f"Retrieved {len(notes)} user notes that match given criteria")
         return notes
@@ -604,14 +598,14 @@ class UserNote(Base):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If no user note with the given ID exists in the database.
+                - 204 No Content: If no user note with the given ID exists in the database.
         """
         logger.info(f"Attempting to retrieve user note with ID: {note_id}")
         note = db.query(UserNote).filter(UserNote.id == note_id).first()
         if not note:
             logger.warning(f"Note with ID {note_id} not found.")
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="There is no user note with this id")
+                status_code=status.HTTP_204_NO_CONTENT)
 
         logger.debug(f"Retrieved user note")
         return note
@@ -697,7 +691,7 @@ class UserNote(Base):
                 f"Deleting user note with ID: {note_id} as new content is None.")
             cls.delete_user_note(db, note_id)
             raise HTTPException(
-                status_code=status.HTTP_204_NO_CONTENT, detail="Note deleted")
+                status_code=status.HTTP_204_NO_CONTENT)
 
         logger.debug(f"Updating user note content to: {note_data.note}")
         note.note = note_data.note

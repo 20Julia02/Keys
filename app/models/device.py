@@ -7,7 +7,7 @@ from app.models.base import Base
 from app import schemas
 from app.models.operation import UserSession, DeviceOperation
 from app.models.user import User
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Union
 from sqlalchemy import Enum as SAEnum
 from app.config import logger
 from app.models.base import get_enum_values
@@ -41,7 +41,7 @@ class Room(Base):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If no rooms are found in the database.
+                - 204 No Content: If no rooms are found in the database.
         """
         logger.info("Fetching rooms from the database")
         logger.debug(f"Room filter applied: room_number={room_number}")
@@ -51,10 +51,10 @@ class Room(Base):
             query = query.filter(Room.number == room_number)
         rooms = query.all()
         if not rooms:
-            logger.warning(f"No rooms found with number: '{room_number}'"
+            logger.debug(f"No rooms found with number: '{room_number}'"
                            if room_number else "No rooms found")
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="No rooms found")
+                status_code=status.HTTP_204_NO_CONTENT)
 
         logger.debug(
             f"Retrieved {len(rooms)} rooms that match given criteria")
@@ -78,15 +78,14 @@ class Room(Base):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If no room with the given ID exists in the database.
+                - 204 No Content: If no room with the given ID exists in the database.
         """
         logger.info(f"Retrieving room by ID: {room_id}")
 
         room = db.query(Room).filter(Room.id == room_id).first()
         if not room:
-            logger.warning(f"Room with ID {room_id} not found.")
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="Room not found")
+            logger.debug(f"Room with ID {room_id} not found.")
+            raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
         logger.debug(f"Room retrieved")
         return room
 
@@ -111,7 +110,7 @@ class Room(Base):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If a room with the specified number already exists.
+                - 400 Bad Request: If a room with the specified number already exists.
                 - 500 Internal Server Error: If an internal error occurs during the commit.
         """
         logger.info("Creating a new room.")
@@ -306,7 +305,7 @@ class Device(Base):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If no devices match the specified criteria.
+                - 204 No Content: If no devices match the specified criteria.
         """
         logger.info("Retrieving devices with detailed information")
         logger.debug(
@@ -391,8 +390,7 @@ class Device(Base):
         devices = query.all()
         if len(devices) == 0:
             logger.warning("No devices found matching the specified criteria")
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="No devices found matching criteria")
+            raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
 
         logger.debug(f"Devices found")
         return devices
@@ -400,7 +398,7 @@ class Device(Base):
     @classmethod
     def get_dev_by_id(cls,
                       db: Session,
-                      dev_id: int) -> "Device":
+                      dev_id: int) -> Union["Device", None]:
         """
         Retrieves a device by its unique ID.
 
@@ -409,19 +407,10 @@ class Device(Base):
             dev_id (int): The unique ID of the device.
 
         Returns:
-            Device: The Device object with the specified ID.
-
-        Raises:
-            HTTPException: 
-            - 404 Not Found: If no device with the given ID exists.
+            Optional[Device]: The Device object with the specified ID if found.
         """
         logger.info(f"Attempting to retrieve device with ID: {dev_id}")
         device = db.query(cls).filter(cls.id == dev_id).first()
-        if not device:
-            logger.warning(f"Device with ID {dev_id} not found")
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="Device not found")
-        logger.debug(f"Device retrieved")
         return device
 
     @classmethod
@@ -436,19 +425,11 @@ class Device(Base):
             dev_code (str): The unique code of the device.
 
         Returns:
-            Device: The Device object with the specified code.
-
-        Raises:
-            HTTPException: 
-            - 404 Not Found: If no device with the given code exists.
+            Optional[Device]: The Device object with the specified code if found.
         """
         logger.info(f"Attempting to retrieve device with code: {dev_code}")
 
         device = db.query(cls).filter(cls.code == dev_code).first()
-        if not device:
-            logger.warning(f"Device with code {dev_code} not found.")
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="Device not found")
 
         logger.debug(f"Device retrieved")
         return device
@@ -524,6 +505,9 @@ class Device(Base):
         logger.debug(f"New device data: {device_data}")
 
         device = cls.get_dev_by_id(db, dev_id)
+        if not device:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                    detail="Device not found")
         for key, value in device_data.model_dump().items():
             setattr(device, key, value)
 
@@ -564,6 +548,9 @@ class Device(Base):
         logger.info(f"Attempting to delete device with ID: {dev_id}")
 
         device = cls.get_dev_by_id(db, dev_id)
+        if not device:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                    detail="Device not found")
         db.delete(device)
         if commit:
             try:
@@ -608,7 +595,7 @@ class DeviceNote(Base):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If no device notes match the criteria.
+                - 204 No Content: If no device notes match the criteria.
         """
         logger.info("Attempting to retrieve device notes.")
         logger.debug(f"Filtering notes by device ID: {dev_id}")
@@ -619,8 +606,7 @@ class DeviceNote(Base):
         notes = notes.all()
         if not notes:
             logger.warning(f"No device notes found")
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail="No device notes that match given criteria found")
+            raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
 
         logger.debug(
             f"Retrieved {len(notes)} device notes that match given criteria")
@@ -642,7 +628,7 @@ class DeviceNote(Base):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If no device note with the given ID exists.
+                - 204 No Content: If no device note with the given ID exists.
         """
         logger.info(f"Attempting to retrieve note with ID: {note_id}")
 
@@ -650,7 +636,7 @@ class DeviceNote(Base):
         if not note:
             logger.warning(f"Note with ID {note_id} not found.")
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="No device note found")
+                status_code=status.HTTP_204_NO_CONTENT)
 
         logger.debug(f"Retrieved note")
         return note
@@ -736,7 +722,7 @@ class DeviceNote(Base):
                 f"Deleting device note with ID: {note_id} as new content is None.")
             cls.delete_dev_note(db, note_id)
             raise HTTPException(
-                status_code=status.HTTP_204_NO_CONTENT, detail="Note deleted")
+                status_code=status.HTTP_204_NO_CONTENT)
 
         logger.debug(f"Updating device note content to: {note_data.note}")
         note.note = note_data.note
@@ -778,7 +764,6 @@ class DeviceNote(Base):
                 - 500 Internal Server Error: If an error occurs during the commit.
         """
         logger.info(f"Attempting to delete device note with ID: {note_id}")
-
         note = db.query(DeviceNote).filter(DeviceNote.id == note_id).first()
         if not note:
             logger.warning(

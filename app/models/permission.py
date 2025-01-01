@@ -38,7 +38,7 @@ class Permission(Base):
     @classmethod
     def get_permissions(cls,
                         db: Session,
-                        user_id: Optional[int] = None,
+                        user_surname: Optional[str] = None,
                         room_id: Optional[int] = None,
                         date: Optional[datetime.date] = None,
                         time: Optional[datetime.time] = None,
@@ -62,7 +62,7 @@ class Permission(Base):
 
         Raises:
             HTTPException: 
-                - 404 Not Found: If no permissions are found that match the given criteria.
+                - 204 No Content: If no permissions are found that match the given criteria.
         """
         logger.info(f"Attempting to retrieve permissions")
 
@@ -79,9 +79,10 @@ class Permission(Base):
             )
         )
 
-        if user_id is not None:
-            logger.debug(f"Filtering permissions by user with ID: {user_id}")
-            query = query.filter(Permission.user_id == user_id)
+        if user_surname is not None:
+            logger.debug(f"Filtering permissions by user with surname: {user_surname}")
+            user_query = db.query(User.id).filter(User.surname == user_surname)
+            query = query.filter(Permission.user_id.in_(user_query))
 
         if room_id is not None:
             logger.debug(f"Filtering permissions by room with ID: {room_id}")
@@ -100,8 +101,7 @@ class Permission(Base):
         if not permissions:
             logger.warning("No permissions found that match given criteria")
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No permissions found that match given criteria"
+                status_code=status.HTTP_204_NO_CONTENT
             )
 
         logger.debug(f"Retrieved {len(permissions)} permissions that match given criteria.")
@@ -299,7 +299,7 @@ class Permission(Base):
         
         Raises:
             HTTPException: 
-                - 404 Not Found: If no permissions are found that match the given criteria.
+                - 204 No Content: If no permissions are found that match the given criteria.
         """
         logger.info(f"Checking active permissions for user with ID {user_id}")
         logger.debug(
@@ -331,8 +331,7 @@ class Permission(Base):
         if not permissions:
             logger.warning("No permissions found that match given criteria")
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No permissions found that match given criteria"
+                status_code=status.HTTP_204_NO_CONTENT
             )
         
         logger.debug(
@@ -362,47 +361,3 @@ def delete_old_reservations(target: Table,
     delete_query = text(
         f"DELETE FROM {target.name} WHERE date < :one_week_ago")
     connection.execute(delete_query, {"one_week_ago": one_week_ago})
-
-
-@event.listens_for(Permission.__table__, 'after_create')
-def create_permission_conflict_trigger(target: Table,
-                                       connection: Any,
-                                       **kw: Any) -> None:
-    """
-    Creates a database trigger to prevent time conflicts in room permissions.
-
-    The trigger ensures that no overlapping permissions exist for the same room on the same date.
-
-    Args:
-        target (Table): The table to which the trigger applies (`Permission`).
-        connection (Any): The database connection used to execute the trigger creation.
-        **kw (Any): Additional arguments.
-
-    Returns:
-        None
-    """
-    connection.execute(text("""
-    CREATE OR REPLACE FUNCTION check_room_permission_conflict() 
-    RETURNS TRIGGER AS $$
-    BEGIN
-        IF EXISTS (
-            SELECT 1 
-            FROM permission
-            WHERE room_id = NEW.room_id 
-            AND date = NEW.date
-            AND start_time < NEW.end_time
-            AND end_time > NEW.start_time
-        ) THEN
-            RAISE EXCEPTION 'A permission already exists for the specified room and time.';
-        END IF;
-        
-        RETURN NEW;
-    END;
-    $$ LANGUAGE plpgsql;
-    """))
-
-    connection.execute(text("""
-    CREATE TRIGGER room_permission_conflict_trigger
-    BEFORE INSERT OR UPDATE ON permission
-    FOR EACH ROW EXECUTE FUNCTION check_room_permission_conflict();
-    """))

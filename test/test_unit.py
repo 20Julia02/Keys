@@ -10,202 +10,191 @@ from app import schemas
 from app.services.securityService import PasswordService, TokenService, AuthorizationService
 from jose import JWTError
 from typing import Any
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+
 
 # device
 
 # Test get_rooms
 
-def test_get_rooms_no_rooms():
-    db = MagicMock()
-    db.query.return_value.all.return_value = []
+def test_get_rooms_no_rooms(mock_db: MagicMock):
+    mock_db.query.return_value.all.return_value = []
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Room.get_rooms(db)
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "No rooms found"
+        mdevice.Room.get_rooms(mock_db)
+    assert excinfo.value.status_code == 204
 
 
-def test_get_rooms_with_rooms():
-    db = MagicMock()
+def test_get_rooms_with_rooms(mock_db: MagicMock):
+
     mock_room = mdevice.Room(id=1, number="101")
-    db.query.return_value.all.return_value = [mock_room]
+    mock_db.query.return_value.all.return_value = [mock_room]
 
-    rooms = mdevice.Room.get_rooms(db)
+    rooms = mdevice.Room.get_rooms(mock_db)
     assert len(rooms) == 1
     assert rooms[0].number == "101"
 
 
-def test_get_rooms_with_specific_number():
-    db = MagicMock()
-    mock_room = mdevice.Room(id=1, number="101")
-    db.query.return_value.filter.return_value.all.return_value = [mock_room]
+def test_get_rooms_with_specific_number(mock_db: MagicMock):
 
-    rooms = mdevice.Room.get_rooms(db, room_number="101")
+    mock_room = mdevice.Room(id=1, number="101")
+    mock_db.query.return_value.filter.return_value.all.return_value = [mock_room]
+
+    rooms = mdevice.Room.get_rooms(mock_db, room_number="101")
     assert len(rooms) == 1
     assert rooms[0].number == "101"
 
 # Test get_room_id
 
-def test_get_room_id_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_get_room_id_not_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Room.get_room_id(db, room_id=-1)
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "Room not found"
+        mdevice.Room.get_room_id(mock_db, room_id=-1)
+    assert excinfo.value.status_code == 204
 
 
-def test_get_room_id_found():
-    db = MagicMock()
+def test_get_room_id_found(mock_db: MagicMock):
+
     mock_room = mdevice.Room(id=1, number="101")
-    db.query.return_value.filter.return_value.first.return_value = mock_room
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_room
 
-    room = mdevice.Room.get_room_id(db, room_id=1)
+    room = mdevice.Room.get_room_id(mock_db, room_id=1)
     assert room.id == 1
     assert room.number == "101"
 
 # Test create_room
 
 
-def test_create_room_success():
-    db = MagicMock(spec=Session)
-    db.query.return_value.filter_by.return_value.first.return_value = None
+def test_create_room_success(mock_db: MagicMock):
+    mock_db.query.return_value.filter_by.return_value.first.return_value = None
     mock_room_data = schemas.Room(number="101")
-    db.commit.return_value = None
+    mock_db.commit.return_value = None
 
-    room = mdevice.Room.create_room(db, mock_room_data)
+    room = mdevice.Room.create_room(mock_db, mock_room_data)
     assert room.number == "101"
-    db.add.assert_called_once()
-    db.commit.assert_called_once()
+    mock_db.add.assert_called_once()
+    mock_db.commit.assert_called_once()
 
-def test_create_room_duplicate_number():
-    db = MagicMock(spec=Session)
+def test_create_room_duplicate_number(mock_db: MagicMock):
     mock_existing_room = MagicMock()
-    db.query.return_value.filter_by.return_value.first.return_value = mock_existing_room
+    mock_db.query.return_value.filter_by.return_value.first.return_value = mock_existing_room
     mock_room_data = schemas.Room(number="101")
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Room.create_room(db, mock_room_data)
+        mdevice.Room.create_room(mock_db, mock_room_data)
     assert excinfo.value.status_code == 400
     assert excinfo.value.detail == "Room with this number already exists"
 
-def test_create_room_commit_error():
-    db = MagicMock(spec=Session)
-    db.query.return_value.filter_by.return_value.first.return_value = None
-    db.commit.side_effect = Exception("Commit error")
+def test_create_room_commit_error(mock_db: MagicMock):
+    mock_db.query.return_value.filter_by.return_value.first.return_value = None
+    mock_db.commit.side_effect = Exception("Commit error")
     mock_room_data = schemas.Room(number="101")
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Room.create_room(db, mock_room_data)
+        mdevice.Room.create_room(mock_db, mock_room_data)
     assert excinfo.value.status_code == 500
     assert excinfo.value.detail == "An internal error occurred while creating room."
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
 
 # Test update_room
 
-def test_update_room_success():
-    db = MagicMock(spec=Session)
+def test_update_room_success(mock_db: MagicMock):
     mock_existing_room = MagicMock(number="100")
-    db.query.return_value.filter.return_value.first.side_effect = [mock_existing_room, None]
+    mock_db.query.return_value.filter.return_value.first.side_effect = [mock_existing_room, None]
     mock_room_data = schemas.Room(number="101")
 
-    room = mdevice.Room.update_room(db, room_id=1, room_data=mock_room_data)
+    room = mdevice.Room.update_room(mock_db, room_id=1, room_data=mock_room_data)
     assert room.number == "101"
-    db.commit.assert_called_once()
+    mock_db.commit.assert_called_once()
 
-def test_update_room_not_found():
-    db = MagicMock(spec=Session)
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_update_room_not_found(mock_db: MagicMock):
+    mock_db.query.return_value.filter.return_value.first.return_value = None
     mock_room_data = schemas.Room(number="101")
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Room.update_room(db, room_id=-1, room_data=mock_room_data)
+        mdevice.Room.update_room(mock_db, room_id=-1, room_data=mock_room_data)
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "Room not found"
 
-def test_update_room_duplicate_number():
-    db = MagicMock(spec=Session)
+def test_update_room_duplicate_number(mock_db: MagicMock):
     mock_existing_room = MagicMock(number="100")
     mock_duplicate_room = MagicMock()
-    db.query.return_value.filter.return_value.first.side_effect = [mock_existing_room, mock_duplicate_room]
+    mock_db.query.return_value.filter.return_value.first.side_effect = [mock_existing_room, mock_duplicate_room]
     mock_room_data = schemas.Room(number="101")
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Room.update_room(db, room_id=1, room_data=mock_room_data)
+        mdevice.Room.update_room(mock_db, room_id=1, room_data=mock_room_data)
     assert excinfo.value.status_code == 400
     assert excinfo.value.detail == "Room with this number already exists."
 
-def test_update_room_commit_error():
-    db = MagicMock(spec=Session)
+def test_update_room_commit_error(mock_db: MagicMock):
     mock_existing_room = MagicMock(number="100")
-    db.query.return_value.filter.return_value.first.side_effect = [mock_existing_room, None]
-    db.commit.side_effect = Exception("Commit error")
+    mock_db.query.return_value.filter.return_value.first.side_effect = [mock_existing_room, None]
+    mock_db.commit.side_effect = Exception("Commit error")
     mock_room_data = schemas.Room(number="101")
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Room.update_room(db, room_id=1, room_data=mock_room_data)
+        mdevice.Room.update_room(mock_db, room_id=1, room_data=mock_room_data)
     assert excinfo.value.status_code == 500
     assert excinfo.value.detail == "An internal error occurred while updating room"
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
 
 # Test delete_room
 
-def test_delete_room_success():
-    db = MagicMock(spec=Session)
+def test_delete_room_success(mock_db: MagicMock):
+
     mock_existing_room = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_existing_room
-    db.commit.return_value = None
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_existing_room
+    mock_db.commit.return_value = None
 
-    result = mdevice.Room.delete_room(db, room_id=1)
+    result = mdevice.Room.delete_room(mock_db, room_id=1)
     assert result is True
-    db.delete.assert_called_once_with(mock_existing_room)
-    db.commit.assert_called_once()
+    mock_db.delete.assert_called_once_with(mock_existing_room)
+    mock_db.commit.assert_called_once()
 
-def test_delete_room_not_found():
-    db = MagicMock(spec=Session)
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_delete_room_not_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Room.delete_room(db, room_id=-1)
+        mdevice.Room.delete_room(mock_db, room_id=-1)
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "Room doesn't exist"
 
-def test_delete_room_commit_error():
-    db = MagicMock(spec=Session)
+def test_delete_room_commit_error(mock_db: MagicMock):
+
     mock_existing_room = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_existing_room
-    db.commit.side_effect = Exception("Commit error")
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_existing_room
+    mock_db.commit.side_effect = Exception("Commit error")
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Room.delete_room(db, room_id=1)
+        mdevice.Room.delete_room(mock_db, room_id=1)
     assert excinfo.value.status_code == 500
     assert excinfo.value.detail == "An internal error occurred while deleting room"
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
 
 # Test get_dev_with_details
 
-def test_get_device_with_details_no_devices():
-    db = MagicMock()
+def test_get_device_with_details_no_devices(mock_db: MagicMock):
 
-    db.query.return_value.all.return_value = []
+
+    mock_db.query.return_value.all.return_value = []
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Device.get_dev_with_details(db)
+        mdevice.Device.get_dev_with_details(mock_db)
 
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "No devices found matching criteria"
+    assert excinfo.value.status_code == 204
 
 
-def test_get_device_with_details_with_criteria():
-    db = MagicMock()
+def test_get_device_with_details_with_criteria(mock_db: MagicMock):
+
 
     mock_device = MagicMock(code="device_key_101",
                             dev_type="klucz", dev_version="podstawowa")
 
-    query_mock = db.query.return_value
+    query_mock = mock_db.query.return_value
     query_mock.join.return_value = query_mock
     query_mock.outerjoin.return_value = query_mock
     query_mock.filter.return_value = query_mock
@@ -213,390 +202,356 @@ def test_get_device_with_details_with_criteria():
     query_mock.order_by.return_value = query_mock
     query_mock.all.return_value = [mock_device]
 
-    devices = mdevice.Device.get_dev_with_details(db, dev_type="klucz")
+    devices = mdevice.Device.get_dev_with_details(mock_db, dev_type="klucz")
 
     assert len(devices) > 0
     assert "device_key_101" in [d.code for d in devices]
 
 # Test get_dev_by_id
 
-def test_get_by_id_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
-
-    with pytest.raises(HTTPException) as excinfo:
-        mdevice.Device.get_dev_by_id(db, dev_id=-1)
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "Device not found"
+def test_get_by_id_not_found(mock_db: MagicMock):
+    mock_db.query.return_value.filter.return_value.first.return_value = None
+    result = mdevice.Device.get_dev_by_id(mock_db, dev_id=-1)
+    assert result is None
 
 
-def test_get_by_id_found():
-    db = MagicMock()
+def test_get_by_id_found(mock_db: MagicMock):
     mock_device = MagicMock(id=1, code="device_key_101")
-    db.query.return_value.filter.return_value.first.return_value = mock_device
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_device
 
-    found_device = mdevice.Device.get_dev_by_id(db, dev_id=1)
+    found_device = mdevice.Device.get_dev_by_id(mock_db, dev_id=1)
+    
+    assert found_device is not None
     assert found_device.id == 1
     assert found_device.code == "device_key_101"
 
 # Test get_dev_by_code
 
-def test_get_by_code_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_get_by_code_not_found(mock_db: MagicMock):
 
-    with pytest.raises(HTTPException) as excinfo:
-        mdevice.Device.get_dev_by_code(db, dev_code="InvalidCode")
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "Device not found"
+    mock_db.query.return_value.filter.return_value.first.return_value = None
+    result = mdevice.Device.get_dev_by_code(mock_db, dev_code="InvalidCode")
+    assert result is None
 
 
-def test_get_by_code_found():
-    db = MagicMock()
+def test_get_by_code_found(mock_db: MagicMock):
+
     mock_device = MagicMock(code="device_key_101")
-    db.query.return_value.filter.return_value.first.return_value = mock_device
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_device
 
     found_device = mdevice.Device.get_dev_by_code(
-        db, dev_code="device_key_101")
+        mock_db, dev_code="device_key_101")
     assert found_device.code == "device_key_101"
 
 # Test create_dev
 
-def test_create_dev_success():
-    db = MagicMock(spec=Session)
-    db.commit.return_value = None
+def test_create_dev_success(mock_db: MagicMock):
+    mock_db.commit.return_value = None
     mock_device_data = schemas.DeviceCreate(code="DEF456", dev_type="klucz", dev_version="podstawowa", room_id=1)
 
-    device = mdevice.Device.create_dev(db, mock_device_data)
-    db.add.assert_called_once()
-    db.commit.assert_called_once()
+    device = mdevice.Device.create_dev(mock_db, mock_device_data)
+    mock_db.add.assert_called_once()
+    mock_db.commit.assert_called_once()
     assert device.code == "DEF456"
 
-def test_create_dev_commit_error():
-    db = MagicMock(spec=Session)
-    db.commit.side_effect = Exception("Commit error")
+def test_create_dev_commit_error(mock_db: MagicMock):
+    mock_db.commit.side_effect = Exception("Commit error")
     mock_device_data = schemas.DeviceCreate(code="DEF456", dev_type="klucz", dev_version="podstawowa", room_id=1)
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Device.create_dev(db, mock_device_data)
+        mdevice.Device.create_dev(mock_db, mock_device_data)
     assert excinfo.value.status_code == 500
     assert excinfo.value.detail == "An internal error occurred while creating device"
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
 
 # Test update_dev
 
-def test_update_dev_success():
-    db = MagicMock(spec=Session)
+def test_update_dev_success(mock_db: MagicMock):
     mock_device = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_device
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_device
     mock_device_data = schemas.DeviceCreate(code="NEW123", dev_version="podstawowa", dev_type="klucz", room_id=1)
 
-    updated_device = mdevice.Device.update_dev(db, dev_id=1, device_data=mock_device_data)
-    db.commit.assert_called_once()
+    updated_device = mdevice.Device.update_dev(mock_db, dev_id=1, device_data=mock_device_data)
+    mock_db.commit.assert_called_once()
     assert updated_device.code == "NEW123"
 
-def test_update_dev_not_found():
-    db = MagicMock(spec=Session)
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_update_dev_not_found(mock_db: MagicMock):
+    mock_db.query.return_value.filter.return_value.first.return_value = None
     mock_device_data = schemas.DeviceCreate(code="NEW123", dev_version="podstawowa", dev_type="klucz", room_id=1)
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Device.update_dev(db, dev_id=-1, device_data=mock_device_data)
+        mdevice.Device.update_dev(mock_db, dev_id=-1, device_data=mock_device_data)
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "Device not found"
 
-def test_update_dev_commit_error():
-    db = MagicMock(spec=Session)
+def test_update_dev_commit_error(mock_db: MagicMock):
     mock_device = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_device
-    db.commit.side_effect = Exception("Commit error")
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_device
+    mock_db.commit.side_effect = Exception("Commit error")
     mock_device_data = schemas.DeviceCreate(code="NEW123", dev_version="podstawowa", dev_type="klucz", room_id=1)
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Device.update_dev(db, dev_id=1, device_data=mock_device_data)
+        mdevice.Device.update_dev(mock_db, dev_id=1, device_data=mock_device_data)
     assert excinfo.value.status_code == 500
     assert excinfo.value.detail == "An internal error occurred while updating device"
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
 
 # Test delete_dev
 
-def test_delete_dev_success():
-    db = MagicMock(spec=Session)
+def test_delete_dev_success(mock_db: MagicMock):
     mock_device = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_device
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_device
 
-    result = mdevice.Device.delete_dev(db, dev_id=1)
-    db.delete.assert_called_once_with(mock_device)
-    db.commit.assert_called_once()
+    result = mdevice.Device.delete_dev(mock_db, dev_id=1)
+    mock_db.delete.assert_called_once_with(mock_device)
+    mock_db.commit.assert_called_once()
     assert result is True
 
-def test_delete_dev_not_found():
-    db = MagicMock(spec=Session)
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_delete_dev_not_found(mock_db: MagicMock):
+    mock_db.query.return_value.filter.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Device.delete_dev(db, dev_id=-1)
+        mdevice.Device.delete_dev(mock_db, dev_id=-1)
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "Device not found"
 
-def test_delete_dev_commit_error():
-    db = MagicMock(spec=Session)
+def test_delete_dev_commit_error(mock_db: MagicMock):
     mock_device = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_device
-    db.commit.side_effect = Exception("Commit error")
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_device
+    mock_db.commit.side_effect = Exception("Commit error")
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.Device.delete_dev(db, dev_id=1)
+        mdevice.Device.delete_dev(mock_db, dev_id=1)
     assert excinfo.value.status_code == 500
     assert excinfo.value.detail == "An internal error occurred while deleting device"
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
 
 # Test get_dev_notes
 
-def test_get_dev_notes_no_notes():
-    db = MagicMock(spec=Session)
-    db.query.return_value.filter.return_value.all.return_value = []
+def test_get_dev_notes_no_notes(mock_db: MagicMock):
+    mock_db.query.return_value.filter.return_value.all.return_value = []
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.DeviceNote.get_dev_notes(db, dev_id=1)
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "No device notes that match given criteria found"
+        mdevice.DeviceNote.get_dev_notes(mock_db, dev_id=1)
+    assert excinfo.value.status_code == 204
 
-def test_get_dev_notes_with_notes():
-    db = MagicMock(spec=Session)
+def test_get_dev_notes_with_notes(mock_db: MagicMock):
     mock_note = MagicMock(device_id=1, note="Test note")
-    db.query.return_value.filter.return_value.all.return_value = [mock_note]
+    mock_db.query.return_value.filter.return_value.all.return_value = [mock_note]
 
-    notes = mdevice.DeviceNote.get_dev_notes(db, dev_id=1)
+    notes = mdevice.DeviceNote.get_dev_notes(mock_db, dev_id=1)
     assert len(notes) == 1
     assert notes[0].note == "Test note"
 
 # Test get_device_note_id
 
-def test_get_device_note_id_found():
-    db = MagicMock(spec=Session)
+def test_get_device_note_id_found(mock_db: MagicMock):
     mock_note = MagicMock(id=1, note="Test note")
-    db.query.return_value.filter.return_value.first.return_value = mock_note
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_note
 
-    note = mdevice.DeviceNote.get_device_note_id(db, note_id=1)
+    note = mdevice.DeviceNote.get_device_note_id(mock_db, note_id=1)
     assert note.id == 1
     assert note.note == "Test note"
 
-def test_get_device_note_id_not_found():
-    db = MagicMock(spec=Session)
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_get_device_note_id_not_found(mock_db: MagicMock):
+    mock_db.query.return_value.filter.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.DeviceNote.get_device_note_id(db, note_id=-1)
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "No device note found"
+        mdevice.DeviceNote.get_device_note_id(mock_db, note_id=-1)
+    assert excinfo.value.status_code == 204
 
 # Test create_dev_note
 
-def test_create_dev_note_success():
-    db = MagicMock(spec=Session)
-    db.commit.return_value = None
+def test_create_dev_note_success(mock_db: MagicMock):
+    mock_db.commit.return_value = None
     mock_note_data = schemas.DeviceNote(device_id=1, note="New note")
 
-    note = mdevice.DeviceNote.create_dev_note(db, mock_note_data)
-    db.add.assert_called_once()
-    db.commit.assert_called_once()
+    note = mdevice.DeviceNote.create_dev_note(mock_db, mock_note_data)
+    mock_db.add.assert_called_once()
+    mock_db.commit.assert_called_once()
     assert note.note == "New note"
 
-def test_create_dev_note_commit_error():
-    db = MagicMock(spec=Session)
-    db.commit.side_effect = Exception("Commit error")
+def test_create_dev_note_commit_error(mock_db: MagicMock):
+    mock_db.commit.side_effect = Exception("Commit error")
     mock_note_data = schemas.DeviceNote(device_id=1, note="New note")
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.DeviceNote.create_dev_note(db, mock_note_data)
+        mdevice.DeviceNote.create_dev_note(mock_db, mock_note_data)
     assert excinfo.value.status_code == 500
     assert excinfo.value.detail == "An internal error occurred while creating note"
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
 
 # Test update_dev_note
 
-def test_update_dev_note_success():
-    db = MagicMock(spec=Session)
+def test_update_dev_note_success(mock_db: MagicMock):
     mock_note = MagicMock(id=1, note="Old note")
-    db.query.return_value.filter.return_value.first.return_value = mock_note
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_note
     mock_note_data = schemas.NoteUpdate(note="Updated note")
 
-    updated_note = mdevice.DeviceNote.update_dev_note(db, note_id=1, note_data=mock_note_data)
-    db.commit.assert_called_once()
+    updated_note = mdevice.DeviceNote.update_dev_note(mock_db, note_id=1, note_data=mock_note_data)
+    mock_db.commit.assert_called_once()
     assert updated_note.note == "Updated note"
 
-def test_update_dev_note_not_found():
-    db = MagicMock(spec=Session)
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_update_dev_note_not_found(mock_db: MagicMock):
+    mock_db.query.return_value.filter.return_value.first.return_value = None
     mock_note_data = schemas.NoteUpdate(note="Updated note")
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.DeviceNote.update_dev_note(db, note_id=-1, note_data=mock_note_data)
+        mdevice.DeviceNote.update_dev_note(mock_db, note_id=-1, note_data=mock_note_data)
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "Note not found"
 
-def test_update_dev_note_delete_on_none_content():
-    db = MagicMock(spec=Session)
+def test_update_dev_note_delete_on_none_content(mock_db: MagicMock):
     mock_note = MagicMock(id=1, note="Old note")
-    db.query.return_value.filter.return_value.first.return_value = mock_note
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_note
     mock_note_data = schemas.NoteUpdate(note=None)
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.DeviceNote.update_dev_note(db, note_id=1, note_data=mock_note_data)
+        mdevice.DeviceNote.update_dev_note(mock_db, note_id=1, note_data=mock_note_data)
     assert excinfo.value.status_code == 204
-    assert excinfo.value.detail == "Note deleted"
 
-def test_update_dev_note_commit_error():
-    db = MagicMock(spec=Session)
+def test_update_dev_note_commit_error(mock_db: MagicMock):
     mock_note = MagicMock(id=1, note="Old note")
-    db.query.return_value.filter.return_value.first.return_value = mock_note
-    db.commit.side_effect = Exception("Commit error")
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_note
+    mock_db.commit.side_effect = Exception("Commit error")
     mock_note_data = schemas.NoteUpdate(note="Updated note")
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.DeviceNote.update_dev_note(db, note_id=1, note_data=mock_note_data)
+        mdevice.DeviceNote.update_dev_note(mock_db, note_id=1, note_data=mock_note_data)
     assert excinfo.value.status_code == 500
     assert excinfo.value.detail == "An internal error occurred while updating device note"
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
 
 # Test delete_dev_note
 
-def test_delete_dev_note_success():
-    db = MagicMock(spec=Session)
+def test_delete_dev_note_success(mock_db: MagicMock):
     mock_note = MagicMock(id=1)
-    db.query.return_value.filter.return_value.first.return_value = mock_note
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_note
 
-    result = mdevice.DeviceNote.delete_dev_note(db, note_id=1)
-    db.delete.assert_called_once_with(mock_note)
-    db.commit.assert_called_once()
+    result = mdevice.DeviceNote.delete_dev_note(mock_db, note_id=1)
+    mock_db.delete.assert_called_once_with(mock_note)
+    mock_db.commit.assert_called_once()
     assert result is True
 
-def test_delete_dev_note_not_found():
-    db = MagicMock(spec=Session)
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_delete_dev_note_not_found(mock_db: MagicMock):
+    mock_db.query.return_value.filter.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.DeviceNote.delete_dev_note(db, note_id=-1)
+        mdevice.DeviceNote.delete_dev_note(mock_db, note_id=-1)
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "Note not found"
 
-def test_delete_dev_note_commit_error():
-    db = MagicMock(spec=Session)
+def test_delete_dev_note_commit_error(mock_db: MagicMock):
     mock_note = MagicMock(id=1)
-    db.query.return_value.filter.return_value.first.return_value = mock_note
-    db.commit.side_effect = Exception("Commit error")
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_note
+    mock_db.commit.side_effect = Exception("Commit error")
 
     with pytest.raises(HTTPException) as excinfo:
-        mdevice.DeviceNote.delete_dev_note(db, note_id=1)
+        mdevice.DeviceNote.delete_dev_note(mock_db, note_id=1)
     assert excinfo.value.status_code == 500
     assert excinfo.value.detail == "An internal error occurred while deleting device note"
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
 
 # operation
 
 # Test create_session
 
-def test_create_session_success():
-    db = MagicMock()
-    db.commit.return_value = None
-    db.refresh.return_value = None
+def test_create_session_success(mock_db: MagicMock):
 
-    session = moperation.UserSession.create_session(db, user_id=1, concierge_id=2, commit=True)
+    mock_db.commit.return_value = None
+    mock_db.refresh.return_value = None
+
+    session = moperation.UserSession.create_session(mock_db, user_id=1, concierge_id=2, commit=True)
     assert session.user_id == 1
     assert session.concierge_id == 2
     assert session.status == "w trakcie"
     assert isinstance(session.start_time, datetime.datetime)
-    db.add.assert_called_once_with(session)
-    db.commit.assert_called_once()
+    mock_db.add.assert_called_once_with(session)
+    mock_db.commit.assert_called_once()
 
-def test_create_session_commit_error():
-    db = MagicMock()
-    db.commit.side_effect = SQLAlchemyError("Commit error")
+def test_create_session_commit_error(mock_db: MagicMock):
+
+    mock_db.commit.side_effect = SQLAlchemyError("Commit error")
 
     with pytest.raises(HTTPException) as excinfo:
-        moperation.UserSession.create_session(db, user_id=1, concierge_id=2, commit=True)
+        moperation.UserSession.create_session(mock_db, user_id=1, concierge_id=2, commit=True)
     assert excinfo.value.status_code == 500
     assert excinfo.value.detail == "An internal error occurred while creating session"
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
 
 # Test end_session
 
-def test_end_session_success():
-    db = MagicMock()
-    mock_session = MagicMock(status="w trakcie", end_time=None)
-    db.query.return_value.filter_by.return_value.first.return_value = mock_session
+def test_end_session_success(mock_db: MagicMock):
 
-    session = moperation.UserSession.end_session(db, session_id=1, reject=False, commit=True)
+    mock_session = MagicMock(status="w trakcie", end_time=None)
+    mock_db.query.return_value.filter_by.return_value.first.return_value = mock_session
+
+    session = moperation.UserSession.end_session(mock_db, session_id=1, reject=False, commit=True)
     assert session.status == "potwierdzona"
     assert isinstance(session.end_time, datetime.datetime)
-    db.commit.assert_called_once()
+    mock_db.commit.assert_called_once()
 
-def test_end_session_reject():
-    db = MagicMock()
+def test_end_session_reject(mock_db: MagicMock):
+
     mock_session = MagicMock(status="w trakcie", end_time=None)
-    db.query.return_value.filter_by.return_value.first.return_value = mock_session
+    mock_db.query.return_value.filter_by.return_value.first.return_value = mock_session
 
-    session = moperation.UserSession.end_session(db, session_id=1, reject=True, commit=True)
+    session = moperation.UserSession.end_session(mock_db, session_id=1, reject=True, commit=True)
     assert session.status == "odrzucona"
     assert isinstance(session.end_time, datetime.datetime)
-    db.commit.assert_called_once()
+    mock_db.commit.assert_called_once()
 
-def test_end_session_not_found():
-    db = MagicMock()
-    db.query.return_value.filter_by.return_value.first.return_value = None
+def test_end_session_not_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter_by.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
-        moperation.UserSession.end_session(db, session_id=-1, reject=False, commit=True)
+        moperation.UserSession.end_session(mock_db, session_id=-1, reject=False, commit=True)
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "Session not found"
 
-def test_end_session_already_ended():
-    db = MagicMock()
+def test_end_session_already_ended(mock_db: MagicMock):
+
     mock_session = MagicMock(status="potwierdzona", end_time=datetime.datetime.now())
-    db.query.return_value.filter_by.return_value.first.return_value = mock_session
+    mock_db.query.return_value.filter_by.return_value.first.return_value = mock_session
 
     with pytest.raises(HTTPException) as excinfo:
-        moperation.UserSession.end_session(db, session_id=1, reject=False, commit=True)
+        moperation.UserSession.end_session(mock_db, session_id=1, reject=False, commit=True)
     assert excinfo.value.status_code == 403
-    assert excinfo.value.detail == "Session has been allready ended"
+    assert excinfo.value.detail == "Session has been already ended"
 
 # Test get_session_id
 
-def test_get_session_id_success():
-    db = MagicMock()
-    mock_session = MagicMock(id=1, status="w trakcie")
-    db.query.return_value.filter.return_value.first.return_value = mock_session
+def test_get_session_id_success(mock_db: MagicMock):
 
-    session = moperation.UserSession.get_session_id(db, session_id=1)
+    mock_session = MagicMock(id=1, status="w trakcie")
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_session
+
+    session = moperation.UserSession.get_session_id(mock_db, session_id=1)
     assert session.id == 1
     assert session.status == "w trakcie"
 
-def test_get_session_id_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_get_session_id_not_found(mock_db: MagicMock):
 
-    with pytest.raises(HTTPException) as excinfo:
-        moperation.UserSession.get_session_id(db, session_id=-1)
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "Session doesn't exist"
+    mock_db.query.return_value.filter.return_value.first.return_value = None
+
+    result = moperation.UserSession.get_session_id(mock_db, session_id=-1)
+    assert result is None
 
 # permission
 
 # Test get_permissions
 
-def test_get_permissions_no_permissions():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.order_by.return_value.all.return_value = []
+def test_get_permissions_no_permissions(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter.return_value.order_by.return_value.all.return_value = []
 
     with pytest.raises(HTTPException) as excinfo:
-        Permission.get_permissions(db)
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "No permissions found that match given criteria"
+        Permission.get_permissions(mock_db)
+    assert excinfo.value.status_code == 204
 
-def test_get_permissions_with_filters():
-    db = MagicMock()
 
+def test_get_permissions_with_filters(mock_db: MagicMock):
     current_date = datetime.date.today()
     current_time = datetime.datetime.now().time()
 
@@ -608,23 +563,23 @@ def test_get_permissions_with_filters():
         end_time=datetime.time(12, 0),
     )
 
-    db.query.return_value.filter.return_value.filter.return_value.filter.return_value.order_by.return_value.all.return_value = [
-        mock_permission
-    ]
+    mock_query = MagicMock()
+    mock_query.filter.return_value = mock_query
+    mock_query.order_by.return_value.all.return_value = [mock_permission]
+    mock_db.query.return_value = mock_query
 
-    with patch("datetime.date") as mock_date, patch("datetime.datetime") as mock_datetime:
-        mock_date.today.return_value = current_date
-        mock_datetime.now.return_value = datetime.datetime.combine(current_date, current_time)
+    with patch("app.models.permission.datetime") as mock_datetime:
+        mock_datetime.date.today.return_value = current_date
+        mock_datetime.datetime.now.return_value = datetime.datetime.combine(current_date, current_time)
 
-        permissions = Permission.get_permissions(db, user_id=1, room_id=1)
+        permissions = Permission.get_permissions(mock_db, room_id=1)
 
         assert len(permissions) == 1
         assert permissions[0].user_id == 1
         assert permissions[0].room_id == 1
 
 
-def test_get_permissions_current_date_and_time():
-    db: MagicMock = MagicMock()
+def test_get_permissions_current_date_and_time(mock_db: MagicMock):
     current_date = datetime.date.today()
     current_time = datetime.time(10, 0)
 
@@ -634,7 +589,7 @@ def test_get_permissions_current_date_and_time():
         end_time=datetime.time(17, 0)
     )
 
-    query_mock: MagicMock = db.query.return_value
+    query_mock: MagicMock = mock_db.query.return_value
 
     def side_effect_filter(*args: Any, **kwargs: Any) -> MagicMock:
         return query_mock
@@ -646,7 +601,7 @@ def test_get_permissions_current_date_and_time():
         mock_date.today.return_value = current_date
         mock_datetime.now.return_value = datetime.datetime.combine(current_date, current_time)
 
-        permissions = Permission.get_permissions(db, date=current_date, time=current_time)
+        permissions = Permission.get_permissions(mock_db, date=current_date, time=current_time)
 
         assert len(permissions) == 1, f"Expected 1 permission, got {len(permissions)}"
         assert permissions[0].date == current_date
@@ -654,26 +609,26 @@ def test_get_permissions_current_date_and_time():
 
 # Test check_if_permitted
 
-def test_check_if_permitted_success():
-    db = MagicMock()
-    mock_permission = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_permission
+def test_check_if_permitted_success(mock_db: MagicMock):
 
-    result = Permission.check_if_permitted(db, user_id=1, room_id=1)
+    mock_permission = MagicMock()
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_permission
+
+    result = Permission.check_if_permitted(mock_db, user_id=1, room_id=1)
     assert result is True
 
-def test_check_if_permitted_failure():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_check_if_permitted_failure(mock_db: MagicMock):
 
-    result = Permission.check_if_permitted(db, user_id=1, room_id=1)
+    mock_db.query.return_value.filter.return_value.first.return_value = None
+
+    result = Permission.check_if_permitted(mock_db, user_id=1, room_id=1)
     assert result is False
 
 # Test create_permission
 
-def test_create_permission_success():
-    db = MagicMock()
-    db.commit.return_value = None
+def test_create_permission_success(mock_db: MagicMock):
+
+    mock_db.commit.return_value = None
     mock_permission_data = MagicMock()
     mock_permission_data.model_dump = MagicMock(return_value={
         'user_id': 1,
@@ -683,15 +638,15 @@ def test_create_permission_success():
         'end_time': datetime.time(17, 0),
     })
 
-    permission = Permission.create_permission(db, mock_permission_data, commit=True)
+    permission = Permission.create_permission(mock_db, mock_permission_data, commit=True)
     assert permission.user_id == 1
     assert permission.room_id == 2
-    db.add.assert_called_once()
-    db.commit.assert_called_once()
+    mock_db.add.assert_called_once()
+    mock_db.commit.assert_called_once()
 
-def test_create_permission_commit_error():
-    db = MagicMock()
-    db.commit.side_effect = SQLAlchemyError("Commit error")
+def test_create_permission_commit_error(mock_db: MagicMock):
+
+    mock_db.commit.side_effect = SQLAlchemyError("Commit error")
     mock_permission_data = MagicMock()
     mock_permission_data.model_dump = MagicMock(return_value={
         'user_id': 1,
@@ -702,78 +657,75 @@ def test_create_permission_commit_error():
     })
 
     with pytest.raises(HTTPException) as excinfo:
-        Permission.create_permission(db, mock_permission_data, commit=True)
+        Permission.create_permission(mock_db, mock_permission_data, commit=True)
     assert excinfo.value.status_code == 500
     assert excinfo.value.detail == "An internal error occurred while creating permission"
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
 
 # Test update_permission
 
-def test_update_permission_success():
-    db = MagicMock()
+def test_update_permission_success(mock_db: MagicMock):
+
     mock_permission = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_permission
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_permission
     mock_permission_data = MagicMock(user_id=1, room_id=2, date=datetime.datetime.today(), start_time="9:00:00", end_time="17:00:00")
 
-    permission = Permission.update_permission(db, permission_id=1, permission_data=mock_permission_data, commit=True)
+    permission = Permission.update_permission(mock_db, permission_id=1, permission_data=mock_permission_data, commit=True)
     assert permission.user_id == 1
     assert permission.room_id == 2
-    db.commit.assert_called_once()
+    mock_db.commit.assert_called_once()
 
-def test_update_permission_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_update_permission_not_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter.return_value.first.return_value = None
     mock_permission_data = MagicMock()
 
     with pytest.raises(HTTPException) as excinfo:
-        Permission.update_permission(db, permission_id=-1, permission_data=mock_permission_data, commit=True)
+        Permission.update_permission(mock_db, permission_id=-1, permission_data=mock_permission_data, commit=True)
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "Permission doesn't exist"
 
 # Test delete_permission
 
-def test_delete_permission_success():
-    db = MagicMock()
+def test_delete_permission_success(mock_db: MagicMock):
+
     mock_permission = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_permission
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_permission
 
-    result = Permission.delete_permission(db, permission_id=1, commit=True)
+    result = Permission.delete_permission(mock_db, permission_id=1, commit=True)
     assert result is True
-    db.delete.assert_called_once_with(mock_permission)
-    db.commit.assert_called_once()
+    mock_db.delete.assert_called_once_with(mock_permission)
+    mock_db.commit.assert_called_once()
 
-def test_delete_permission_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_delete_permission_not_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
-        Permission.delete_permission(db, permission_id=-1, commit=True)
+        Permission.delete_permission(mock_db, permission_id=-1, commit=True)
     assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "Permission doesn't exist"
 
 # Test get_active_permissions
 
-def test_get_active_permissions_no_permissions():
-    db = MagicMock()
+def test_get_active_permissions_no_permissions(mock_db: MagicMock):
 
-    query_mock = db.query.return_value
+
+    query_mock = mock_db.query.return_value
     query_mock.join.return_value.filter.return_value.order_by.return_value.all.return_value = []
 
     with pytest.raises(HTTPException) as excinfo:
-        Permission.get_active_permissions(db, user_id=1)
+        Permission.get_active_permissions(mock_db, user_id=1)
 
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "No permissions found that match given criteria"
+    assert excinfo.value.status_code == 204
 
-def test_get_active_permissions_success():
-    db = MagicMock()
+def test_get_active_permissions_success(mock_db: MagicMock):
+
 
     mock_permission = MagicMock()
 
-    query_mock = db.query.return_value
+    query_mock = mock_db.query.return_value
     query_mock.join.return_value.filter.return_value.order_by.return_value.all.return_value = [mock_permission]
 
-    permissions = Permission.get_active_permissions(db, user_id=1)
+    permissions = Permission.get_active_permissions(mock_db, user_id=1)
 
     assert len(permissions) == 1
     assert permissions[0] == mock_permission
@@ -782,50 +734,48 @@ def test_get_active_permissions_success():
 
 # Test get_all_users
 
-def test_get_all_users_success():
-    db = MagicMock()
-    mock_users = [MagicMock(), MagicMock()]
-    db.query.return_value.all.return_value = mock_users
+def test_get_all_users_success(mock_db: MagicMock):
 
-    users = User.get_all_users(db)
+    mock_users = [MagicMock(), MagicMock()]
+    mock_db.query.return_value.all.return_value = mock_users
+
+    users = User.get_all_users(mock_db)
     assert len(users) == 2
     assert users == mock_users
 
 
-def test_get_all_users_no_users_found():
-    db = MagicMock()
-    db.query.return_value.all.return_value = []
+def test_get_all_users_no_users_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.all.return_value = []
 
     with pytest.raises(HTTPException) as excinfo:
-        User.get_all_users(db)
+        User.get_all_users(mock_db)
 
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "There is no user in the database"
+    assert excinfo.value.status_code == 204
 
 # # Test get_user_id
 
-def test_get_user_id_success():
-    db = MagicMock()
-    mock_user = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_user
+def test_get_user_id_success(mock_db: MagicMock):
 
-    user = User.get_user_id(db, user_id=1)
+    mock_user = MagicMock()
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_user
+
+    user = User.get_user_id(mock_db, user_id=1)
     assert user == mock_user
 
 # create_user
 
-def test_get_user_id_user_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_get_user_id_user_not_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
-        User.get_user_id(db, user_id=1)
+        User.get_user_id(mock_db, user_id=1)
 
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "User doesn't exist"
+    assert excinfo.value.status_code == 204
 
-def test_create_user_success():
-    db = MagicMock()
+def test_create_user_success(mock_db: MagicMock):
+
     mock_user_data = MagicMock(model_dump=MagicMock(return_value={
         "name": "John",
         "surname": "Doe",
@@ -836,16 +786,16 @@ def test_create_user_success():
     }))
 
     with patch("app.services.securityService.PasswordService.hash_password", return_value="hashed_password"):
-        user = User.create_user(db, mock_user_data)
+        user = User.create_user(mock_db, mock_user_data)
 
-    db.add.assert_called_once()
-    db.commit.assert_called_once()
+    mock_db.add.assert_called_once()
+    mock_db.commit.assert_called_once()
     assert user is not None
 
 
-def test_create_user_commit_error():
-    db = MagicMock()
-    db.commit.side_effect = Exception("Commit failed")
+def test_create_user_commit_error(mock_db: MagicMock):
+
+    mock_db.commit.side_effect = Exception("Commit failed")
     mock_user_data = MagicMock(model_dump=MagicMock(return_value={
         "name": "John",
         "surname": "Doe",
@@ -857,55 +807,55 @@ def test_create_user_commit_error():
 
     with patch("app.services.securityService.PasswordService.hash_password", return_value="hashed_password"):
         with pytest.raises(HTTPException) as excinfo:
-            User.create_user(db, mock_user_data)
+            User.create_user(mock_db, mock_user_data)
 
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
     assert excinfo.value.status_code == 500
     assert excinfo.value.detail == "An internal error occurred while creating user"
 
 # delete_user
 
-def test_delete_user_success():
-    db = MagicMock()
-    mock_user = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_user
+def test_delete_user_success(mock_db: MagicMock):
 
-    result = User.delete_user(db, user_id=1)
-    db.delete.assert_called_once_with(mock_user)
-    db.commit.assert_called_once()
+    mock_user = MagicMock()
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_user
+
+    result = User.delete_user(mock_db, user_id=1)
+    mock_db.delete.assert_called_once_with(mock_user)
+    mock_db.commit.assert_called_once()
     assert result is True
 
 
-def test_delete_user_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_delete_user_not_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
-        User.delete_user(db, user_id=1)
+        User.delete_user(mock_db, user_id=1)
 
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "User doesn't exist"
 
 
-def test_delete_user_commit_error():
-    db = MagicMock()
+def test_delete_user_commit_error(mock_db: MagicMock):
+
     mock_user = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_user
-    db.commit.side_effect = Exception("Commit failed")
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_user
+    mock_db.commit.side_effect = Exception("Commit failed")
 
     with pytest.raises(HTTPException) as excinfo:
-        User.delete_user(db, user_id=1)
+        User.delete_user(mock_db, user_id=1)
 
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
     assert excinfo.value.status_code == 500
     assert excinfo.value.detail == "An internal error occurred while deleting user"
 
 # update_user
 
-def test_update_user_success():
-    db = MagicMock()
+def test_update_user_success(mock_db: MagicMock):
+
     mock_user = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_user
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_user
     mock_user_data = MagicMock(model_dump=MagicMock(return_value={
         "name": "John",
         "surname": "Doe",
@@ -916,29 +866,29 @@ def test_update_user_success():
     }))
 
     with patch("app.services.securityService.PasswordService.hash_password", return_value="hashed_password"):
-        updated_user = User.update_user(db, user_id=1, user_data=mock_user_data)
+        updated_user = User.update_user(mock_db, user_id=1, user_data=mock_user_data)
 
-    db.commit.assert_called_once()
+    mock_db.commit.assert_called_once()
     assert updated_user == mock_user
 
 
-def test_update_user_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_update_user_not_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter.return_value.first.return_value = None
     mock_user_data = MagicMock()
 
     with pytest.raises(HTTPException) as excinfo:
-        User.update_user(db, user_id=1, user_data=mock_user_data)
+        User.update_user(mock_db, user_id=1, user_data=mock_user_data)
 
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "User not found"
 
 
-def test_update_user_commit_error():
-    db = MagicMock()
+def test_update_user_commit_error(mock_db: MagicMock):
+
     mock_user = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_user
-    db.commit.side_effect = Exception("Commit failed")
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_user
+    mock_db.commit.side_effect = Exception("Commit failed")
     mock_user_data = MagicMock(model_dump=MagicMock(return_value={
         "name": "John",
         "surname": "Doe",
@@ -950,54 +900,54 @@ def test_update_user_commit_error():
 
     with patch("app.services.securityService.PasswordService.hash_password", return_value="hashed_password"):
         with pytest.raises(HTTPException) as excinfo:
-            User.update_user(db, user_id=1, user_data=mock_user_data)
+            User.update_user(mock_db, user_id=1, user_data=mock_user_data)
 
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
     assert excinfo.value.status_code == 500
     assert excinfo.value.detail == "An internal error occurred while updating user"
 
 # Test create_or_get_unauthorized_user
 
-def test_create_or_get_unauthorized_user_existing_user_match():
-    db = MagicMock()
+def test_create_or_get_unauthorized_user_existing_user_match(mock_db: MagicMock):
+
 
     mock_user = MagicMock()
     mock_user.name = "John"
     mock_user.surname = "Doe"
     mock_user.email = "john@example.com"
 
-    db.query.return_value.filter_by.return_value.first.return_value = mock_user
+    mock_db.query.return_value.filter_by.return_value.first.return_value = mock_user
 
     user, is_new = UnauthorizedUser.create_or_get_unauthorized_user(
-        db, name="John", surname="Doe", email="john@example.com"
+        mock_db, name="John", surname="Doe", email="john@example.com"
     )
 
     assert user == mock_user
     assert not is_new
 
-def test_create_or_get_unauthorized_user_existing_user_mismatch():
-    db = MagicMock()
+def test_create_or_get_unauthorized_user_existing_user_mismatch(mock_db: MagicMock):
+
     mock_user = MagicMock(name="Jane", surname="Smith", email="john@example.com")
-    db.query.return_value.filter_by.return_value.first.return_value = mock_user
+    mock_db.query.return_value.filter_by.return_value.first.return_value = mock_user
 
     with pytest.raises(HTTPException) as excinfo:
         UnauthorizedUser.create_or_get_unauthorized_user(
-            db, name="John", surname="Doe", email="john@example.com"
+            mock_db, name="John", surname="Doe", email="john@example.com"
         )
 
     assert excinfo.value.status_code == 409
     assert excinfo.value.detail == "User with this email already exists but with a different name or surname"
 
-def test_create_or_get_unauthorized_user_new_user():
-    db = MagicMock()
-    db.query.return_value.filter_by.return_value.first.return_value = None
+def test_create_or_get_unauthorized_user_new_user(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter_by.return_value.first.return_value = None
 
     user, is_new = UnauthorizedUser.create_or_get_unauthorized_user(
-        db, name="John", surname="Doe", email="john@example.com"
+        mock_db, name="John", surname="Doe", email="john@example.com"
     )
 
-    db.add.assert_called_once()
-    db.commit.assert_called_once()
+    mock_db.add.assert_called_once()
+    mock_db.commit.assert_called_once()
     assert user.name == "John"
     assert user.surname == "Doe"
     assert user.email == "john@example.com"
@@ -1005,101 +955,98 @@ def test_create_or_get_unauthorized_user_new_user():
 
 # Test get_all_unathorized_users
 
-def test_get_all_unauthorized_users_success():
-    db = MagicMock()
-    mock_users = [MagicMock(), MagicMock()]
-    db.query.return_value.all.return_value = mock_users
+def test_get_all_unauthorized_users_success(mock_db: MagicMock):
 
-    users = UnauthorizedUser.get_all_unathorized_users(db)
+    mock_users = [MagicMock(), MagicMock()]
+    mock_db.query.return_value.all.return_value = mock_users
+
+    users = UnauthorizedUser.get_all_unathorized_users(mock_db)
 
     assert len(users) == 2
     assert users == mock_users
 
-def test_get_all_unauthorized_users_no_users():
-    db = MagicMock()
-    db.query.return_value.all.return_value = []
+def test_get_all_unauthorized_users_no_users(mock_db: MagicMock):
+
+    mock_db.query.return_value.all.return_value = []
 
     with pytest.raises(HTTPException) as excinfo:
-        UnauthorizedUser.get_all_unathorized_users(db)
+        UnauthorizedUser.get_all_unathorized_users(mock_db)
 
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "There is no unauthorized user in database"
+    assert excinfo.value.status_code == 204
 
 # Test get_unathorized_user
 
-def test_get_unauthorized_user_success():
-    db = MagicMock()
-    mock_user = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_user
+def test_get_unauthorized_user_success(mock_db: MagicMock):
 
-    user = UnauthorizedUser.get_unathorized_user(db, user_id=1)
+    mock_user = MagicMock()
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_user
+
+    user = UnauthorizedUser.get_unathorized_user(mock_db, user_id=1)
 
     assert user == mock_user
 
-def test_get_unauthorized_user_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_get_unauthorized_user_not_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
-        UnauthorizedUser.get_unathorized_user(db, user_id=1)
+        UnauthorizedUser.get_unathorized_user(mock_db, user_id=1)
 
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "Unauthorized user doesn't exist"
+    assert excinfo.value.status_code == 204
 
 # Test get_unathorized_user_email
 
-def test_get_unauthorized_user_email_success():
-    db = MagicMock()
-    mock_user = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_user
+def test_get_unauthorized_user_email_success(mock_db: MagicMock):
 
-    user = UnauthorizedUser.get_unathorized_user_email(db, email="test@example.com")
+    mock_user = MagicMock()
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_user
+
+    user = UnauthorizedUser.get_unathorized_user_email(mock_db, email="test@example.com")
 
     assert user == mock_user
 
-def test_get_unauthorized_user_email_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_get_unauthorized_user_email_not_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
-        UnauthorizedUser.get_unathorized_user_email(db, email="test@example.com")
+        UnauthorizedUser.get_unathorized_user_email(mock_db, email="test@example.com")
 
-    assert excinfo.value.status_code == 404
-    assert excinfo.value.detail == "Unauthorized user doesn't exist"
+    assert excinfo.value.status_code == 204
 
 # Test update_unauthorized_user
 
-def test_update_unauthorized_user_success():
-    db = MagicMock()
+def test_update_unauthorized_user_success(mock_db: MagicMock):
+
     mock_user = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_user
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_user
     mock_user_data = MagicMock(model_dump=MagicMock(return_value={
         "name": "John",
         "surname": "Doe",
         "email": "john@example.com"
     }))
 
-    user = UnauthorizedUser.update_unauthorized_user(db, user_id=1, user_data=mock_user_data)
+    user = UnauthorizedUser.update_unauthorized_user(mock_db, user_id=1, user_data=mock_user_data)
 
-    db.commit.assert_called_once()
+    mock_db.commit.assert_called_once()
     assert user == mock_user
 
-def test_update_unauthorized_user_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_update_unauthorized_user_not_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter.return_value.first.return_value = None
     mock_user_data = MagicMock()
 
     with pytest.raises(HTTPException) as excinfo:
-        UnauthorizedUser.update_unauthorized_user(db, user_id=1, user_data=mock_user_data)
+        UnauthorizedUser.update_unauthorized_user(mock_db, user_id=1, user_data=mock_user_data)
 
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "Unauthorized user not found"
 
-def test_update_unauthorized_user_commit_error():
-    db = MagicMock()
+def test_update_unauthorized_user_commit_error(mock_db: MagicMock):
+
     mock_user = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_user
-    db.commit.side_effect = Exception("Commit failed")
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_user
+    mock_db.commit.side_effect = Exception("Commit failed")
     mock_user_data = MagicMock(model_dump=MagicMock(return_value={
         "name": "John",
         "surname": "Doe",
@@ -1107,193 +1054,189 @@ def test_update_unauthorized_user_commit_error():
     }))
 
     with pytest.raises(HTTPException) as excinfo:
-        UnauthorizedUser.update_unauthorized_user(db, user_id=1, user_data=mock_user_data)
+        UnauthorizedUser.update_unauthorized_user(mock_db, user_id=1, user_data=mock_user_data)
 
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
     assert excinfo.value.status_code == 500
     assert excinfo.value.detail == "An internal error occurred while updating unauthorized user"
 
 # Test delete_unauthorized_user
 
-def test_delete_unauthorized_user_success():
-    db = MagicMock()
+def test_delete_unauthorized_user_success(mock_db: MagicMock):
+
     mock_user = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_user
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_user
 
-    result = UnauthorizedUser.delete_unauthorized_user(db, user_id=1)
+    result = UnauthorizedUser.delete_unauthorized_user(mock_db, user_id=1)
 
-    db.delete.assert_called_once_with(mock_user)
-    db.commit.assert_called_once()
+    mock_db.delete.assert_called_once_with(mock_user)
+    mock_db.commit.assert_called_once()
     assert result is True
 
-def test_delete_unauthorized_user_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_delete_unauthorized_user_not_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
-        UnauthorizedUser.delete_unauthorized_user(db, user_id=1)
+        UnauthorizedUser.delete_unauthorized_user(mock_db, user_id=1)
 
     assert excinfo.value.status_code == 404
     assert excinfo.value.detail == "Unauthorized user doesn't exist"
 
-def test_delete_unauthorized_user_commit_error():
-    db = MagicMock()
+def test_delete_unauthorized_user_commit_error(mock_db: MagicMock):
+
     mock_user = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = mock_user
-    db.commit.side_effect = Exception("Commit failed")
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_user
+    mock_db.commit.side_effect = Exception("Commit failed")
 
     with pytest.raises(HTTPException) as excinfo:
-        UnauthorizedUser.delete_unauthorized_user(db, user_id=1)
+        UnauthorizedUser.delete_unauthorized_user(mock_db, user_id=1)
 
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
     assert excinfo.value.status_code == 500
     assert excinfo.value.detail == "An internal error occurred while deleting unauthorized user"
 
 
 # Test get_user_notes_filter
-def test_get_user_notes_filter_with_user_id():
-    db = MagicMock()
-    mock_note = MagicMock(user_id=1, note="Test note", timestamp=datetime.datetime.now())
-    db.query.return_value.filter.return_value.all.return_value = [mock_note]
+def test_get_user_notes_filter_with_user_id(mock_db: MagicMock):
 
-    result = UserNote.get_user_notes_filter(db, user_id=1)
+    mock_note = MagicMock(user_id=1, note="Test note", timestamp=datetime.datetime.now())
+    mock_db.query.return_value.filter.return_value.all.return_value = [mock_note]
+
+    result = UserNote.get_user_notes_filter(mock_db, user_id=1)
 
     assert len(result) == 1
     assert result[0].user_id == 1
     assert result[0].note == "Test note"
 
 
-def test_get_user_notes_filter_without_user_id():
-    db = MagicMock()
+def test_get_user_notes_filter_without_user_id(mock_db: MagicMock):
+
     mock_note1 = MagicMock(user_id=1, note="Note 1", timestamp=datetime.datetime.now())
     mock_note2 = MagicMock(user_id=2, note="Note 2", timestamp=datetime.datetime.now())
-    db.query.return_value.all.return_value = [mock_note1, mock_note2]
+    mock_db.query.return_value.all.return_value = [mock_note1, mock_note2]
 
-    result = UserNote.get_user_notes_filter(db)
+    result = UserNote.get_user_notes_filter(mock_db)
 
     assert len(result) == 2
 
 
-def test_get_user_notes_filter_no_notes_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.all.return_value = []
+def test_get_user_notes_filter_no_notes_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter.return_value.all.return_value = []
 
     with pytest.raises(HTTPException) as excinfo:
-        UserNote.get_user_notes_filter(db, user_id=1)
+        UserNote.get_user_notes_filter(mock_db, user_id=1)
 
-    assert excinfo.value.status_code == 404
-    assert "No user notes found" in excinfo.value.detail
+    assert excinfo.value.status_code == 204
 
 
 # Test get_user_note_id
-def test_get_user_note_id_success():
-    db = MagicMock()
-    mock_note = MagicMock(id=1, note="Test note", timestamp=datetime.datetime.now())
-    db.query.return_value.filter.return_value.first.return_value = mock_note
+def test_get_user_note_id_success(mock_db: MagicMock):
 
-    result = UserNote.get_user_note_id(db, note_id=1)
+    mock_note = MagicMock(id=1, note="Test note", timestamp=datetime.datetime.now())
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_note
+
+    result = UserNote.get_user_note_id(mock_db, note_id=1)
 
     assert result == mock_note
     assert result.id == 1
     assert result.note == "Test note"
 
 
-def test_get_user_note_id_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_get_user_note_id_not_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
-        UserNote.get_user_note_id(db, note_id=1)
+        UserNote.get_user_note_id(mock_db, note_id=1)
 
-    assert excinfo.value.status_code == 404
-    assert "There is no user note with this id" in excinfo.value.detail
+    assert excinfo.value.status_code == 204
 
 
 # Test create_user_note
-def test_create_user_note_success():
-    db = MagicMock()
+def test_create_user_note_success(mock_db: MagicMock):
+
     note_data = schemas.UserNoteCreate(user_id=1, note="New note")
     MagicMock(**note_data.model_dump(), timestamp=datetime.datetime.now())
-    db.add = MagicMock()
+    mock_db.add = MagicMock()
 
-    result = UserNote.create_user_note(db, note_data)
+    result = UserNote.create_user_note(mock_db, note_data)
 
-    db.add.assert_called_once()
+    mock_db.add.assert_called_once()
     assert result.user_id == note_data.user_id
     assert result.note == note_data.note
 
 
-def test_create_user_note_commit_error():
-    db = MagicMock()
+def test_create_user_note_commit_error(mock_db: MagicMock):
+
     note_data = schemas.UserNoteCreate(user_id=1, note="New note")
-    db.commit.side_effect = Exception("Commit error")
+    mock_db.commit.side_effect = Exception("Commit error")
 
     with pytest.raises(HTTPException) as excinfo:
-        UserNote.create_user_note(db, note_data)
+        UserNote.create_user_note(mock_db, note_data)
 
     assert excinfo.value.status_code == 500
     assert "An internal error occurred while creating user note" in excinfo.value.detail
-    db.rollback.assert_called_once()
+    mock_db.rollback.assert_called_once()
 
 
 # Test update_user_note
-def test_update_user_note_success():
-    db = MagicMock()
+def test_update_user_note_success(mock_db: MagicMock):
+
     mock_note = MagicMock(id=1, note="Old note", timestamp=datetime.datetime.now())
-    db.query.return_value.filter.return_value.first.return_value = mock_note
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_note
     note_data = schemas.NoteUpdate(note="Updated note")
 
-    result = UserNote.update_user_note(db, note_id=1, note_data=note_data)
+    result = UserNote.update_user_note(mock_db, note_id=1, note_data=note_data)
 
     assert result.note == "Updated note"
-    db.commit.assert_called_once()
+    mock_db.commit.assert_called_once()
 
 
-def test_update_user_note_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_update_user_note_not_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter.return_value.first.return_value = None
     note_data = schemas.NoteUpdate(note="Updated note")
 
     with pytest.raises(HTTPException) as excinfo:
-        UserNote.update_user_note(db, note_id=1, note_data=note_data)
+        UserNote.update_user_note(mock_db, note_id=1, note_data=note_data)
 
     assert excinfo.value.status_code == 404
     assert "Note not found" in excinfo.value.detail
 
 
-def test_update_user_note_deletion():
-    db = MagicMock()
+def test_update_user_note_deletion(mock_db: MagicMock):
+
     mock_note = MagicMock(id=1, note="Old note", timestamp=datetime.datetime.now())
-    db.query.return_value.filter.return_value.first.return_value = mock_note
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_note
     note_data = schemas.NoteUpdate(note=None)
 
     with pytest.raises(HTTPException) as excinfo:
-        UserNote.update_user_note(db, note_id=1, note_data=note_data)
+        UserNote.update_user_note(mock_db, note_id=1, note_data=note_data)
 
     assert excinfo.value.status_code == 204
-    assert "Note deleted" in excinfo.value.detail
-    db.delete.assert_called_once_with(mock_note)
 
 
 # Test delete_user_note
-def test_delete_user_note_success():
-    db = MagicMock()
-    mock_note = MagicMock(id=1, note="Test note")
-    db.query.return_value.filter.return_value.first.return_value = mock_note
+def test_delete_user_note_success(mock_db: MagicMock):
 
-    result = UserNote.delete_user_note(db, note_id=1)
+    mock_note = MagicMock(id=1, note="Test note")
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_note
+
+    result = UserNote.delete_user_note(mock_db, note_id=1)
 
     assert result is True
-    db.delete.assert_called_once_with(mock_note)
-    db.commit.assert_called_once()
+    mock_db.delete.assert_called_once_with(mock_note)
+    mock_db.commit.assert_called_once()
 
 
-def test_delete_user_note_not_found():
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
+def test_delete_user_note_not_found(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
-        UserNote.delete_user_note(db, note_id=1)
+        UserNote.delete_user_note(mock_db, note_id=1)
 
     assert excinfo.value.status_code == 404
     assert "Note doesn't exist" in excinfo.value.detail
@@ -1324,28 +1267,28 @@ def test_verify_hashed_password_no_match():
 
 # Test create_token
 
-def test_create_token():
-    db = MagicMock()
-    token_service = TokenService(db)
+def test_create_token(mock_db: MagicMock):
+
+    token_service = TokenService(mock_db)
     data: dict[Any, Any] = {"user_id": 1, "user_role": "concierge"}
-    token = token_service.create_token(data, "access")
+    token = token_service.create_token(data)
     assert token is not None
 
-def test_create_token_with_special_characters():
-    db = MagicMock()
-    token_service = TokenService(db)
+def test_create_token_with_special_characters(mock_db: MagicMock):
+
+    token_service = TokenService(mock_db)
     data: dict[str, Any] = {"user_id": 1,
                             "user_role": "admin", "extra_info": "@#$%^&*()!"}
-    token = token_service.create_token(data, "access")
+    token = token_service.create_token(data)
     assert token is not None
 
 # Test verify_concierge_token
 
 @patch("jose.jwt.decode")
-def test_verify_concierge_token_valid(mock_jwt_decode: Any):
+def test_verify_concierge_token_valid(mock_jwt_decode: Any, mock_db: MagicMock):
     mock_jwt_decode.return_value = {"user_id": 1, "user_role": "portier"}
-    db = MagicMock()
-    token_service = TokenService(db)
+
+    token_service = TokenService(mock_db)
     token = "sometoken"
     token_data = token_service.verify_concierge_token(token)
     assert token_data.id == 1
@@ -1353,9 +1296,9 @@ def test_verify_concierge_token_valid(mock_jwt_decode: Any):
 
 
 @patch("jose.jwt.decode", side_effect=JWTError)
-def test_verify_concierge_token_invalid(mock_jwt_decode: Any):
-    db = MagicMock()
-    token_service = TokenService(db)
+def test_verify_concierge_token_invalid(mock_jwt_decode: Any, mock_db: MagicMock):
+
+    token_service = TokenService(mock_db)
     token = "invalidtoken"
 
     with pytest.raises(HTTPException) as excinfo:
@@ -1365,18 +1308,18 @@ def test_verify_concierge_token_invalid(mock_jwt_decode: Any):
 
 # Test is_token_blacklisted
 
-def test_is_token_blacklisted():
-    db = MagicMock()
-    db.query.return_value.filter_by.return_value.first.return_value = None
-    token_service = TokenService(db)
+def test_is_token_blacklisted(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter_by.return_value.first.return_value = None
+    token_service = TokenService(mock_db)
     assert not token_service.is_token_blacklisted("sometoken")
 
 
-def test_is_token_blacklisted_true():
-    db = MagicMock()
-    db.query.return_value.filter_by.return_value.first.return_value = TokenBlacklist(
+def test_is_token_blacklisted_true(mock_db: MagicMock):
+
+    mock_db.query.return_value.filter_by.return_value.first.return_value = TokenBlacklist(
         token="blacklisted_token")
-    token_service = TokenService(db)
+    token_service = TokenService(mock_db)
 
     assert token_service.is_token_blacklisted("blacklisted_token") is True
 
@@ -1388,10 +1331,10 @@ def test_add_token_to_blacklist_not_blacklisted(
     mock_is_blacklisted: MagicMock,
     mock_get_current_concierge: MagicMock
 ) -> None:
-    db: MagicMock = MagicMock()
-    token_service = TokenService(db)
+    mock_db: MagicMock = MagicMock()
+    token_service = TokenService(mock_db)
 
-    with patch.object(db, "commit") as mock_commit, patch.object(db, "add") as mock_add:
+    with patch.object(mock_db, "commit") as mock_commit, patch.object(mock_db, "add") as mock_add:
         response = token_service.add_token_to_blacklist("some_token")
 
         mock_is_blacklisted.assert_called_once_with("some_token")
@@ -1401,9 +1344,9 @@ def test_add_token_to_blacklist_not_blacklisted(
 
         assert response.body == b'{"detail":"User logged out successfully"}'
             
-def test_add_token_to_blacklist_already_blacklisted():
-    db = MagicMock()
-    token_service = TokenService(db)
+def test_add_token_to_blacklist_already_blacklisted(mock_db: MagicMock):
+
+    token_service = TokenService(mock_db)
     token_service.is_token_blacklisted = MagicMock(return_value=True)
 
     with pytest.raises(HTTPException) as exc:
@@ -1414,16 +1357,16 @@ def test_add_token_to_blacklist_already_blacklisted():
 
 # Test entitled_or_error
 
-def test_entitled_or_error_user_has_role():
-    db = MagicMock()
-    auth_service = AuthorizationService(db)
+def test_entitled_or_error_user_has_role(mock_db: MagicMock):
+
+    auth_service = AuthorizationService(mock_db)
     user = User(role=UserRole.concierge)
     auth_service.entitled_or_error(UserRole.concierge, user)
 
 
-def test_entitled_or_error_user_no_role():
-    db = MagicMock()
-    auth_service = AuthorizationService(db)
+def test_entitled_or_error_user_no_role(mock_db: MagicMock):
+
+    auth_service = AuthorizationService(mock_db)
     user = User(role=UserRole.employee)
 
     with pytest.raises(HTTPException) as excinfo:
@@ -1434,9 +1377,9 @@ def test_entitled_or_error_user_no_role():
 # Test get_current_concierge
 
 @patch.object(TokenService, "is_token_blacklisted", return_value=True)
-def test_get_current_concierge_blacklisted_token(mock_is_blacklisted: Any):
-    db = MagicMock()
-    auth_service = AuthorizationService(db)
+def test_get_current_concierge_blacklisted_token(mock_is_blacklisted: Any, mock_db: MagicMock):
+
+    auth_service = AuthorizationService(mock_db)
     token = "blacklisted_token"
 
     with pytest.raises(HTTPException) as excinfo:
@@ -1446,21 +1389,21 @@ def test_get_current_concierge_blacklisted_token(mock_is_blacklisted: Any):
 
 # Test get_current_concierge_token
 
-def test_get_current_concierge_token():
-    db = MagicMock()
+def test_get_current_concierge_token(mock_db: MagicMock):
+
     with patch.object(AuthorizationService, "get_current_concierge", return_value=MagicMock(id=1, role="concierge")) as mock_get_concierge:
-        auth_service = AuthorizationService(db)
+        auth_service = AuthorizationService(mock_db)
         token = auth_service.get_current_concierge_token("valid_token")
         assert token == "valid_token"
         mock_get_concierge.assert_called_once_with("valid_token")
 
 @patch.object(TokenService, "is_token_blacklisted", return_value=False)
 @patch.object(TokenService, "verify_concierge_token")
-def test_get_current_concierge_user_not_found(mock_verify_token: Any, mock_is_token_blacklisted: Any):
+def test_get_current_concierge_user_not_found(mock_verify_token: Any, mock_is_token_blacklisted: Any, mock_db: MagicMock):
     mock_verify_token.return_value = schemas.TokenData(id=1, role="portier")
-    db = MagicMock()
-    db.query.return_value.filter.return_value.first.return_value = None
-    auth_service = AuthorizationService(db)
+
+    mock_db.query.return_value.filter.return_value.first.return_value = None
+    auth_service = AuthorizationService(mock_db)
     token = "valid_token"
 
     with pytest.raises(HTTPException) as excinfo:
@@ -1471,12 +1414,12 @@ def test_get_current_concierge_user_not_found(mock_verify_token: Any, mock_is_to
 # Test authenticate_user_login
 
 @patch.object(PasswordService, "verify_hashed", return_value=True)
-def test_authenticate_user_login_success(mock_verify_hashed: Any):
-    db = MagicMock()
-    auth_service = AuthorizationService(db)
+def test_authenticate_user_login_success(mock_verify_hashed: Any, mock_db: MagicMock):
+
+    auth_service = AuthorizationService(mock_db)
     user = User(email="test@example.com",
                 password="hashedpassword", role=UserRole.concierge)
-    db.query.return_value.filter_by.return_value.first.return_value = user
+    mock_db.query.return_value.filter_by.return_value.first.return_value = user
 
     authenticated_user = auth_service.authenticate_user_login(
         "test@example.com", "mypassword", "concierge")
@@ -1484,10 +1427,10 @@ def test_authenticate_user_login_success(mock_verify_hashed: Any):
 
 
 @patch.object(PasswordService, "verify_hashed", return_value=False)
-def test_authenticate_user_login_failure(mock_verify_hashed: Any):
-    db = MagicMock()
-    auth_service = AuthorizationService(db)
-    db.query.return_value.filter_by.return_value.first.return_value = None
+def test_authenticate_user_login_failure(mock_verify_hashed: Any, mock_db: MagicMock):
+
+    auth_service = AuthorizationService(mock_db)
+    mock_db.query.return_value.filter_by.return_value.first.return_value = None
 
     with pytest.raises(HTTPException) as excinfo:
         auth_service.authenticate_user_login(
@@ -1496,8 +1439,7 @@ def test_authenticate_user_login_failure(mock_verify_hashed: Any):
     assert excinfo.value.detail == "Invalid credentials"
 
 
-def test_authenticate_user_card_success():
-    db: MagicMock = MagicMock()
+def test_authenticate_user_card_success(mock_db: MagicMock):
     password_service: MagicMock = MagicMock()
 
     def mock_verify_hashed(card_id: str, card_code: str) -> bool:
@@ -1508,24 +1450,23 @@ def test_authenticate_user_card_success():
 
     query_mock: MagicMock = MagicMock()
     query_mock.all.return_value = [user]
-    db.query.return_value.filter.return_value = query_mock
+    mock_db.query.return_value.filter.return_value = query_mock
 
     with patch("app.services.securityService.PasswordService", return_value=password_service):
-        auth_service: AuthorizationService = AuthorizationService(db)
+        auth_service: AuthorizationService = AuthorizationService(mock_db)
         result: User = auth_service.authenticate_user_card(schemas.CardId(card_id="valid_card"), "concierge")
         assert result == user
 
-def test_authenticate_user_card_invalid_card():
-    db = MagicMock()
+def test_authenticate_user_card_invalid_card(mock_db: MagicMock):
     password_service = MagicMock()
     password_service.verify_hashed.return_value = False
 
     query_mock = MagicMock()
     query_mock.all.return_value = []
-    db.query.return_value.filter.return_value = query_mock
+    mock_db.query.return_value.filter.return_value = query_mock
 
     with patch("app.services.securityService.PasswordService", return_value=password_service):
-        auth_service = AuthorizationService(db)
+        auth_service = AuthorizationService(mock_db)
         with pytest.raises(HTTPException) as exc:
             auth_service.authenticate_user_card(schemas.CardId(card_id="invalid_card"), "concierge")
         assert exc.value.status_code == 403

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from app import database, oauth2, schemas
@@ -193,7 +193,13 @@ def get_session_id(session_id: int,
     logger.info(
         f"GET request to retrieve session with ID {session_id}.")
     
-    return moperation.UserSession.get_session_id(db, session_id)
+    session = moperation.UserSession.get_session_id(db, session_id)
+    if not session:
+        logger.warning(f"Session with ID {session_id} not found.")
+        raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
+
+    logger.debug(f"Retrieved session")
+    return session
 
 
 @router.post("/approve/login/session/{session_id}",
@@ -211,7 +217,7 @@ def get_session_id(session_id: int,
                                      "detail": "You cannot perform this operation without the concierge role"
                                  },
                                  "session_ended": {
-                                     "detail": "Session has been allready ended."
+                                     "detail": "Session has been already ended."
                                  }
                              }
                          }
@@ -292,7 +298,7 @@ def approve_session_login(session_id: int = Path(description="Unique identifier 
                                      "detail": "You cannot perform this operation without the concierge role"
                                  },
                                  "session_ended": {
-                                     "detail": "Session has been allready ended."
+                                     "detail": "Session has been already ended."
                                  }
                              }
                          }
@@ -369,7 +375,7 @@ def approve_session_card(
                      "content": {
                          "application/json": {
                              "example": {
-                                     "detail": "Session has been allready ended."
+                                     "detail": "Session has been already ended."
                              }
                          }
                      }

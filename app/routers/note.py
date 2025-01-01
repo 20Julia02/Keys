@@ -13,7 +13,7 @@ router = APIRouter(
 
 
 @router.get("/users", response_model=Sequence[schemas.UserNote], responses={
-    404: {
+    204: {
         "description": "If no user notes are found that match the given criteria",
         "content": {
             "application/json": {
@@ -41,7 +41,7 @@ def get_user_notes_filtered(user_id: Optional[int] = None,
 
 
 @router.get("/users/{note_id}", response_model=schemas.UserNote, responses={
-    404: {
+    204: {
         "description": "If no user note with the given ID exists in the database",
         "content": {
             "application/json": {
@@ -146,7 +146,7 @@ def edit_user_note(note_id: int,
 
 
 @router.get("/devices", response_model=Sequence[schemas.DeviceNoteOut], responses={
-    404: {
+    204: {
         "description": "If no device notes match the criteria",
         "content": {
             "application/json": {
@@ -175,7 +175,7 @@ def get_devices_notes_filtered(device_id: Optional[int] = None,
 
 
 @router.get("/devices/{note_id}", response_model=schemas.DeviceNote, responses={
-    404: {
+    204: {
         "description": "If no device note with the given ID exists",
         "content": {
             "application/json": {

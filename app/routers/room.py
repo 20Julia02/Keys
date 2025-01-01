@@ -86,6 +86,16 @@ def get_room_id(room_id: int,
                          }
                      }
                  },
+                 400: {
+                     "description": "If a room with the specified number already exists.",
+                     "content": {
+                         "application/json": {
+                             "example": {
+                                 "detail": "Room with this number already exists"
+                             }
+                         }
+                     }
+                 },
                  500: {
                      "description": "If an internal error occurs during the commit",
                      "content": {

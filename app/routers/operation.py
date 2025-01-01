@@ -51,15 +51,15 @@ def change_status(
     Changes the status of a device based on the session, user permissions, and an optional force flag.
 
     Functionality:
-    - Determines the next operation type (pobranie or zwrot) based on the last approved operation for the device.
+    - Determines the next operation type (retrieval or return) based on the last approved operation for the device.
     - Validates user permissions to ensure the user is entitled to perform the operation:
-        - If the user does not have permission, the force flag is not set, and the next operation type is pobranie, 
+        - If the user does not have permission, the force flag is not set, and the next operation type is retrieval, 
         the operation is denied with an appropriate error message.
     - Handles rescanning of the device within the current session:
-        - If the detected operation type is pobranie (retrieval), rescanning is treated as a zwrot (return). In this case:
+        - If the detected operation type is retrieval, rescanning is treated as a return. In this case:
             - Even if the user does not have permission and the force flag is not set, 
             no error is raised and the unapproved operation is removed.
-        - If the detected operation type is zwrot (return), rescanning is treated as a pobranie (retrieval). In this case:
+        - If the detected operation type is return, rescanning is treated as a retrieval. In this case:
             - If the user does not have permission and the force flag is not set, an error is raised. 
             Otherwise, the unapproved operation is removed.
     - If the operation is not a repeated scan, the user is entitled, or the force flag is set, 
@@ -69,8 +69,15 @@ def change_status(
     logger.info(f"POST request to change device status")
     
     device = mdevice.Device.get_dev_by_code(db, request.device_code)
+    if not device:
+            logger.warning(f"Device with code {request.device_code} not found.")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="Device not found")
     session = moperation.UserSession.get_session_id(db, request.session_id)
-
+    if not session:
+        logger.warning(f"Session with ID {request.session_id} not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="Session doesn't exist")
     last_operation = moperation.DeviceOperation.get_last_dev_operation_or_none(db,
                                                                                device.id)
     entitled = mpermission.Permission.check_if_permitted(
@@ -165,8 +172,12 @@ def get_unapproved_operations(session_id: Optional[int] = None,
     """
     logger.info(
         f"GET request to retrieve the unapproved operations with operation_type: {operation_type}")
-    
-    return moperation.UnapprovedOperation.get_unapproved_filtered(db, session_id, operation_type)
+    unapproved = moperation.UnapprovedOperation.get_unapproved_filtered(db, session_id, operation_type)
+    if not unapproved:
+            logger.warning(
+                f"No unapproved operations found that match given criteria")
+            raise HTTPException(status_code=status.HTTP_204_NO_CONTENT)
+    return unapproved
 
 
 @router.get("/", response_model=Sequence[schemas.DevOperationOut], responses={
@@ -237,7 +248,6 @@ def get_last_dev_operation_or_none(device_id: int,
 
     This endpoint fetches the latest operation associated with a given device ID.
     If no operations exist for the device, the response will be `None`.
-
     """
     logger.info(
         f"GET request to retrieve the operations for device with ID: {device_id}")
