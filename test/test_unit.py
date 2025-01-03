@@ -241,6 +241,7 @@ def test_get_by_code_found(mock_db: MagicMock):
 
     found_device = mdevice.Device.get_dev_by_code(
         mock_db, dev_code="device_key_101")
+    assert found_device
     assert found_device.code == "device_key_101"
 
 # Test create_dev

@@ -17,7 +17,7 @@ router = APIRouter(
 
 
 @router.get("/", response_model=Sequence[PermissionOut], responses={
-    404: {
+    204: {
         "description": "If no permissions are found that match the given criteria",
         "content": {
             "application/json": {

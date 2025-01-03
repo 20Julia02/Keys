@@ -788,22 +788,22 @@ def test_get_last_dev_operation_invalid_id(db: Session,
 
 # get_permissions
 
-def test_get_permission_with_valid_user_id(db: Session,
+def test_get_permission_with_valid_user_surname(db: Session,
                                            test_concierge: muser.User,
                                            test_user: muser.User,
                                            test_room: mdevice.Room,
                                            concierge_token: str):
     response = client.get(
-        f"/permissions?user_id={test_user.id}",
+        f"/permissions?surname={test_user.surname}",
         headers={"Authorization": f"Bearer {concierge_token}"}
     )
     assert response.status_code == 200
     assert response.json()[0]["user"]["id"] == test_user.id
 
 
-def test_get_permission_with_invalid_user_id(test_concierge: muser.User,
+def test_get_permission_with_invalid_user_surname(test_concierge: muser.User,
                                              concierge_token: str):
-    response = client.get("/permissions?user_surname=-1",
+    response = client.get("/permissions?surname=-1",
                           headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 204
     assert response.text == ""

@@ -366,7 +366,8 @@ class Device(Base):
 
         if room_number:
             logger.debug(f"Applying filter for room_number: {room_number}")
-            query = query.filter(Room.number == room_number)
+            sanitized_number = room_number.strip().lower()
+            query = query.filter(func.lower(Room.number).ilike(f"{sanitized_number}%"))
 
         query = query.group_by(
             Device.id, Room.number, DeviceOperation.operation_type, User.name, User.surname, DeviceOperation.timestamp
@@ -416,7 +417,7 @@ class Device(Base):
     @classmethod
     def get_dev_by_code(cls,
                         db: Session,
-                        dev_code: str) -> "Device":
+                        dev_code: str) -> Union["Device", None]:
         """
         Retrieves a device by its unique code.
 
