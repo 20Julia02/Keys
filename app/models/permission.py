@@ -80,8 +80,9 @@ class Permission(Base):
         )
 
         if user_surname is not None:
-            logger.debug(f"Filtering permissions by user with surname: {user_surname}")
-            user_query = db.query(User.id).filter(User.surname == user_surname)
+            sanitized_surname = user_surname.strip().lower()
+            logger.debug(f"Filtering permissions by user with surname starting with: {sanitized_surname}")
+            user_query = db.query(User.id).filter(func.lower(User.surname).ilike(f"{sanitized_surname}%"))
             query = query.filter(Permission.user_id.in_(user_query))
 
         if room_id is not None:

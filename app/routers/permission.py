@@ -28,7 +28,7 @@ router = APIRouter(
         }
     },
 })
-def get_permissions(user_surname: Optional[str] = None,
+def get_permissions(surname: Optional[str] = None,
     room_id: Optional[int] = None,
     date: Optional[datetime.date] = Query(
         None, 
@@ -51,9 +51,9 @@ def get_permissions(user_surname: Optional[str] = None,
 
     """
     logger.info(
-        f"GET request to retrieve permissions by user_surname: {user_surname:}, room_id: {room_id}, date: {date}, start_time: {start_time}")
+        f"GET request to retrieve permissions by user_surname: {surname:}, room_id: {room_id}, date: {date}, start_time: {start_time}")
     
-    return mpermission.Permission.get_permissions(db, user_surname, room_id, date, start_time)
+    return mpermission.Permission.get_permissions(db, surname, room_id, date, start_time)
 
 
 @router.post("/",
