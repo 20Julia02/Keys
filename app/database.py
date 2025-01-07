@@ -3,6 +3,8 @@ from app.models import base
 from sqlalchemy.orm import sessionmaker
 from app.config import settings, logger
 import time
+from app.models.user import add_user_delete_trigger, add_unauthorized_delete_trigger
+from app.models.permission import add_delete_old_reservations_trigger
 
 SQLALCHEMY_DATABASE_URL = f'postgresql://{settings.db_username}:{settings.db_password}@{settings.db_hostname}:{settings.db_port}/{settings.db_name}'
 
@@ -16,9 +18,15 @@ def create_tables():
     Creates all tables in the database.
     """
     try:
-        logger.info("Creating all tables in the database.")
+        logger.debug("Creating all tables in the database.")
         base.Base.metadata.create_all(bind=engine)
-        logger.info("Tables created successfully.")
+        logger.debug("Tables created successfully.")
+        with SessionLocal() as db:
+            logger.debug("Adding triggers.")
+            add_user_delete_trigger(db)
+            add_unauthorized_delete_trigger(db)
+            add_delete_old_reservations_trigger(db)
+            logger.debug("Triggers added successfully.")
     except Exception as e:
         logger.error(f"Error while creating tables: {e}")
         raise

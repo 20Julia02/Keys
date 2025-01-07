@@ -1,6 +1,6 @@
-from sqlalchemy import and_, or_, CheckConstraint, Integer, case, func, ForeignKey, String, Date, Time, text, Table, Connection, event
+from sqlalchemy import and_, or_, CheckConstraint, Integer, case, func, ForeignKey, String, Date, Time, text
 from sqlalchemy.orm import relationship, mapped_column, Mapped, Session
-from typing import Optional, List, Any
+from typing import Optional, List
 import datetime
 from app.models.base import Base, timestamp
 from app.models.user import User
@@ -13,16 +13,16 @@ from app.config import logger
 class TokenBlacklist(Base):
     __tablename__ = 'token_blacklist'
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     token: Mapped[str] = mapped_column(String(255), unique=True)
     added_at: Mapped[Optional[timestamp]]
 
 
 class Permission(Base):
     __tablename__ = "permission"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
-    room_id: Mapped[int] = mapped_column(ForeignKey("room.id"))
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), index=True)
+    room_id: Mapped[int] = mapped_column(ForeignKey("room.id"), index=True)
     date: Mapped[datetime.date] = mapped_column(Date)
     start_time: Mapped[datetime.time] = mapped_column(Time)
     end_time: Mapped[datetime.time] = mapped_column(Time)
@@ -340,25 +340,31 @@ class Permission(Base):
         return permissions
 
 
-@event.listens_for(Permission.__table__, 'after_create')
-def delete_old_reservations(target: Table,
-                            connection: Connection,
-                            **kwargs: Any) -> None:
+def add_delete_old_reservations_trigger(db: Session):
     """
-    Deletes permissions older than one week after the `Permission` table is created.
-
-    This function is automatically invoked when the `Permission` table is created.
+    Adds a trigger to delete permissions older than one week on the `permission` table.
 
     Args:
-        target (Table): The table affected by the operation (`Permission` in this case).
-        connection (Connection): Database connection object used to execute the query.
-        **kwargs (Any): Additional arguments.
-
-    Returns:
-        None
+        db (Session): Database session object.
     """
-
-    one_week_ago = datetime.date.today() - datetime.timedelta(weeks=1)
-    delete_query = text(
-        f"DELETE FROM {target.name} WHERE date < :one_week_ago")
-    connection.execute(delete_query, {"one_week_ago": one_week_ago})
+    try:
+        db.execute(text("DROP TRIGGER IF EXISTS trigger_delete_old_reservations ON \"permission\";"))
+        db.execute(text("""
+            CREATE OR REPLACE FUNCTION delete_old_reservations()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                DELETE FROM permission WHERE date < CURRENT_DATE - INTERVAL '1 week';
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+        """))
+        db.execute(text("""
+            CREATE TRIGGER trigger_delete_old_reservations
+            AFTER INSERT OR UPDATE ON permission
+            FOR EACH ROW
+            EXECUTE FUNCTION delete_old_reservations();
+        """))
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise RuntimeError(f"Error creating trigger: {e}")

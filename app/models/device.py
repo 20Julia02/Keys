@@ -16,8 +16,8 @@ from app.models.base import get_enum_values
 class Room(Base):
     __tablename__ = "room"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    number: Mapped[str] = mapped_column(String(20), unique=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    number: Mapped[str] = mapped_column(String(20), unique=True)
 
     permissions = relationship("Permission", back_populates="room")
     devices = relationship("Device", back_populates="room")
@@ -259,8 +259,8 @@ class DeviceType(Enum):
 
 class Device(Base):
     __tablename__ = "device"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    code: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(String(50), unique=True)
     dev_type: Mapped[DeviceType] = mapped_column(
         SAEnum(DeviceType, values_callable=get_enum_values))
     room_id: Mapped[int] = mapped_column(ForeignKey(
@@ -568,7 +568,7 @@ class Device(Base):
 
 class DeviceNote(Base):
     __tablename__ = "device_note"
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     device_id: Mapped[int] = mapped_column(ForeignKey(
         "device.id", ondelete="CASCADE", onupdate="CASCADE"), index=True)
     note: Mapped[str]

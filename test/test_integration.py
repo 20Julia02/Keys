@@ -873,7 +873,7 @@ def test_create_permission_success(concierge_token: str,
     valid_permission_data: dict[str, Any] = {
         "user_id": test_user.id,
         "room_id": test_room.id,
-        "date": '2024-12-04',
+        "date": datetime.today().date().isoformat(),
         "start_time": "10:00:00",
         "end_time": "12:00:00"
     }
@@ -903,7 +903,7 @@ def test_update_permission_success(test_permission: mpermission.Permission,
     updated_permission: dict[str, Any] = {
         "user_id":test_user.id,
         "room_id":test_room.id,
-        "date":'2024-03-12',
+        "date": datetime.today().date().isoformat(),
         "start_time":"10:00:00",
         "end_time":"13:00:00"
         }
@@ -921,7 +921,7 @@ def test_update_permission_invalid_id(test_permission: mpermission.Permission,
     updated_permission: dict[str, Any] = {
         "user_id":test_user.id,
         "room_id":test_room.id,
-        "date":'2024-03-12',
+        "date": datetime.today().date().isoformat(),
         "start_time":"10:00:00",
         "end_time":"13:00:00"
         }
@@ -935,7 +935,7 @@ def test_update_permission_invalid_id(test_permission: mpermission.Permission,
 def test_update_permission_invalid_data(test_permission: mpermission.Permission, 
                                    concierge_token: str):
     updated_permission: dict[str, Any] = {
-        "date":'2024-03-12',
+        "date": datetime.today().date().isoformat(),
         "start_time":"10:00:00",
         "end_time":"13:00:00"
         }

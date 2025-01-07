@@ -20,14 +20,14 @@ SessionStatus = Literal["w trakcie", "potwierdzona", "odrzucona"]
 class UserSession(Base):
     __tablename__ = "session"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey(
-        "base_user.id", onupdate="RESTRICT", ondelete="SET NULL"))
+        "base_user.id", onupdate="RESTRICT", ondelete="SET NULL"), index=True)
     concierge_id: Mapped[int] = mapped_column(ForeignKey(
-        "user.id", onupdate="RESTRICT", ondelete="SET NULL"))
-    start_time: Mapped[datetime.datetime] = mapped_column(index=True)
+        "user.id", onupdate="RESTRICT", ondelete="SET NULL"), index=True)
+    start_time: Mapped[datetime.datetime]
     end_time: Mapped[Optional[datetime.datetime]]
-    status: Mapped[SessionStatus] = mapped_column(index=True)
+    status: Mapped[SessionStatus]
 
     device_operations: Mapped[List["DeviceOperation"]
                               ] = relationship(back_populates="session")
@@ -173,7 +173,7 @@ OperationType = Literal["pobranie", "zwrot"]
 
 class UnapprovedOperation(Base):
     __tablename__ = "operation_unapproved"
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     device_id: Mapped[int] = mapped_column(ForeignKey(
         "device.id", onupdate="CASCADE", ondelete="CASCADE"), index=True)
     session_id: Mapped[int] = mapped_column(ForeignKey(
@@ -451,11 +451,11 @@ class UnapprovedOperation(Base):
 class DeviceOperation(Base):
     __tablename__ = "device_operation"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     device_id: Mapped[int] = mapped_column(ForeignKey(
         "device.id", onupdate="CASCADE", ondelete="CASCADE"), index=True)
     session_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("session.id", onupdate="CASCADE", ondelete="SET NULL"))
+        ForeignKey("session.id", onupdate="CASCADE", ondelete="SET NULL"), index=True)
     operation_type: Mapped[OperationType] = mapped_column(index=True)
     entitled: Mapped[bool]
     timestamp: Mapped[datetime.datetime]
