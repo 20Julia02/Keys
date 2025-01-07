@@ -5,7 +5,6 @@ venv
 alembic/
 sql_script_example
 *.ini
-fake.py
 sql_script_example.txt
 settings.json
 app.log
