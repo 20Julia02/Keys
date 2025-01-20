@@ -264,7 +264,7 @@ class Device(Base):
     dev_type: Mapped[DeviceType] = mapped_column(
         SAEnum(DeviceType, values_callable=get_enum_values))
     room_id: Mapped[int] = mapped_column(ForeignKey(
-        "room.id", ondelete="RESTRICT", onupdate="RESTRICT"), index=True)
+        "room.id", ondelete="RESTRICT"), index=True)
     dev_version: Mapped[DeviceVersion] = mapped_column(
         SAEnum(DeviceVersion, values_callable=get_enum_values))
 
@@ -570,7 +570,7 @@ class DeviceNote(Base):
     __tablename__ = "device_note"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     device_id: Mapped[int] = mapped_column(ForeignKey(
-        "device.id", ondelete="CASCADE", onupdate="CASCADE"), index=True)
+        "device.id", ondelete="CASCADE"), index=True)
     note: Mapped[str]
     timestamp: Mapped[datetime.datetime] = mapped_column(
         TIMESTAMP(timezone=True), nullable=False, server_default=func.now())

@@ -49,7 +49,7 @@ class Faculty(enum.Enum):
 class User(BaseUser):
     __tablename__ = 'user'
     id: Mapped[int] = mapped_column(ForeignKey(
-        'base_user.id', ondelete="RESTRICT", onupdate="RESTRICT"), primary_key=True, autoincrement=True)
+        'base_user.id', ondelete="RESTRICT"), primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(50))
     surname: Mapped[str] = mapped_column(String(50))
     role: Mapped[UserRole] = mapped_column(
@@ -265,7 +265,7 @@ class User(BaseUser):
 class UnauthorizedUser(BaseUser):
     __tablename__ = "unauthorized_user"
     id: Mapped[int] = mapped_column(ForeignKey(
-        'base_user.id', ondelete="RESTRICT", onupdate="RESTRICT"), primary_key=True, autoincrement=True)
+        'base_user.id', ondelete="CASCADE"), primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(50))
     surname: Mapped[str] = mapped_column(String(50))
     email: Mapped[str] = mapped_column(String(50), unique=True)
@@ -755,41 +755,6 @@ class UserNote(Base):
                 raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                     detail="An internal error occurred while deleting user note")
         return True
-
-def add_user_delete_trigger(db: Session):
-    """
-    Adds a trigger to delete a related record in base_user when a record in user is deleted.
-
-    Args:
-        db (Session): Database session object.
-
-    Raises:
-        RuntimeError: If an error occurs during the creation of the trigger or function.
-    """
-    try:
-        db.execute(text("DROP TRIGGER IF EXISTS user_delete_trigger ON \"user\";"))
-
-        db.execute(text("""
-            CREATE OR REPLACE FUNCTION delete_base_user_on_user_delete()
-            RETURNS TRIGGER AS $$
-            BEGIN
-                DELETE FROM base_user WHERE id = OLD.id;
-                RETURN OLD;
-            END;
-            $$ LANGUAGE plpgsql;
-        """))
-        db.execute(text("""
-            CREATE TRIGGER user_delete_trigger
-            AFTER DELETE ON "user"
-            FOR EACH ROW
-            EXECUTE FUNCTION delete_base_user_on_user_delete();
-        """))
-        db.commit()
-        logger.debug("Trigger and function for user deletion added successfully.")
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error creating trigger or function: {e}")
-        raise RuntimeError(f"Failed to add user delete trigger: {e}")
 
 def add_unauthorized_delete_trigger(db: Session):
     """

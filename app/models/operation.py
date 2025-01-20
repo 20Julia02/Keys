@@ -22,9 +22,9 @@ class UserSession(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey(
-        "base_user.id", onupdate="RESTRICT", ondelete="SET NULL"), index=True)
+        "base_user.id", ondelete="SET NULL"), index=True)
     concierge_id: Mapped[int] = mapped_column(ForeignKey(
-        "user.id", onupdate="RESTRICT", ondelete="SET NULL"), index=True)
+        "user.id", ondelete="SET NULL"), index=True)
     start_time: Mapped[datetime.datetime]
     end_time: Mapped[Optional[datetime.datetime]]
     status: Mapped[SessionStatus]
@@ -175,9 +175,9 @@ class UnapprovedOperation(Base):
     __tablename__ = "operation_unapproved"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     device_id: Mapped[int] = mapped_column(ForeignKey(
-        "device.id", onupdate="CASCADE", ondelete="CASCADE"), index=True)
+        "device.id", ondelete="CASCADE"), index=True)
     session_id: Mapped[int] = mapped_column(ForeignKey(
-        "session.id", onupdate="CASCADE", ondelete="CASCADE"), index=True)
+        "session.id", ondelete="CASCADE"), index=True)
     operation_type: Mapped[OperationType]
     entitled: Mapped[bool]
     timestamp: Mapped[datetime.datetime]
@@ -453,9 +453,9 @@ class DeviceOperation(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     device_id: Mapped[int] = mapped_column(ForeignKey(
-        "device.id", onupdate="CASCADE", ondelete="CASCADE"), index=True)
+        "device.id", ondelete="CASCADE"), index=True)
     session_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("session.id", onupdate="CASCADE", ondelete="SET NULL"), index=True)
+        ForeignKey("session.id", ondelete="SET NULL"), index=True)
     operation_type: Mapped[OperationType] = mapped_column(index=True)
     entitled: Mapped[bool]
     timestamp: Mapped[datetime.datetime]
