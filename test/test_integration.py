@@ -1552,7 +1552,7 @@ def test_delete_unauthorized_user_valid(db: Session,
         f"/unauthorized-users/{user.id}", headers={"Authorization": f"Bearer {concierge_token}"})
     assert response.status_code == 204
 
-#users
+# #users
 
 #get_all_users
 

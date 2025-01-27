@@ -77,7 +77,6 @@ def test_user(db: Session) -> muser.User:
 @pytest.fixture(scope="module")
 def test_unauthorized_user(db: Session) -> muser.UnauthorizedUser:
     unauthorized_user = muser.UnauthorizedUser(
-        id=1,
         name="John",
         surname="Doe",
         email="john.doe@example.com",

@@ -136,12 +136,15 @@ def create_fake_device_operation(session: Session):
         if existing_device_operation:
             continue
 
+        hours_back = random.randint(0, 10)
+        timestamp = datetime.now() - timedelta(hours=hours_back)
+
         device_operation_data = models.operation.DeviceOperation(
             device_id=device.id,
             session_id=confirmed_session.id,
             operation_type=fake.random_element(elements=["pobranie", "zwrot"]),
             entitled=fake.boolean(),
-            timestamp=datetime.now()
+            timestamp=timestamp
         )
 
         try:
